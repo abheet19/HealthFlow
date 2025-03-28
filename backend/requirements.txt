@@ -1,0 +1,6 @@
+Werkzeug==2.2.3  # Pin Werkzeug to a version that still exports url_quote
+Flask==2.2.2
+flask-cors==3.0.10
+Pillow==9.5.0  # More stable version
+python-docx==0.8.11
+# ...existing packages...
