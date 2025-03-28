@@ -1,6 +1,12 @@
 import * as React from "react";
 import { useState } from "react";
-import { Button, FormControl, InputLabel, Select, MenuItem } from "@mui/material";
+import {
+  Button,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+} from "@mui/material";
 
 const ENTDashboard: React.FC = () => {
   // Left Ear fields
@@ -33,9 +39,13 @@ const ENTDashboard: React.FC = () => {
     setValue: (v: string) => void,
     options: string[] = ["Yes", "No"]
   ) => (
-    <FormControl variant="outlined" size="small" className="w-64">
+    <FormControl variant="outlined" size="small" className="w-full sm:w-64">
       <InputLabel>{label}</InputLabel>
-      <Select label={label} value={value} onChange={(e) => setValue(e.target.value as string)}>
+      <Select
+        label={label}
+        value={value}
+        onChange={(e) => setValue(e.target.value as string)}
+      >
         {options.map((opt) => (
           <MenuItem key={opt} value={opt}>
             {opt}
@@ -47,10 +57,24 @@ const ENTDashboard: React.FC = () => {
 
   const handleSubmit = async () => {
     if (
-      !leftEarDeformity || !leftEarWax || !leftEarTympanic || !leftEarDischarge || !leftEarNormHearing ||
-      !rightEarDeformity || !rightEarWax || !rightEarTympanic || !rightEarDischarge || !rightEarNormHearing ||
-      !leftNoseObstruction || !leftNoseDischarge || !rightNoseObstruction || !rightNoseDischarge ||
-      !throat || !throatPain || !neckNodes || !tonsils
+      !leftEarDeformity ||
+      !leftEarWax ||
+      !leftEarTympanic ||
+      !leftEarDischarge ||
+      !leftEarNormHearing ||
+      !rightEarDeformity ||
+      !rightEarWax ||
+      !rightEarTympanic ||
+      !rightEarDischarge ||
+      !rightEarNormHearing ||
+      !leftNoseObstruction ||
+      !leftNoseDischarge ||
+      !rightNoseObstruction ||
+      !rightNoseDischarge ||
+      !throat ||
+      !throatPain ||
+      !neckNodes ||
+      !tonsils
     ) {
       alert("Please fill all fields.");
       return;
@@ -83,54 +107,109 @@ const ENTDashboard: React.FC = () => {
   };
 
   return (
-    <div className="p-4 flex flex-col space-y-6">
-      <h1 className="text-2xl font-bold">ENT Examination Report</h1>
-      
-      <div>
-        <h2 className="text-xl font-semibold mb-2">Left Ear</h2>
-        <div className="flex flex-wrap gap-4">
-          {dropdown("Deformity", leftEarDeformity, setLeftEarDeformity)}
-          {dropdown("Wax", leftEarWax, setLeftEarWax)}
-          {dropdown("Tympanic Membrane", leftEarTympanic, setLeftEarTympanic, ["Seen", "Unseen"])}
-          {dropdown("Discharge", leftEarDischarge, setLeftEarDischarge)}
-          {dropdown("Normal Hearing", leftEarNormHearing, setLeftEarNormHearing)}
+    <div className="p-4 flex flex-col items-center bg-gray-50 min-h-screen">
+      <div className="bg-white shadow-lg rounded-lg p-6 w-full max-w-4xl">
+        <h1 className="text-3xl font-bold mb-6 text-gray-800">
+          ENT Examination Report
+        </h1>
+
+        <div className="border-b pb-4 mb-6">
+          <h2 className="text-xl font-semibold mb-4 text-gray-700">Left Ear</h2>
+          <div className="flex flex-wrap gap-2">
+            {dropdown("Deformity", leftEarDeformity, setLeftEarDeformity)}
+            {dropdown("Wax", leftEarWax, setLeftEarWax)}
+            {dropdown(
+              "Tympanic Membrane",
+              leftEarTympanic,
+              setLeftEarTympanic,
+              ["Seen", "Unseen"]
+            )}
+            {dropdown("Discharge", leftEarDischarge, setLeftEarDischarge)}
+            {dropdown(
+              "Normal Hearing",
+              leftEarNormHearing,
+              setLeftEarNormHearing
+            )}
+          </div>
+        </div>
+
+        <div className="border-b pb-4 mb-6">
+          <h2 className="text-xl font-semibold mb-4 text-gray-700">
+            Right Ear
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {dropdown("Deformity", rightEarDeformity, setRightEarDeformity)}
+            {dropdown("Wax", rightEarWax, setRightEarWax)}
+            {dropdown(
+              "Tympanic Membrane",
+              rightEarTympanic,
+              setRightEarTympanic,
+              ["Seen", "Unseen"]
+            )}
+            {dropdown("Discharge", rightEarDischarge, setRightEarDischarge)}
+            {dropdown(
+              "Normal Hearing",
+              rightEarNormHearing,
+              setRightEarNormHearing
+            )}
+          </div>
+        </div>
+
+        <div className="border-b pb-4 mb-6">
+          <h2 className="text-xl font-semibold mb-4 text-gray-700">Nose</h2>
+          <div className="flex flex-wrap gap-2">
+            {dropdown(
+              "Left Obstruction",
+              leftNoseObstruction,
+              setLeftNoseObstruction
+            )}
+            {dropdown(
+              "Left Discharge",
+              leftNoseDischarge,
+              setLeftNoseDischarge
+            )}
+            {dropdown(
+              "Right Obstruction",
+              rightNoseObstruction,
+              setRightNoseObstruction
+            )}
+            {dropdown(
+              "Right Discharge",
+              rightNoseDischarge,
+              setRightNoseDischarge
+            )}
+          </div>
+        </div>
+
+        <div className="border-b pb-4 mb-6">
+          <h2 className="text-xl font-semibold mb-4 text-gray-700">
+            Throat & Neck
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {dropdown("Throat", throat, setThroat)}
+            {dropdown("Throat Pain", throatPain, setThroatPain)}
+            {dropdown("Neck Nodes", neckNodes, setNeckNodes, [
+              "Present",
+              "Absent",
+            ])}
+            {dropdown("Tonsils", tonsils, setTonsils, [
+              "Enlarged",
+              "Not Enlarged",
+            ])}
+          </div>
+        </div>
+
+        <div className="flex justify-center mt-6">
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleSubmit}
+            className="w-full sm:w-64 bg-blue-500 hover:bg-blue-600 text-white"
+          >
+            Submit
+          </Button>
         </div>
       </div>
-      
-      <div>
-        <h2 className="text-xl font-semibold mb-2">Right Ear</h2>
-        <div className="flex flex-wrap gap-4">
-          {dropdown("Deformity", rightEarDeformity, setRightEarDeformity)}
-          {dropdown("Wax", rightEarWax, setRightEarWax)}
-          {dropdown("Tympanic Membrane", rightEarTympanic, setRightEarTympanic, ["Seen", "Unseen"])}
-          {dropdown("Discharge", rightEarDischarge, setRightEarDischarge)}
-          {dropdown("Normal Hearing", rightEarNormHearing, setRightEarNormHearing)}
-        </div>
-      </div>
-      
-      <div>
-        <h2 className="text-xl font-semibold mb-2">Nose</h2>
-        <div className="flex flex-wrap gap-4">
-          {dropdown("Left Obstruction", leftNoseObstruction, setLeftNoseObstruction)}
-          {dropdown("Left Discharge", leftNoseDischarge, setLeftNoseDischarge)}
-          {dropdown("Right Obstruction", rightNoseObstruction, setRightNoseObstruction)}
-          {dropdown("Right Discharge", rightNoseDischarge, setRightNoseDischarge)}
-        </div>
-      </div>
-      
-      <div>
-        <h2 className="text-xl font-semibold mb-2">Throat & Neck</h2>
-        <div className="flex flex-wrap gap-4">
-          {dropdown("Throat", throat, setThroat)}
-          {dropdown("Throat Pain", throatPain, setThroatPain)}
-          {dropdown("Neck Nodes", neckNodes, setNeckNodes, ["Present", "Absent"])}
-          {dropdown("Tonsils", tonsils, setTonsils, ["Enlarged", "Not Enlarged"])}
-        </div>
-      </div>
-      
-      <Button variant="contained" color="primary" onClick={handleSubmit} className="w-64">
-        Submit
-      </Button>
     </div>
   );
 };
