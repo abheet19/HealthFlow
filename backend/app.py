@@ -7,11 +7,19 @@ from io import BytesIO
 from docx import Document   # new import for report generation
 import uuid
 import random
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+import os
+from dotenv import load_dotenv
+from sqlalchemy import text
 
 app = Flask(__name__)
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
 logging.basicConfig(level=logging.INFO)
+
+# Load environment variables
+load_dotenv()
 
 # Global in-memory storage for submissions (prototype only)
 global_data = {
@@ -27,6 +35,11 @@ patient_counter = 0
 
 # Add a new variable to store the last used patient number
 LAST_PATIENT_NUMBER = 0
+
+# Add database configuration using environment variables
+DATABASE_URL = f"postgresql://{os.getenv('POSTGRES_USER')}:{os.getenv('POSTGRES_PASSWORD')}@{os.getenv('POSTGRES_HOST')}:{os.getenv('POSTGRES_PORT')}/{os.getenv('POSTGRES_DB')}"
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(bind=engine)
 
 # Log every API call
 @app.before_request
@@ -189,29 +202,84 @@ def generate_report():
 
 @app.route('/api/submit_patient', methods=['POST'])
 def submit_patient():
-    data = request.json
-    required_depts = ["it", "ent", "vision", "general", "dental"]
-    missing = [dept for dept in required_depts if dept not in data or not data[dept]]
-    if missing:
-        return jsonify({"error": f"Missing data for departments: {', '.join(missing)}"}), 400
-    # Simulate saving to the patients_db (actual DB logic goes here)
-    logging.info("Combined patient data received: %s", data)
-    return jsonify({"message": "Patient data submitted successfully."}), 200
+    try:
+        data = request.json
+        required_depts = ["it", "ent", "vision", "general", "dental"]
+        missing = [dept for dept in required_depts if dept not in data or not data[dept]]
+        
+        if missing:
+            return jsonify({"error": f"Missing data for departments: {', '.join(missing)}"}), 400
 
-# Add new endpoint for generating patient IDs
+        # Transform camelCase keys to snake_case for database
+        it_data = {
+            "name": data["it"]["name"],
+            "div": data["it"]["div"],
+            "rollno": data["it"]["rollNo"],
+            "adminno": data["it"]["adminNo"],
+            "fathername": data["it"]["fatherName"],
+            "mothername": data["it"]["motherName"],
+            "address": data["it"]["address"],
+            "mobile": data["it"]["mobile"],
+            "dob": data["it"]["dob"],
+            "gender": data["it"]["gender"],
+            "bloodgroup": data["it"]["bloodGroup"]
+        }
+
+        # Flatten nested data for database insertion
+        flat_data = {
+            "patient_id": data["patientId"],
+            **it_data,
+            **data["ent"],
+            **data["vision"],
+            **data["general"],
+            **data["dental"],
+            "created_at": datetime.now()
+        }
+
+        # Create database session
+        db = SessionLocal()
+        
+        # Build the query using SQLAlchemy text()
+        from sqlalchemy import text
+        columns = ", ".join(flat_data.keys())
+        values = ", ".join([":"+k for k in flat_data.keys()])
+        query = text(f"INSERT INTO patient_records ({columns}) VALUES ({values})")
+        
+        # Execute with parameters
+        db.execute(query, flat_data)
+        db.commit()
+        db.close()
+
+        return jsonify({"message": "Patient data submitted successfully."}), 200
+        
+    except Exception as e:
+        logging.error(f"Error saving patient data: {str(e)}")
+        db.rollback()  # Rollback on error
+        db.close()
+        return jsonify({"error": "Failed to save patient data"}), 500
+
+def get_last_patient_id():
+    try:
+        db = SessionLocal()
+        result = db.execute(text("SELECT MAX(CAST(patient_id AS INTEGER)) FROM patient_records"))
+        last_id = result.scalar()
+        db.close()
+        return int(last_id) if last_id else 0
+    except Exception as e:
+        logging.error(f"Error getting last patient ID: {str(e)}")
+        return 0
+
 @app.route('/api/generate_patient_id', methods=['POST'])
 def generate_patient_id():
     try:
-        global LAST_PATIENT_NUMBER
-        LAST_PATIENT_NUMBER += 1
+        # Get the last used ID from database
+        last_id = get_last_patient_id()
+        new_id = str(last_id + 1)
         
-        # Simply use the incremented number as the patient ID
-        patient_id = str(LAST_PATIENT_NUMBER)
+        logging.info(f"Generated new patient ID: {new_id}")
+        socketio.emit('newPatientId', new_id)
         
-        logging.info(f"Generated new patient ID: {patient_id}")
-        socketio.emit('newPatientId', patient_id)
-        
-        return jsonify({"patientId": patient_id, "success": True}), 200
+        return jsonify({"patientId": new_id, "success": True}), 200
         
     except Exception as e:
         logging.error(f"Error generating patient ID: {str(e)}")
