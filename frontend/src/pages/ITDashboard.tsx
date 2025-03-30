@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useState } from "react";
+import { useState, useContext, useEffect } from "react";
 import {
   Button,
   TextField,
@@ -8,6 +8,29 @@ import {
   Select,
   MenuItem,
 } from "@mui/material";
+import { PatientContext } from "../context/PatientContext";
+import io from 'socket.io-client';
+
+interface PatientData {
+  patientId?: string;
+  it?: {
+    name: string;
+    div: string;
+    rollNo: string;
+    adminNo: string;
+    fatherName: string;
+    motherName: string;
+    address: string;
+    mobile: string;
+    dob: string;
+    gender: string;
+    bloodGroup: string;
+  };
+  ent?: Record<string, any>;
+  vision?: Record<string, any>;
+  general?: Record<string, any>;
+  dental?: Record<string, any>;
+}
 
 const ITDashboard: React.FC = () => {
   const [name, setName] = useState("");
@@ -22,6 +45,79 @@ const ITDashboard: React.FC = () => {
   const [gender, setGender] = useState("");
   const [bloodGroup, setBloodGroup] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
+  const { patientData, updatePatientId, updateDepartment, resetPatientData } = useContext(PatientContext);
+
+  // Add new state for tracking department completions
+  const [completedDepts, setCompletedDepts] = useState<string[]>([]);
+
+  // Load IT form state if stored data exists
+  useEffect(() => {
+    if (patientData.it) {
+      setName(patientData.it.name || "");
+      setDiv(patientData.it.div || "");
+      setRollNo(patientData.it.rollNo || "");
+      setAdminNo(patientData.it.adminNo || "");
+      setFatherName(patientData.it.fatherName || "");
+      setMotherName(patientData.it.motherName || "");
+      setAddress(patientData.it.address || "");
+      setMobile(patientData.it.mobile || "");
+      setDob(patientData.it.dob || "");
+      setGender(patientData.it.gender || "");
+      setBloodGroup(patientData.it.bloodGroup || "");
+    }
+  }, [patientData.it]);
+
+  // Add debounced update
+  const debouncedUpdate = React.useCallback(
+    debounce((data: Record<string, any>) => {
+      updateDepartment("it", data);
+    }, 500),
+    [updateDepartment]
+  );
+
+  const handleInputChange = (field: string, value: string) => {
+    // Update local state
+    switch(field) {
+      case 'name': setName(value); break;
+      case 'div': setDiv(value); break;
+      case 'rollNo': setRollNo(value); break;
+      case 'adminNo': setAdminNo(value); break;
+      case 'fatherName': setFatherName(value); break;
+      case 'motherName': setMotherName(value); break;
+      case 'address': setAddress(value); break;
+      case 'mobile': setMobile(value); break;
+      case 'dob': setDob(value); break;
+      case 'gender': setGender(value); break;
+      case 'bloodGroup': setBloodGroup(value); break;
+    }
+
+    // Debounced context update
+    debouncedUpdate({
+      name: field === 'name' ? value : name,
+      div: field === 'div' ? value : div,
+      rollNo: field === 'rollNo' ? value : rollNo,
+      adminNo: field === 'adminNo' ? value : adminNo,
+      fatherName: field === 'fatherName' ? value : fatherName,
+      motherName: field === 'motherName' ? value : motherName,
+      address: field === 'address' ? value : address,
+      mobile: field === 'mobile' ? value : mobile,
+      dob: field === 'dob' ? value : dob,
+      gender: field === 'gender' ? value : gender,
+      bloodGroup: field === 'bloodGroup' ? value : bloodGroup,
+    });
+  };
+
+  // Update completed departments whenever patientData changes
+  useEffect(() => {
+    const completed = ['ent', 'vision', 'general', 'dental'].filter(
+      dept => {
+        const deptData = patientData[dept as keyof PatientData];
+        return deptData && Object.keys(deptData).length > 0;
+      }
+    );
+    console.log('Departments completed:', completed); // Debug log
+    setCompletedDepts(completed);
+  }, [patientData]); // This will run whenever any department updates their data
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -29,42 +125,195 @@ const ITDashboard: React.FC = () => {
     }
   };
 
-  const handleSubmit = async () => {
-    if (
-      !name ||
-      !div ||
-      !rollNo ||
-      !adminNo ||
-      !fatherName ||
-      !motherName ||
-      !address ||
-      !mobile ||
-      !dob ||
-      !gender ||
-      !bloodGroup ||
-      !photo
-    ) {
-      alert("Please fill all fields and attach a photo.");
+  const generatePatientId = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/generate_patient_id', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Generate ID response:', data); // Debug log
+      
+      if (data.success && data.patientId) {
+        updatePatientId(data.patientId);
+        resetForm();
+      } else {
+        throw new Error('No patient ID in response');
+      }
+    } catch (error) {
+      console.error('Error generating patient ID:', error);
+      alert('Failed to generate patient ID. Please try again.');
+    }
+  };
+
+  const resetForm = () => {
+    setName("");
+    setDiv("");
+    setRollNo("");
+    setAdminNo("");
+    setFatherName("");
+    setMotherName("");
+    setAddress("");
+    setMobile("");
+    setDob("");
+    setGender("");
+    setBloodGroup("");
+    setPhoto(null);
+  };
+
+  const validateITData = () => {
+    const requiredFields = {
+      name,
+      div,
+      rollNo,
+      adminNo,
+      fatherName,
+      motherName,
+      address,
+      mobile,
+      dob,
+      gender,
+      bloodGroup
+    };
+
+    if (!photo) {
+      alert('Please select a patient photo');
+      return false;
+    }
+
+    const emptyFields = Object.entries(requiredFields)
+      .filter(([_, value]) => !value)
+      .map(([key]) => key);
+
+    if (emptyFields.length > 0) {
+      alert(`Please fill in all required IT fields: ${emptyFields.join(', ')}`);
+      return false;
+    }
+    
+    return true;
+  };
+
+  const handleFinalSubmit = async () => {
+    if (!patientData.patientId) {
+      alert("Please generate a Patient ID first.");
       return;
     }
-    const formData = new FormData();
-    formData.append("name", name);
-    formData.append("div", div);
-    formData.append("roll_no", rollNo);
-    formData.append("admin_no", adminNo);
-    formData.append("father_name", fatherName);
-    formData.append("mother_name", motherName);
-    formData.append("address", address);
-    formData.append("mobile", mobile);
-    formData.append("dob", dob);
-    formData.append("gender", gender);
-    formData.append("blood_group", bloodGroup);
-    formData.append("photo", photo);
-    await fetch("http://localhost:5000/api/it", {
-      method: "POST",
-      body: formData,
-    });
-    // ...handle response...
+
+    // First validate IT data including photo
+    if (!validateITData()) {
+      return;
+    }
+
+    // Then check other departments
+    const required = ["ent", "vision", "general", "dental"];
+    for (const dept of required) {
+      if (!(patientData as any)[dept]) {
+        alert(`Data for ${dept.toUpperCase()} department is missing.`);
+        return;
+      }
+    }
+
+    const combinedData = {
+      patientId: patientData.patientId!,
+      it: { name, div, rollNo, adminNo, fatherName, motherName, address, mobile, dob, gender, bloodGroup },
+      ent: patientData.ent,
+      vision: patientData.vision,
+      general: patientData.general,
+      dental: patientData.dental
+    };
+
+    try {
+      const res = await fetch("http://localhost:5000/api/submit_patient", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(combinedData)
+      });
+      const result = await res.json();
+      if (result.message === "Patient data submitted successfully.") {
+        alert("Patient data submitted successfully.");
+        resetForm();
+        resetPatientData(); // This will now broadcast the reset to all clients
+      } else {
+        alert(result.message);
+      }
+    } catch (error) {
+      alert("Error submitting patient data.");
+    }
+  };
+
+  const renderDataSummary = () => {
+    const departments = [
+      { name: 'Vision', data: patientData.vision },
+      { name: 'ENT', data: patientData.ent },
+      { name: 'General', data: patientData.general },
+      { name: 'Dental', data: patientData.dental }
+    ];
+
+    return (
+      <div className="mt-6">
+        <h2 className="text-xl font-bold mb-4">Department Status & Summary</h2>
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          {['ENT', 'Vision', 'General', 'Dental'].map(dept => (
+            <div 
+              key={dept} 
+              className={`p-3 rounded-lg border ${
+                completedDepts.includes(dept.toLowerCase()) 
+                  ? 'bg-green-100 border-green-500' 
+                  : 'bg-gray-100 border-gray-300'
+              }`}
+            >
+              <div className="font-medium">{dept}</div>
+              <div className="text-sm">
+                {completedDepts.includes(dept.toLowerCase()) 
+                  ? 'Completed ✓' 
+                  : 'Pending...'}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+          <h3 className="font-semibold mb-2">Patient Information</h3>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <p><span className="font-medium">Name:</span> {name || '-'}</p>
+              <p><span className="font-medium">Division:</span> {div || '-'}</p>
+              <p><span className="font-medium">Roll No:</span> {rollNo || '-'}</p>
+              <p><span className="font-medium">Admin No:</span> {adminNo || '-'}</p>
+            </div>
+            <div>
+              <p><span className="font-medium">Gender:</span> {gender || '-'}</p>
+              <p><span className="font-medium">DOB:</span> {dob || '-'}</p>
+              <p><span className="font-medium">Blood Group:</span> {bloodGroup || '-'}</p>
+              <p><span className="font-medium">Mobile:</span> {mobile || '-'}</p>
+            </div>
+          </div>
+        </div>
+
+        {departments.map(dept => dept.data && (
+          <div key={dept.name} className="bg-white rounded-lg shadow-sm p-4 mb-4">
+            <h3 className="font-semibold mb-2">{dept.name} Department Summary</h3>
+            <div className="text-sm grid grid-cols-2 gap-x-4 gap-y-1">
+              {Object.entries(dept.data).map(([key, value]) => (
+                <div key={key}>
+                  <span className="font-medium">
+                    {key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}:
+                  </span>{' '}
+                  {value?.toString() || '-'}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   };
 
   return (
@@ -82,28 +331,32 @@ const ITDashboard: React.FC = () => {
               variant="outlined"
               size="small"
               className="w-full sm:w-64"
-              onChange={(e) => setName(e.target.value)}
+              value={name}
+              onChange={(e) => handleInputChange('name', e.target.value)}
             />
             <TextField
               label="DIV"
               variant="outlined"
               size="small"
               className="w-full sm:w-64"
-              onChange={(e) => setDiv(e.target.value)}
+              value={div}
+              onChange={(e) => handleInputChange('div', e.target.value)}
             />
             <TextField
               label="Roll No"
               variant="outlined"
               size="small"
               className="w-full sm:w-64"
-              onChange={(e) => setRollNo(e.target.value)}
+              value={rollNo}
+              onChange={(e) => handleInputChange('rollNo', e.target.value)}
             />
             <TextField
               label="Admin No"
               variant="outlined"
               size="small"
               className="w-full sm:w-64"
-              onChange={(e) => setAdminNo(e.target.value)}
+              value={adminNo}
+              onChange={(e) => handleInputChange('adminNo', e.target.value)}
             />
           </div>
         </div>
@@ -118,28 +371,32 @@ const ITDashboard: React.FC = () => {
               variant="outlined"
               size="small"
               className="w-full sm:w-64"
-              onChange={(e) => setFatherName(e.target.value)}
+              value={fatherName}
+              onChange={(e) => handleInputChange('fatherName', e.target.value)}
             />
             <TextField
               label="Mother's Name"
               variant="outlined"
               size="small"
               className="w-full sm:w-64"
-              onChange={(e) => setMotherName(e.target.value)}
+              value={motherName}
+              onChange={(e) => handleInputChange('motherName', e.target.value)}
             />
             <TextField
               label="Address"
               variant="outlined"
               size="small"
               className="w-full sm:w-64"
-              onChange={(e) => setAddress(e.target.value)}
+              value={address}
+              onChange={(e) => handleInputChange('address', e.target.value)}
             />
             <TextField
               label="Mobile"
               variant="outlined"
               size="small"
               className="w-full sm:w-64"
-              onChange={(e) => setMobile(e.target.value)}
+              value={mobile}
+              onChange={(e) => handleInputChange('mobile', e.target.value)}
             />
           </div>
         </div>
@@ -156,7 +413,8 @@ const ITDashboard: React.FC = () => {
               variant="outlined"
               size="small"
               className="w-full sm:w-64"
-              onChange={(e) => setDob(e.target.value)}
+              value={dob}
+              onChange={(e) => handleInputChange('dob', e.target.value)}
             />
             <FormControl
               variant="outlined"
@@ -167,7 +425,7 @@ const ITDashboard: React.FC = () => {
               <Select
                 label="Gender"
                 value={gender}
-                onChange={(e) => setGender(e.target.value as string)}
+                onChange={(e) => handleInputChange('gender', e.target.value as string)}
               >
                 <MenuItem value="Male">Male</MenuItem>
                 <MenuItem value="Female">Female</MenuItem>
@@ -183,11 +441,11 @@ const ITDashboard: React.FC = () => {
               <Select
                 label="Blood Group"
                 value={bloodGroup}
-                onChange={(e) => setBloodGroup(e.target.value as string)}
+                onChange={(e) => handleInputChange('bloodGroup', e.target.value as string)}
               >
                 <MenuItem value="A+">A+</MenuItem>
                 <MenuItem value="A-">A-</MenuItem>
-                <MenuItem value="B+">B+</MenuItem>
+                <MenuItem value="B+">B+</MenuItem>  {/* Fixed closing tag */}
                 <MenuItem value="B-">B-</MenuItem>
                 <MenuItem value="O+">O+</MenuItem>
                 <MenuItem value="O-">O-</MenuItem>
@@ -198,6 +456,7 @@ const ITDashboard: React.FC = () => {
             <input
               type="file"
               accept="image/*"
+              required
               capture="environment"
               onChange={handlePhotoChange}
               className="w-full sm:w-64"
@@ -205,19 +464,46 @@ const ITDashboard: React.FC = () => {
           </div>
         </div>
 
+        <div className="mb-6">
+          {patientData.patientId ? (
+            <div className="text-lg mb-4">
+              Patient ID: <span className="font-bold">{patientData.patientId}</span>
+            </div>
+          ) : (
+            <Button variant="outlined" onClick={generatePatientId} className="mb-4">
+              Generate Patient ID
+            </Button>
+          )}
+        </div>
+
         <div className="flex justify-center mt-6">
           <Button
             variant="contained"
             color="primary"
-            onClick={handleSubmit}
+            onClick={handleFinalSubmit}
             className="w-full sm:w-64 bg-blue-500 hover:bg-blue-600 text-white"
           >
-            Submit
+            Final Submit
           </Button>
         </div>
+        
+        {renderDataSummary()}
       </div>
     </div>
   );
 };
+
+// Add at top of file with other imports:
+function debounce<F extends (...args: any[]) => any>(func: F, wait: number) {
+  let timeout: ReturnType<typeof setTimeout>;
+  return function executedFunction(...args: Parameters<F>) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
 
 export default ITDashboard;

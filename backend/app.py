@@ -1,13 +1,15 @@
 from flask import Flask, request, jsonify, send_file
+from flask_socketio import SocketIO, emit
 from flask_cors import CORS
 import logging
 from datetime import datetime
 from io import BytesIO
 from docx import Document   # new import for report generation
-# ...existing imports...
+import uuid
 
 app = Flask(__name__)
 CORS(app)
+socketio = SocketIO(app, cors_allowed_origins="*")
 logging.basicConfig(level=logging.INFO)
 
 # Global in-memory storage for submissions (prototype only)
@@ -178,5 +180,55 @@ def generate_report():
         mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
 
+@app.route('/api/submit_patient', methods=['POST'])
+def submit_patient():
+    data = request.json
+    required_depts = ["it", "ent", "vision", "general", "dental"]
+    missing = [dept for dept in required_depts if dept not in data or not data[dept]]
+    if missing:
+        return jsonify({"error": f"Missing data for departments: {', '.join(missing)}"}), 400
+    # Simulate saving to the patients_db (actual DB logic goes here)
+    logging.info("Combined patient data received: %s", data)
+    return jsonify({"message": "Patient data submitted successfully."}), 200
+
+# Add new endpoint for generating patient IDs
+@app.route('/api/generate_patient_id', methods=['POST'])
+def generate_patient_id():
+    try:
+        year = str(datetime.now().year)[-2:]
+        month = str(datetime.now().month).zfill(2)
+        sequence = str(hash(str(datetime.now().timestamp())))[-6:]
+        patient_id = f"PID-{year}-{month}-{sequence}"
+        
+        logging.info(f"Generated new patient ID: {patient_id}")
+        
+        # Return just the ID string
+        socketio.emit('newPatientId', patient_id)
+        
+        return jsonify({"patientId": patient_id, "success": True}), 200
+        
+    except Exception as e:
+        logging.error(f"Error generating patient ID: {str(e)}")
+        return jsonify({"error": "Failed to generate patient ID", "success": False}), 500
+
+@socketio.on('newPatientId')
+def handle_new_patient_id(patient_id):
+    try:
+        print(f"Broadcasting new patient ID: {patient_id}")
+        # Send just the string value
+        emit('newPatientId', patient_id, broadcast=True)
+    except Exception as e:
+        print(f"Error in WebSocket broadcast: {str(e)}")
+
+@socketio.on('resetPatientData')
+def handle_reset():
+    print("Broadcasting reset signal")
+    emit('resetPatientData', broadcast=True)
+
+@socketio.on('departmentUpdate')
+def handle_department_update(data):
+    print(f"Broadcasting department update")
+    emit('departmentUpdate', data, broadcast=True)
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    socketio.run(app, host='0.0.0.0', port=5000)

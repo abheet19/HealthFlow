@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useState } from "react";
+import { useState, useContext, useEffect } from "react";
 import {
   Button,
   TextField,
@@ -8,6 +8,8 @@ import {
   Select,
   MenuItem,
 } from "@mui/material";
+import { PatientContext } from "../context/PatientContext";
+import { useLocation } from "react-router-dom";
 
 const GeneralDashboard: React.FC = () => {
   // Body Measurements
@@ -41,6 +43,49 @@ const GeneralDashboard: React.FC = () => {
   // Past History
   const [pastMedical, setPastMedical] = useState("");
   const [pastSurgical, setPastSurgical] = useState("");
+
+  const { updateDepartment, patientData, updatePatientId } = useContext(PatientContext);
+  const [manualPatientId, setManualPatientId] = useState("");
+  const location = useLocation();
+
+  // Read patientId from URL and update context
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const pid = params.get("patientId");
+    if (pid && !patientData.patientId) {
+      updatePatientId(pid);
+    }
+  }, [location, patientData.patientId, updatePatientId]);
+
+  // Persist General form data across tab switches
+  useEffect(() => {
+    if (patientData.general) {
+      setHeight(patientData.general.height || "");
+      setWeight(patientData.general.weight || "");
+      setBmi(patientData.general.bmi || "");
+      setNails(patientData.general.nails || "");
+      setHair(patientData.general.hair || "");
+      setSkin(patientData.general.skin || "");
+      setAnemiaFigure(patientData.general.anemia_figure || "");
+      setAllergy(patientData.general.allergy || "");
+      setAbdomenSoft(patientData.general.abdomen_soft || "");
+      setAbdomenHard(patientData.general.abdomen_hard || "");
+      setAbdomenDistended(patientData.general.abdomen_distended || "");
+      setAbdomenBowel(patientData.general.abdomen_bowel_sound || "");
+      setCnsConscious(patientData.general.cns_conscious || "");
+      setCnsOriented(patientData.general.cns_oriented || "");
+      setCnsPlayful(patientData.general.cns_playful || "");
+      setCnsActive(patientData.general.cns_active || "");
+      setCnsAlert(patientData.general.cns_alert || "");
+      setCnsSpeech(patientData.general.cns_speech || "");
+      setPastMedical(patientData.general.past_medical || "");
+      setPastSurgical(patientData.general.past_surgical || "");
+      setBp(patientData.general.bp || "");
+      setPulse(patientData.general.pulse || "");
+      setHip(patientData.general.hip || "");
+      setWaist(patientData.general.waist || "");
+    }
+  }, [patientData.general]);
 
   const dropdown = (
     label: string,
@@ -120,173 +165,185 @@ const GeneralDashboard: React.FC = () => {
       hip,
       waist,
     };
-    await fetch("http://localhost:5000/api/general", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
+    updateDepartment("general", data);
+    alert("General data saved successfully.");
   };
 
   return (
     <div className="p-4 flex flex-col items-center bg-gray-50 min-h-screen">
       <div className="bg-white shadow-lg rounded-lg p-6 w-full max-w-4xl">
-        <h1 className="text-3xl font-bold mb-6 text-gray-800">
-          General Examination Report
-        </h1>
+        {patientData.patientId && patientData.it?.name ? (
+          <>
+            <div className="mb-4 text-gray-600">
+              <p>Patient ID: <span className="font-bold">{patientData.patientId}</span></p>
+              <p>Patient Name: <span className="font-bold">{patientData.it.name}</span></p>
+            </div>
+            <h1 className="text-3xl font-bold mb-6 text-gray-800">
+              General Examination Report
+            </h1>
+            <div className="border-b pb-4 mb-6">
+              <h2 className="text-xl font-semibold mb-4 text-gray-700">
+                Body Measurements
+              </h2>
+              <div className="flex flex-wrap gap-4">
+                <TextField
+                  label="Height"
+                  variant="outlined"
+                  size="small"
+                  className="w-full sm:w-64"
+                  onChange={(e) => setHeight(e.target.value)}
+                />
+                <TextField
+                  label="Weight"
+                  variant="outlined"
+                  size="small"
+                  className="w-full sm:w-64"
+                  onChange={(e) => setWeight(e.target.value)}
+                />
+                <TextField
+                  label="BMI"
+                  variant="outlined"
+                  size="small"
+                  className="w-full sm:w-64"
+                  onChange={(e) => setBmi(e.target.value)}
+                />
+              </div>
+            </div>
 
-        <div className="border-b pb-4 mb-6">
-          <h2 className="text-xl font-semibold mb-4 text-gray-700">
-            Body Measurements
-          </h2>
-          <div className="flex flex-wrap gap-4">
-            <TextField
-              label="Height"
-              variant="outlined"
-              size="small"
-              className="w-full sm:w-64"
-              onChange={(e) => setHeight(e.target.value)}
-            />
-            <TextField
-              label="Weight"
-              variant="outlined"
-              size="small"
-              className="w-full sm:w-64"
-              onChange={(e) => setWeight(e.target.value)}
-            />
-            <TextField
-              label="BMI"
-              variant="outlined"
-              size="small"
-              className="w-full sm:w-64"
-              onChange={(e) => setBmi(e.target.value)}
-            />
+            <div className="border-b pb-4 mb-6">
+              <h2 className="text-xl font-semibold mb-4 text-gray-700">
+                General Cleanliness
+              </h2>
+              <div className="flex flex-wrap gap-4">
+                {dropdown("Nails", nails, setNails, [
+                  "No Abnormality",
+                  "Abnormality",
+                ])}
+                {dropdown("Hair", hair, setHair, ["No Abnormality", "Abnormality"])}
+                {dropdown("Skin", skin, setSkin, ["No Abnormality", "Abnormality"])}
+              </div>
+            </div>
+
+            <div className="border-b pb-4 mb-4">
+              <h2 className="text-xl font-semibold mb-2">Figure, Allergy & Abdomen</h2>
+              <div className="flex flex-wrap gap-2">
+                {dropdown("Anemia/Figure", anemiaFigure, setAnemiaFigure, [
+                  "No Abnormality",
+                  "Abnormality",
+                ])}
+                {dropdown("Allergy", allergy, setAllergy, ["No", "YES"])}
+                {dropdown("Abdomen Soft", abdomenSoft, setAbdomenSoft, [
+                  "Yes",
+                  "No",
+                ])}
+                {dropdown("Abdomen Hard", abdomenHard, setAbdomenHard, [
+                  "Yes",
+                  "No",
+                ])}
+                {dropdown(
+                  "Abdomen Distended",
+                  abdomenDistended,
+                  setAbdomenDistended,
+                  ["Yes", "No"]
+                )}
+                {dropdown("Bowel Sound", abdomenBowel, setAbdomenBowel, [
+                  "Yes",
+                  "No",
+                ])}
+              </div>
+            </div>
+
+            <div className="border-b pb-4 mb-4">
+              <h2 className="text-xl font-semibold mb-2">Central Nervous System</h2>
+              <div className="flex flex-wrap gap-2">
+                {dropdown("Conscious", cnsConscious, setCnsConscious, [
+                  "Yes",
+                  "No",
+                ])}
+                {dropdown("Oriented", cnsOriented, setCnsOriented, [
+                  "Yes",
+                  "No",
+                ])}
+                {dropdown("Playful", cnsPlayful, setCnsPlayful, ["Yes", "No"])}
+                {dropdown("Active", cnsActive, setCnsActive, ["Yes", "No"])}
+                {dropdown("Alert", cnsAlert, setCnsAlert, ["Yes", "No"])}
+                {dropdown("Speech", cnsSpeech, setCnsSpeech, [
+                  "Normal",
+                  "Abnormal",
+                ])}
+              </div>
+            </div>
+
+            <div className="border-b pb-4 mb-4">
+              <h2 className="text-xl font-semibold mb-2">Past History</h2>
+              <div className="flex flex-wrap gap-2">
+                {dropdown("Medical", pastMedical, setPastMedical, ["Yes", "No"])}
+                {dropdown("Surgical", pastSurgical, setPastSurgical, ["Yes", "No"])}
+              </div>
+            </div>
+
+            <h1 className="text-2xl font-bold mb-4">Vitals Examination Report</h1>
+
+            <div className="border-b pb-4 mb-4">
+              <h2 className="text-xl font-semibold mb-2">Vital Signs</h2>
+              <div className="flex flex-wrap gap-4">
+                <TextField
+                  label="BP"
+                  variant="outlined"
+                  size="small"
+                  className="w-full sm:w-64"
+                  onChange={(e) => setBp(e.target.value)}
+                />
+                <TextField
+                  label="Pulse"
+                  variant="outlined"
+                  size="small"
+                  className="w-full sm:w-64"
+                  onChange={(e) => setPulse(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="border-b pb-4 mb-4">
+              <h2 className="text-xl font-semibold mb-2">Circumferences</h2>
+              <div className="flex flex-wrap gap-4">
+                <TextField
+                  label="Hip"
+                  variant="outlined"
+                  size="small"
+                  className="w-full sm:w-64"
+                  onChange={(e) => setHip(e.target.value)}
+                />
+                <TextField
+                  label="Waist"
+                  variant="outlined"
+                  size="small"
+                  className="w-full sm:w-64"
+                  onChange={(e) => setWaist(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-center mt-6">
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleSubmit}
+                className="w-full sm:w-64 bg-blue-500 hover:bg-blue-600 text-white"
+              >
+                Submit
+              </Button>
+            </div>
+          </>
+        ) : (
+          <div className="text-center p-8">
+            <h2 className="text-xl text-gray-600">
+              {!patientData.patientId 
+                ? "Waiting for patient ID from IT Department..." 
+                : "Waiting for patient information from IT Department..."}
+            </h2>
           </div>
-        </div>
-
-        <div className="border-b pb-4 mb-6">
-          <h2 className="text-xl font-semibold mb-4 text-gray-700">
-            General Cleanliness
-          </h2>
-          <div className="flex flex-wrap gap-4">
-            {dropdown("Nails", nails, setNails, [
-              "No Abnormality",
-              "Abnormality",
-            ])}
-            {dropdown("Hair", hair, setHair, ["No Abnormality", "Abnormality"])}
-            {dropdown("Skin", skin, setSkin, ["No Abnormality", "Abnormality"])}
-          </div>
-        </div>
-
-        <div className="border-b pb-4 mb-4">
-          <h2 className="text-xl font-semibold mb-2">Figure, Allergy & Abdomen</h2>
-          <div className="flex flex-wrap gap-2">
-            {dropdown("Anemia/Figure", anemiaFigure, setAnemiaFigure, [
-              "No Abnormality",
-              "Abnormality",
-            ])}
-            {dropdown("Allergy", allergy, setAllergy, ["No", "YES"])}
-            {dropdown("Abdomen Soft", abdomenSoft, setAbdomenSoft, [
-              "Yes",
-              "No",
-            ])}
-            {dropdown("Abdomen Hard", abdomenHard, setAbdomenHard, [
-              "Yes",
-              "No",
-            ])}
-            {dropdown(
-              "Abdomen Distended",
-              abdomenDistended,
-              setAbdomenDistended,
-              ["Yes", "No"]
-            )}
-            {dropdown("Bowel Sound", abdomenBowel, setAbdomenBowel, [
-              "Yes",
-              "No",
-            ])}
-          </div>
-        </div>
-
-        <div className="border-b pb-4 mb-4">
-          <h2 className="text-xl font-semibold mb-2">Central Nervous System</h2>
-          <div className="flex flex-wrap gap-2">
-            {dropdown("Conscious", cnsConscious, setCnsConscious, [
-              "Yes",
-              "No",
-            ])}
-            {dropdown("Oriented", cnsOriented, setCnsOriented, [
-              "Yes",
-              "No",
-            ])}
-            {dropdown("Playful", cnsPlayful, setCnsPlayful, ["Yes", "No"])}
-            {dropdown("Active", cnsActive, setCnsActive, ["Yes", "No"])}
-            {dropdown("Alert", cnsAlert, setCnsAlert, ["Yes", "No"])}
-            {dropdown("Speech", cnsSpeech, setCnsSpeech, [
-              "Normal",
-              "Abnormal",
-            ])}
-          </div>
-        </div>
-
-        <div className="border-b pb-4 mb-4">
-          <h2 className="text-xl font-semibold mb-2">Past History</h2>
-          <div className="flex flex-wrap gap-2">
-            {dropdown("Medical", pastMedical, setPastMedical, ["Yes", "No"])}
-            {dropdown("Surgical", pastSurgical, setPastSurgical, ["Yes", "No"])}
-          </div>
-        </div>
-
-        <h1 className="text-2xl font-bold mb-4">Vitals Examination Report</h1>
-
-        <div className="border-b pb-4 mb-4">
-          <h2 className="text-xl font-semibold mb-2">Vital Signs</h2>
-          <div className="flex flex-wrap gap-4">
-            <TextField
-              label="BP"
-              variant="outlined"
-              size="small"
-              className="w-full sm:w-64"
-              onChange={(e) => setBp(e.target.value)}
-            />
-            <TextField
-              label="Pulse"
-              variant="outlined"
-              size="small"
-              className="w-full sm:w-64"
-              onChange={(e) => setPulse(e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="border-b pb-4 mb-4">
-          <h2 className="text-xl font-semibold mb-2">Circumferences</h2>
-          <div className="flex flex-wrap gap-4">
-            <TextField
-              label="Hip"
-              variant="outlined"
-              size="small"
-              className="w-full sm:w-64"
-              onChange={(e) => setHip(e.target.value)}
-            />
-            <TextField
-              label="Waist"
-              variant="outlined"
-              size="small"
-              className="w-full sm:w-64"
-              onChange={(e) => setWaist(e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="flex justify-center mt-6">
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleSubmit}
-            className="w-full sm:w-64 bg-blue-500 hover:bg-blue-600 text-white"
-          >
-            Submit
-          </Button>
-        </div>
+        )}
       </div>
     </div>
   );
