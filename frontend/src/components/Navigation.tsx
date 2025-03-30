@@ -31,6 +31,7 @@ const Navigation: React.FC = () => {
     { label: "Vision", path: "/vision" },
     { label: "General", path: "/general" },
     { label: "Dental", path: "/dental" },
+    { label: "Patients List", path: "/patients" } // added tab
   ];
 
   return (

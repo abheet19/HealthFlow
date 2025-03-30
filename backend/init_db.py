@@ -29,7 +29,7 @@ def init_db():
         dob DATE,
         gender VARCHAR(10),
         bloodgroup VARCHAR(5),       /* Changed from blood_group */
-        photo BYTEA,                 /* Column to store the binary image data */
+        photo TEXT,                 /* Column to store the image data */
         
         -- ENT Department fields
         left_ear_deformity VARCHAR(10),

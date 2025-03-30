@@ -12,6 +12,7 @@ from sqlalchemy.orm import sessionmaker
 import os
 from dotenv import load_dotenv
 from sqlalchemy import text
+import base64
 
 app = Flask(__name__)
 CORS(app)
@@ -45,7 +46,6 @@ SessionLocal = sessionmaker(bind=engine)
 @app.before_request
 def log_request_info():
     logging.info(f"{datetime.utcnow()} - {request.method} {request.path} - IP: {request.remote_addr}")
-    # ...existing code...
 
 @app.after_request
 def log_response_info(response):
@@ -203,6 +203,7 @@ def generate_report():
 
 @app.route('/api/submit_patient', methods=['POST'])
 def submit_patient():
+    db = None  # Initialize db to avoid UnboundLocalError in except block
     try:
         data = request.json
         required_depts = ["it", "ent", "vision", "general", "dental"]
@@ -210,7 +211,12 @@ def submit_patient():
         if missing:
             return jsonify({"error": f"Missing data for departments: {', '.join(missing)}"}), 400
 
-        # Transform camelCase keys to snake_case for database
+        # Safely handle the photo Base64 string
+        it_photo = data["it"].get("photo")
+        if it_photo and "," in it_photo:
+            it_photo = it_photo.split(",")[1]
+        # Otherwise, keep as is or None
+
         it_data = {
             "name": data["it"]["name"],
             "div": data["it"]["div"],
@@ -223,10 +229,9 @@ def submit_patient():
             "dob": data["it"]["dob"],
             "gender": data["it"]["gender"],
             "bloodgroup": data["it"]["bloodGroup"],
-            "photo": data["it"].get("photo")  # include photo if present
+            "photo": it_photo if it_photo else None
         }
 
-        # Flatten nested data for database insertion
         flat_data = {
             "patient_id": data["patientId"],
             **it_data,
@@ -237,16 +242,12 @@ def submit_patient():
             "created_at": datetime.now()
         }
 
-        # Create database session
         db = SessionLocal()
-        
-        # Build the query using SQLAlchemy text()
         from sqlalchemy import text
         columns = ", ".join(flat_data.keys())
         values = ", ".join([":"+k for k in flat_data.keys()])
         query = text(f"INSERT INTO patient_records ({columns}) VALUES ({values})")
         
-        # Execute with parameters
         db.execute(query, flat_data)
         db.commit()
         db.close()
@@ -255,8 +256,9 @@ def submit_patient():
         
     except Exception as e:
         logging.error(f"Error saving patient data: {str(e)}")
-        db.rollback()  # Rollback on error
-        db.close()
+        if db is not None:
+            db.rollback()  # Rollback on error
+            db.close()
         return jsonify({"error": "Failed to save patient data"}), 500
 
 def get_last_patient_id():
@@ -285,6 +287,33 @@ def generate_patient_id():
     except Exception as e:
         logging.error(f"Error generating patient ID: {str(e)}")
         return jsonify({"error": "Failed to generate patient ID", "success": False}), 500
+
+def convert_value(value):
+    # If value is a memoryview or binary data, convert its bytes to a Base64 string.
+    if isinstance(value, (memoryview, bytes)):
+        return base64.b64encode(value).decode('utf-8')
+    return value
+
+@app.route('/api/patients', methods=['GET'])
+def get_patients():
+    db = SessionLocal()
+    try:
+        query = text("SELECT * FROM patient_records ORDER BY patient_id DESC")
+        result = db.execute(query)
+        patients = [
+            {k: convert_value(v) for k, v in row._mapping.items()}
+            for row in result
+        ]
+        # Ensure photo is returned as a valid Base64 string with the prefix
+        for patient in patients:
+            if patient.get("photo"):
+                patient["photo"] = f"data:image/jpeg;base64,{patient['photo']}"
+        return jsonify(patients=patients), 200
+    except Exception as e:
+        logging.error(f"Error retrieving patients: {str(e)}")
+        return jsonify({"error": "Error retrieving patients"}), 500
+    finally:
+        db.close()
 
 @socketio.on('newPatientId')
 def handle_new_patient_id(patient_id):

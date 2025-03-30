@@ -127,9 +127,8 @@ const ITDashboard: React.FC = () => {
       setPhoto(file);
       const reader = new FileReader();
       reader.onloadend = () => {
-        // Remove the data URL prefix to keep only the base64 string if desired
         const result = reader.result as string;
-        setPhotoBase64(result);
+        setPhotoBase64(result.split(",")[1]); // strip data URL prefix
       };
       reader.readAsDataURL(file);
     }
