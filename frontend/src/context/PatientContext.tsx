@@ -152,6 +152,12 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
         [department]: undefined,
       }));
       
+      // Clear file input if resetting IT department
+      if (department === 'it') {
+        const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+        if (fileInput) fileInput.value = '';
+      }
+      
       if (socket?.connected) {
         socket.emit('departmentUpdate', { [department]: undefined });
       }
@@ -159,6 +165,10 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
       // Full reset - clear everything
       setPatientData({});
       localStorage.removeItem("patientData");
+      
+      // Clear file input on full reset
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
       
       if (socket?.connected) {
         socket.emit('resetPatientData');

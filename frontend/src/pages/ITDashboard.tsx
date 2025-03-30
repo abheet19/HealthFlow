@@ -487,7 +487,7 @@ const ITDashboard: React.FC = () => {
             </div>
           ) : (
             <Button variant="outlined" onClick={generatePatientId} className="mb-4">
-              Generate Patient Number
+              Register Patient
             </Button>
           )}
         </div>
