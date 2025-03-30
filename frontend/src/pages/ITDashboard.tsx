@@ -25,6 +25,7 @@ interface PatientData {
     dob: string;
     gender: string;
     bloodGroup: string;
+    photo?: string; // Add photo field to IT data
   };
   ent?: Record<string, any>;
   vision?: Record<string, any>;
@@ -45,6 +46,7 @@ const ITDashboard: React.FC = () => {
   const [gender, setGender] = useState("");
   const [bloodGroup, setBloodGroup] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
+  const [photoBase64, setPhotoBase64] = useState<string>("");
   const { patientData, updatePatientId, updateDepartment, resetPatientData } = useContext(PatientContext);
 
   // Add new state for tracking department completions
@@ -121,7 +123,15 @@ const ITDashboard: React.FC = () => {
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setPhoto(e.target.files[0]);
+      const file = e.target.files[0];
+      setPhoto(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        // Remove the data URL prefix to keep only the base64 string if desired
+        const result = reader.result as string;
+        setPhotoBase64(result);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -223,7 +233,20 @@ const ITDashboard: React.FC = () => {
 
     const combinedData = {
       patientId: patientData.patientId!,
-      it: { name, div, rollNo, adminNo, fatherName, motherName, address, mobile, dob, gender, bloodGroup },
+      it: { 
+        name, 
+        div, 
+        rollNo, 
+        adminNo, 
+        fatherName, 
+        motherName, 
+        address, 
+        mobile, 
+        dob, 
+        gender, 
+        bloodGroup,
+        photo: photoBase64  // include base64 photo string in IT data
+      },
       ent: patientData.ent,
       vision: patientData.vision,
       general: patientData.general,
