@@ -131,7 +131,8 @@ const ITDashboard: React.FC = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-        }
+        },
+        body: JSON.stringify({ date: dob }) // Send the DOB from the form
       });
       
       if (!response.ok) {
@@ -143,7 +144,7 @@ const ITDashboard: React.FC = () => {
       
       if (data.success && data.patientId) {
         updatePatientId(data.patientId);
-        resetForm();
+        // Remove resetForm() since we want to keep the entered data
       } else {
         throw new Error('No patient ID in response');
       }
@@ -239,13 +240,18 @@ const ITDashboard: React.FC = () => {
       if (result.message === "Patient data submitted successfully.") {
         alert("Patient data submitted successfully.");
         resetForm();
-        resetPatientData(); // This will now broadcast the reset to all clients
+        resetPatientData(); // This will clear everything
       } else {
         alert(result.message);
       }
     } catch (error) {
       alert("Error submitting patient data.");
     }
+  };
+
+  const handleClearPatientId = () => {
+    resetPatientData();  // This will now clear everything including form data
+    resetForm();
   };
 
   const renderDataSummary = () => {
@@ -259,18 +265,18 @@ const ITDashboard: React.FC = () => {
     return (
       <div className="mt-6">
         <h2 className="text-xl font-bold mb-4">Department Status & Summary</h2>
-        <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-2 gap-4 mb-6">
           {['ENT', 'Vision', 'General', 'Dental'].map(dept => (
             <div 
               key={dept} 
-              className={`p-3 rounded-lg border ${
+              className={`p-4 rounded-lg border shadow-sm ${
                 completedDepts.includes(dept.toLowerCase()) 
                   ? 'bg-green-100 border-green-500' 
                   : 'bg-gray-100 border-gray-300'
               }`}
             >
-              <div className="font-medium">{dept}</div>
-              <div className="text-sm">
+              <div className="font-medium text-lg">{dept}</div>
+              <div className="text-sm text-gray-600">
                 {completedDepts.includes(dept.toLowerCase()) 
                   ? 'Completed ✓' 
                   : 'Pending...'}
@@ -279,8 +285,8 @@ const ITDashboard: React.FC = () => {
           ))}
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-          <h3 className="font-semibold mb-2">Patient Information</h3>
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <h3 className="text-lg font-semibold mb-4">Patient Information</h3>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <p><span className="font-medium">Name:</span> {name || '-'}</p>
@@ -298,9 +304,9 @@ const ITDashboard: React.FC = () => {
         </div>
 
         {departments.map(dept => dept.data && (
-          <div key={dept.name} className="bg-white rounded-lg shadow-sm p-4 mb-4">
-            <h3 className="font-semibold mb-2">{dept.name} Department Summary</h3>
-            <div className="text-sm grid grid-cols-2 gap-x-4 gap-y-1">
+          <div key={dept.name} className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h3 className="text-lg font-semibold mb-4">{dept.name} Department Summary</h3>
+            <div className="text-sm grid grid-cols-2 gap-x-4 gap-y-2">
               {Object.entries(dept.data).map(([key, value]) => (
                 <div key={key}>
                   <span className="font-medium">
@@ -466,12 +472,22 @@ const ITDashboard: React.FC = () => {
 
         <div className="mb-6">
           {patientData.patientId ? (
-            <div className="text-lg mb-4">
-              Patient ID: <span className="font-bold">{patientData.patientId}</span>
+            <div className="flex items-center justify-between gap-4">
+              <div className="text-lg">
+                Patient Number: <span className="font-bold">{patientData.patientId}</span>
+              </div>
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={handleClearPatientId}
+                className="text-sm"
+              >
+                Reset All Data
+              </Button>
             </div>
           ) : (
             <Button variant="outlined" onClick={generatePatientId} className="mb-4">
-              Generate Patient ID
+              Generate Patient Number
             </Button>
           )}
         </div>
@@ -483,7 +499,7 @@ const ITDashboard: React.FC = () => {
             onClick={handleFinalSubmit}
             className="w-full sm:w-64 bg-blue-500 hover:bg-blue-600 text-white"
           >
-            Final Submit
+            Submit
           </Button>
         </div>
         

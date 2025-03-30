@@ -35,7 +35,7 @@ const ENTDashboard: React.FC = () => {
   const [neckNodes, setNeckNodes] = useState("");
   const [tonsils, setTonsils] = useState("");
 
-  const { updateDepartment, patientData, updatePatientId } = useContext(PatientContext);
+  const { updateDepartment, patientData, updatePatientId, resetPatientData } = useContext(PatientContext);
   const [manualPatientId, setManualPatientId] = useState("");
   const location = useLocation();
 
@@ -72,6 +72,13 @@ const ENTDashboard: React.FC = () => {
     }
   }, [patientData.ent]);
 
+  // Add new effect to reset form when patientId is cleared
+  useEffect(() => {
+    if (!patientData.patientId) {
+      resetForm();
+    }
+  }, [patientData.patientId]);
+
   // Dropdown helper with custom options parameter; default is ["Yes", "No"]
   const dropdown = (
     label: string,
@@ -94,6 +101,27 @@ const ENTDashboard: React.FC = () => {
       </Select>
     </FormControl>
   );
+
+  const resetForm = () => {
+    setLeftEarDeformity("");
+    setLeftEarWax("");
+    setLeftEarTympanic("");
+    setLeftEarDischarge("");
+    setLeftEarNormHearing("");
+    setRightEarDeformity("");
+    setRightEarWax("");
+    setRightEarTympanic("");
+    setRightEarDischarge("");
+    setRightEarNormHearing("");
+    setLeftNoseObstruction("");
+    setLeftNoseDischarge("");
+    setRightNoseObstruction("");
+    setRightNoseDischarge("");
+    setThroat("");
+    setThroatPain("");
+    setNeckNodes("");
+    setTonsils("");
+  };
 
   const handleSubmit = async () => {
     if (
@@ -141,16 +169,20 @@ const ENTDashboard: React.FC = () => {
     };
     updateDepartment("ent", data);
     alert("ENT data saved successfully.");
+    resetForm();
+    resetPatientData("ent"); // Specify department
   };
 
   return (
     <div className="p-4 flex flex-col items-center bg-gray-50 min-h-screen">
       <div className="bg-white shadow-lg rounded-lg p-6 w-full max-w-4xl">
-        {patientData.patientId && patientData.it?.name ? (
+        {patientData.patientId ? (
           <>
             <div className="mb-4 text-gray-600">
-              <p>Patient ID: <span className="font-bold">{patientData.patientId}</span></p>
-              <p>Patient Name: <span className="font-bold">{patientData.it.name}</span></p>
+              <p>Patient Number: <span className="font-bold">{patientData.patientId}</span></p>
+              {patientData.it?.name && (
+                <p>Patient Name: <span className="font-bold">{patientData.it.name}</span></p>
+              )}
             </div>
             <h1 className="text-3xl font-bold mb-6 text-gray-800">
               ENT Examination Report
@@ -248,7 +280,7 @@ const ENTDashboard: React.FC = () => {
                 onClick={handleSubmit}
                 className="w-full sm:w-64 bg-blue-500 hover:bg-blue-600 text-white"
               >
-                Submit
+                Save
               </Button>
             </div>
           </>

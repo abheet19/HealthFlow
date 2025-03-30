@@ -46,7 +46,7 @@ const ToothSelector: React.FC<{
 };
 
 const DentalDashboard: React.FC = () => {
-  const { updateDepartment, patientData, updatePatientId } = useContext(PatientContext);
+  const { updateDepartment, patientData, updatePatientId, resetPatientData } = useContext(PatientContext);
   const [manualPatientId, setManualPatientId] = useState("");
 
   const location = useLocation();
@@ -136,6 +136,13 @@ const DentalDashboard: React.FC = () => {
     }
   }, [patientData.dental]);
 
+  // Add new effect to reset form when patientId is cleared
+  useEffect(() => {
+    if (!patientData.patientId) {
+      resetForm();
+    }
+  }, [patientData.patientId]);
+
   const dropdown = (
     label: string,
     value: string,
@@ -158,18 +165,33 @@ const DentalDashboard: React.FC = () => {
     </FormControl>
   );
 
+  const resetForm = () => {
+    setExtraOral("");
+    setToothCavityPermanentGroup1([]);
+    setToothCavityPermanentGroup2([]);
+    setToothCavityPermanentGroup3([]);
+    setToothCavityPermanentGroup4([]);
+    setToothCavityPrimaryGroup1([]);
+    setToothCavityPrimaryGroup2([]);
+    setToothCavityPrimaryGroup3([]);
+    setToothCavityPrimaryGroup4([]);
+    setPlaque("");
+    setGumInflammation("");
+    setStains("");
+    setToothDiscoloration("");
+    setTarter("");
+    setBadBreath("");
+    setGumBleeding("");
+    setSoftTissue("");
+    setFluorosis("");
+    setMalocclusion("");
+    setRootStump("");
+    setMissingTeeth("");
+  };
+
   const handleSubmit = async () => {
     if (
       !extraOral ||
-      // Validate that each group has at least one selection:
-      !toothCavityPermanentGroup1.length ||
-      !toothCavityPermanentGroup2.length ||
-      !toothCavityPermanentGroup3.length ||
-      !toothCavityPermanentGroup4.length ||
-      !toothCavityPrimaryGroup1.length ||
-      !toothCavityPrimaryGroup2.length ||
-      !toothCavityPrimaryGroup3.length ||
-      !toothCavityPrimaryGroup4.length ||
       !plaque ||
       !gumInflammation ||
       !stains ||
@@ -183,19 +205,18 @@ const DentalDashboard: React.FC = () => {
       !rootStump ||
       !missingTeeth
     ) {
-      alert("Please fill all fields.");
+      alert("Please fill all required fields.");
       return;
     }
+
     const data = {
       dental_extra_oral: extraOral,
-      // Combine all permanent groups:
       tooth_cavity_permanent: [
         ...toothCavityPermanentGroup1,
         ...toothCavityPermanentGroup2,
         ...toothCavityPermanentGroup3,
         ...toothCavityPermanentGroup4,
       ].join(","),
-      // Combine all primary groups:
       tooth_cavity_primary: [
         ...toothCavityPrimaryGroup1,
         ...toothCavityPrimaryGroup2,
@@ -215,18 +236,23 @@ const DentalDashboard: React.FC = () => {
       root_stump: rootStump,
       missing_teeth: missingTeeth,
     };
+
     updateDepartment("dental", data);
     alert("Dental data saved successfully.");
+    resetForm();
+    resetPatientData("dental");
   };
 
   return (
     <div className="p-4 flex flex-col items-center bg-gray-50 min-h-screen">
       <div className="bg-white shadow-lg rounded-lg p-6 w-full max-w-4xl">
-        {patientData.patientId && patientData.it?.name ? (
+        {patientData.patientId ? (
           <>
             <div className="mb-4 text-gray-600">
-              <p>Patient ID: <span className="font-bold">{patientData.patientId}</span></p>
-              <p>Patient Name: <span className="font-bold">{patientData.it.name}</span></p>
+              <p>Patient Number: <span className="font-bold">{patientData.patientId}</span></p>
+              {patientData.it?.name && (
+                <p>Patient Name: <span className="font-bold">{patientData.it.name}</span></p>
+              )}
             </div>
             <h1 className="text-3xl font-bold mb-6 text-gray-800">
               Dental Examination Report
@@ -368,16 +394,14 @@ const DentalDashboard: React.FC = () => {
                 onClick={handleSubmit}
                 className="w-full sm:w-64 bg-blue-500 hover:bg-blue-600 text-white"
               >
-                Submit
+                Save
               </Button>
             </div>
           </>
         ) : (
           <div className="text-center p-8">
             <h2 className="text-xl text-gray-600">
-              {!patientData.patientId 
-                ? "Waiting for patient ID from IT Department..." 
-                : "Waiting for patient information from IT Department..."}
+              Waiting for patient ID from IT Department...
             </h2>
           </div>
         )}

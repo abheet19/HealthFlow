@@ -8,20 +8,23 @@ export interface PatientData {
   general?: Record<string, any>;
   dental?: Record<string, any>;
   patientId?: string;
+  timestamp?: number;
 }
 
 interface PatientContextProps {
   patientData: PatientData;
   updateDepartment: (dept: keyof PatientData, data: Record<string, any>) => void;
-  resetPatientData: () => void;
+  resetPatientData: (department?: keyof PatientData) => void;
   updatePatientId: (id: string) => void;
+  resetDepartmentData: () => void;
 }
 
 export const PatientContext = createContext<PatientContextProps>({
   patientData: {},
   updateDepartment: () => {},
   resetPatientData: () => {},
-  updatePatientId: () => {}
+  updatePatientId: () => {},
+  resetDepartmentData: () => {}
 });
 
 export const PatientProvider = ({ children }: { children: ReactNode }) => {
@@ -106,30 +109,73 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const resetDepartmentData = () => {
+    // Clear all department data while keeping patientId and IT data
+    setPatientData(prev => ({
+      patientId: prev.patientId,
+      it: prev.it,
+      ent: undefined,
+      vision: undefined,
+      general: undefined,
+      dental: undefined,
+      timestamp: Date.now()
+    }));
+
+    // Broadcast the reset to all clients
+    if (socket?.connected) {
+      socket.emit('departmentUpdate', {
+        ent: undefined,
+        vision: undefined,
+        general: undefined,
+        dental: undefined
+      });
+    }
+  };
+
   const updatePatientId = (id: string) => {
     if (socket?.connected) {
-      console.log('Broadcasting patient ID:', id);
       socket.emit('newPatientId', id);
     }
     
-    setPatientData(prev => ({
-      ...prev,
+    // Reset all department data while preserving only the new patient ID
+    setPatientData({
       patientId: id,
       timestamp: Date.now()
-    }));
+    });
   };
 
-  const resetPatientData = () => {
-    setPatientData({});
-    localStorage.removeItem("patientData");
-    // Broadcast reset to all connected clients
-    if (socket?.connected) {
-      socket.emit('resetPatientData');
+  const resetPatientData = (department?: keyof PatientData) => {
+    if (department) {
+      // Department-specific reset
+      setPatientData(prev => ({
+        ...prev,
+        [department]: undefined,
+      }));
+      
+      if (socket?.connected) {
+        socket.emit('departmentUpdate', { [department]: undefined });
+      }
+    } else {
+      // Full reset - clear everything
+      setPatientData({});
+      localStorage.removeItem("patientData");
+      
+      if (socket?.connected) {
+        socket.emit('resetPatientData');
+      }
     }
   };
 
   return (
-    <PatientContext.Provider value={{ patientData, updateDepartment, resetPatientData, updatePatientId }}>
+    <PatientContext.Provider 
+      value={{ 
+        patientData, 
+        updateDepartment, 
+        resetPatientData, 
+        updatePatientId,
+        resetDepartmentData
+      }}
+    >
       {children}
     </PatientContext.Provider>
   );
