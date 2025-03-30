@@ -13,7 +13,7 @@ const VisionDashboard: React.FC = () => {
   const [leSquint, setLeSquint] = useState("");
   const [manualPatientId, setManualPatientId] = useState("");
 
-  const { updateDepartment, patientData, updatePatientId } = useContext(PatientContext);
+  const { updateDepartment, patientData, updatePatientId, resetPatientData } = useContext(PatientContext);
   const location = useLocation();
 
   // Initialize local state from context (if already set)
@@ -45,8 +45,24 @@ const VisionDashboard: React.FC = () => {
     }
   }, [location, patientData.patientId, updatePatientId]);
 
+  // Add new effect to reset form when patientId is cleared
+  useEffect(() => {
+    if (!patientData.patientId) {
+      resetForm();
+    }
+  }, [patientData.patientId]);
+
   const updateVision = (updates: Partial<Record<string, string>>) => {
     // Don't update department data until submit button is clicked
+  };
+
+  const resetForm = () => {
+    setReVision("6/6");
+    setLeVision("6/6");
+    setReColor("");
+    setLeColor("");
+    setReSquint("");
+    setLeSquint("");
   };
 
   const handleSubmit = () => {
@@ -59,25 +75,27 @@ const VisionDashboard: React.FC = () => {
       le_squint: leSquint,
     };
 
-    // Check if all fields have values
-    const hasEmptyFields = Object.values(allFields).some(value => !value);
-    if (hasEmptyFields) {
+    if (Object.values(allFields).some(value => !value)) {
       alert("Please fill all fields before submitting.");
       return;
     }
 
     updateDepartment("vision", allFields);
     alert("Vision data saved successfully.");
+    resetForm();
+    resetPatientData("vision"); // Specify department
   };
 
   return (
     <div className="p-4 flex flex-col items-center bg-gray-50 min-h-screen">
       <div className="bg-white shadow-lg rounded-lg p-6 w-full max-w-4xl">
-        {patientData.patientId && patientData.it?.name ? (
+        {patientData.patientId ? (
           <>
             <div className="mb-4 text-gray-600">
-              <p>Patient ID: <span className="font-bold">{patientData.patientId}</span></p>
-              <p>Patient Name: <span className="font-bold">{patientData.it.name}</span></p>
+              <p>Patient Number: <span className="font-bold">{patientData.patientId}</span></p>
+              {patientData.it?.name && (
+                <p>Patient Name: <span className="font-bold">{patientData.it.name}</span></p>
+              )}
             </div>
             <h1 className="text-3xl font-bold mb-6 text-gray-800">
               Vision Examination Report
@@ -176,16 +194,14 @@ const VisionDashboard: React.FC = () => {
                 onClick={handleSubmit}
                 className="w-full sm:w-64 bg-blue-500 hover:bg-blue-600 text-white"
               >
-                Submit
+                Save
               </Button>
             </div>
           </>
         ) : (
           <div className="text-center p-8">
             <h2 className="text-xl text-gray-600">
-              {!patientData.patientId 
-                ? "Waiting for patient ID from IT Department..." 
-                : "Waiting for patient information from IT Department..."}
+              Waiting for patient ID from IT Department...
             </h2>
           </div>
         )}

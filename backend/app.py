@@ -6,6 +6,7 @@ from datetime import datetime
 from io import BytesIO
 from docx import Document   # new import for report generation
 import uuid
+import random
 
 app = Flask(__name__)
 CORS(app)
@@ -20,6 +21,12 @@ global_data = {
     "general": None,
     "dental": None
 }
+
+# Add this near the top with other global variables
+patient_counter = 0
+
+# Add a new variable to store the last used patient number
+LAST_PATIENT_NUMBER = 0
 
 # Log every API call
 @app.before_request
@@ -195,14 +202,13 @@ def submit_patient():
 @app.route('/api/generate_patient_id', methods=['POST'])
 def generate_patient_id():
     try:
-        year = str(datetime.now().year)[-2:]
-        month = str(datetime.now().month).zfill(2)
-        sequence = str(hash(str(datetime.now().timestamp())))[-6:]
-        patient_id = f"PID-{year}-{month}-{sequence}"
+        global LAST_PATIENT_NUMBER
+        LAST_PATIENT_NUMBER += 1
+        
+        # Simply use the incremented number as the patient ID
+        patient_id = str(LAST_PATIENT_NUMBER)
         
         logging.info(f"Generated new patient ID: {patient_id}")
-        
-        # Return just the ID string
         socketio.emit('newPatientId', patient_id)
         
         return jsonify({"patientId": patient_id, "success": True}), 200
