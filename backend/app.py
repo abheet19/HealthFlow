@@ -72,7 +72,8 @@ def submit_it():
     if not valid:
         return jsonify({"error": msg}), 400
     file = request.files['photo']
-    # ...image processing code...
+    file_data = file.read()  # read binary data
+    data["photo"] = file_data   # attach photo data to IT data
     global_data["it"] = data  # store submission data
     logging.info("IT record received and processed.")
     return jsonify({"message": "IT info submitted successfully."}), 200
@@ -206,7 +207,6 @@ def submit_patient():
         data = request.json
         required_depts = ["it", "ent", "vision", "general", "dental"]
         missing = [dept for dept in required_depts if dept not in data or not data[dept]]
-        
         if missing:
             return jsonify({"error": f"Missing data for departments: {', '.join(missing)}"}), 400
 
@@ -222,7 +222,8 @@ def submit_patient():
             "mobile": data["it"]["mobile"],
             "dob": data["it"]["dob"],
             "gender": data["it"]["gender"],
-            "bloodgroup": data["it"]["bloodGroup"]
+            "bloodgroup": data["it"]["bloodGroup"],
+            "photo": data["it"].get("photo")  # include photo if present
         }
 
         # Flatten nested data for database insertion
