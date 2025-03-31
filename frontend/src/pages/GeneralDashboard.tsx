@@ -10,8 +10,10 @@ import {
 } from "@mui/material";
 import { PatientContext } from "../context/PatientContext";
 import { useLocation } from "react-router-dom";
+import { useToast } from "../context/ToastContext";
 
 const GeneralDashboard: React.FC = () => {
+  const { showToast } = useToast();
   // Body Measurements
   const [height, setHeight] = useState("");
   const [weight, setWeight] = useState("");
@@ -170,7 +172,8 @@ const GeneralDashboard: React.FC = () => {
       !hip ||
       !waist
     ) {
-      alert("Please fill all fields.");
+      // Replace alert with toast notification
+      showToast("Please fill all fields.", "error");
       return;
     }
     const data = {
@@ -200,9 +203,28 @@ const GeneralDashboard: React.FC = () => {
       waist,
     };
     updateDepartment("general", data);
-    alert("General data saved successfully.");
+    // Replace alert with toast notification
+    showToast("General data saved successfully.", "success");
     resetForm();
     resetPatientData("general"); // Specify department
+  };
+
+  const handleFinalSubmit = async () => {
+    try {
+      const res = await fetch("http://localhost:5000/api/submit_general", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ /* General data */ })
+      });
+      const result = await res.json();
+      if (result.message === "General info submitted successfully.") {
+        showToast("General data submitted successfully.", "success");
+      } else {
+        showToast(result.message, "error");
+      }
+    } catch (error) {
+      showToast("Error submitting General data.", "error");
+    }
   };
 
   return (
