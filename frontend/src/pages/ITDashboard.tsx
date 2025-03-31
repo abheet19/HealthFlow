@@ -10,6 +10,7 @@ import {
 } from "@mui/material";
 import { PatientContext } from "../context/PatientContext";
 import io from 'socket.io-client';
+import { useToast } from "../context/ToastContext";
 
 interface PatientData {
   patientId?: string;
@@ -48,6 +49,7 @@ const ITDashboard: React.FC = () => {
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoBase64, setPhotoBase64] = useState<string>("");
   const { patientData, updatePatientId, updateDepartment, resetPatientData } = useContext(PatientContext);
+  const { showToast } = useToast(); // use the toast hook
 
   // Add new state for tracking department completions
   const [completedDepts, setCompletedDepts] = useState<string[]>([]);
@@ -212,20 +214,19 @@ const ITDashboard: React.FC = () => {
 
   const handleFinalSubmit = async () => {
     if (!patientData.patientId) {
-      alert("Please generate a Patient ID first.");
+      showToast("Please generate a Patient ID first.", "error");
       return;
     }
 
-    // First validate IT data including photo
     if (!validateITData()) {
+      showToast("Please fill all required IT fields.", "error");
       return;
     }
 
-    // Then check other departments
     const required = ["ent", "vision", "general", "dental"];
     for (const dept of required) {
       if (!(patientData as any)[dept]) {
-        alert(`Data for ${dept.toUpperCase()} department is missing.`);
+        showToast(`Data for ${dept.toUpperCase()} department is missing.`, "error");
         return;
       }
     }
@@ -260,14 +261,14 @@ const ITDashboard: React.FC = () => {
       });
       const result = await res.json();
       if (result.message === "Patient data submitted successfully.") {
-        alert("Patient data submitted successfully.");
+        showToast("Patient data submitted successfully.", "success");
         resetForm();
         resetPatientData(); // This will clear everything
       } else {
-        alert(result.message);
+        showToast(result.message, "error");
       }
     } catch (error) {
-      alert("Error submitting patient data.");
+      showToast("Error submitting patient data.", "error");
     }
   };
 

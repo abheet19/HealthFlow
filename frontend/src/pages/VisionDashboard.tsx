@@ -3,6 +3,7 @@ import { useState, useContext, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { Button, TextField, FormControl, InputLabel, Select, MenuItem } from "@mui/material";
 import { PatientContext } from "../context/PatientContext";
+import { useToast } from "../context/ToastContext";
 
 const VisionDashboard: React.FC = () => {
   const [reVision, setReVision] = useState("6/6");
@@ -14,6 +15,7 @@ const VisionDashboard: React.FC = () => {
   const [manualPatientId, setManualPatientId] = useState("");
 
   const { updateDepartment, patientData, updatePatientId, resetPatientData } = useContext(PatientContext);
+  const { showToast } = useToast();
   const location = useLocation();
 
   // Initialize local state from context (if already set)
@@ -76,14 +78,33 @@ const VisionDashboard: React.FC = () => {
     };
 
     if (Object.values(allFields).some(value => !value)) {
-      alert("Please fill all fields before submitting.");
+      showToast("Please fill all fields before submitting.", "error");
       return;
     }
 
     updateDepartment("vision", allFields);
-    alert("Vision data saved successfully.");
+    showToast("Vision data saved successfully.", "success");
     resetForm();
     resetPatientData("vision"); // Specify department
+  };
+
+  const handleFinalSubmit = async () => {
+    // ...validate Vision data...
+    try {
+      const res = await fetch("http://localhost:5000/api/submit_vision", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ /* Vision data */ })
+      });
+      const result = await res.json();
+      if (result.message === "Vision info submitted successfully.") {
+        showToast("Vision data submitted successfully.", "success");
+      } else {
+        showToast(result.message, "error");
+      }
+    } catch (error) {
+      showToast("Error submitting Vision data.", "error");
+    }
   };
 
   return (

@@ -8,22 +8,25 @@ import General from "./pages/GeneralDashboard";
 import Dental from "./pages/DentalDashboard";
 import PatientsList from "./pages/PatientsList"; // added import
 import { PatientProvider } from "./context/PatientContext";
+import { ToastProvider } from "./context/ToastContext";
 
 function App() {
   return (
     <PatientProvider>
-      <Router>
-        <Navigation />
-        <Routes>
-          <Route path="/" element={<ITDashboard />} />
-          <Route path="/it" element={<ITDashboard />} />
-          <Route path="/ent" element={<ENT />} />
-          <Route path="/vision" element={<Vision />} />
-          <Route path="/general" element={<General />} />
-          <Route path="/dental" element={<Dental />} />
-          <Route path="/patients" element={<PatientsList />} /> {/* added route */}
-        </Routes>
-      </Router>
+      <ToastProvider>
+        <Router>
+          <Navigation />
+          <Routes>
+            <Route path="/" element={<ITDashboard />} />
+            <Route path="/it" element={<ITDashboard />} />
+            <Route path="/ent" element={<ENT />} />
+            <Route path="/vision" element={<Vision />} />
+            <Route path="/general" element={<General />} />
+            <Route path="/dental" element={<Dental />} />
+            <Route path="/patients" element={<PatientsList />} /> {/* added route */}
+          </Routes>
+        </Router>
+      </ToastProvider>
     </PatientProvider>
   );
 }

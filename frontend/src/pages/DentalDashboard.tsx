@@ -10,6 +10,7 @@ import {
   TextField,
 } from "@mui/material";
 import { PatientContext } from "../context/PatientContext";
+import { useToast } from "../context/ToastContext";
 
 const ToothSelector: React.FC<{
   label: string;
@@ -47,6 +48,7 @@ const ToothSelector: React.FC<{
 
 const DentalDashboard: React.FC = () => {
   const { updateDepartment, patientData, updatePatientId, resetPatientData } = useContext(PatientContext);
+  const { showToast } = useToast();
   const [manualPatientId, setManualPatientId] = useState("");
 
   const location = useLocation();
@@ -205,10 +207,10 @@ const DentalDashboard: React.FC = () => {
       !rootStump ||
       !missingTeeth
     ) {
-      alert("Please fill all required fields.");
+      // Replace alert with toast notification
+      showToast("Please fill all required fields.", "error");
       return;
     }
-
     const data = {
       dental_extra_oral: extraOral,
       tooth_cavity_permanent: [
@@ -238,9 +240,72 @@ const DentalDashboard: React.FC = () => {
     };
 
     updateDepartment("dental", data);
-    alert("Dental data saved successfully.");
+    // Replace alert with toast notification
+    showToast("Dental data saved successfully.", "success");
     resetForm();
     resetPatientData("dental");
+  };
+
+  const handleFinalSubmit = async () => {
+    if (
+      !extraOral ||
+      !plaque ||
+      !gumInflammation ||
+      !stains ||
+      !toothDiscoloration ||
+      !tarter ||
+      !badBreath ||
+      !gumBleeding ||
+      !softTissue ||
+      !fluorosis ||
+      !malocclusion ||
+      !rootStump ||
+      !missingTeeth
+    ) {
+      showToast("Please fill all required fields.", "error");
+      return;
+    }
+    try {
+      const res = await fetch("http://localhost:5000/api/submit_dental", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dental_extra_oral: extraOral,
+          tooth_cavity_permanent: [
+            ...toothCavityPermanentGroup1,
+            ...toothCavityPermanentGroup2,
+            ...toothCavityPermanentGroup3,
+            ...toothCavityPermanentGroup4,
+          ].join(","),
+          tooth_cavity_primary: [
+            ...toothCavityPrimaryGroup1,
+            ...toothCavityPrimaryGroup2,
+            ...toothCavityPrimaryGroup3,
+            ...toothCavityPrimaryGroup4,
+          ].join(","),
+          plaque,
+          gum_inflammation: gumInflammation,
+          stains,
+          tooth_discoloration: toothDiscoloration,
+          tarter,
+          bad_breath: badBreath,
+          gum_bleeding: gumBleeding,
+          soft_tissue: softTissue,
+          fluorosis,
+          malocclusion,
+          root_stump: rootStump,
+          missing_teeth: missingTeeth,
+        }),
+      });
+      const result = await res.json();
+      if (result.message === "Dental info submitted successfully.") {
+        showToast("Dental data submitted successfully.", "success");
+      } else {
+        showToast(result.message, "error");
+      }
+    } catch (error) {
+      showToast("Error submitting Dental data.", "error");
+    }
   };
 
   return (

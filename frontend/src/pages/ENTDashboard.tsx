@@ -10,8 +10,10 @@ import {
   TextField,
 } from "@mui/material";
 import { PatientContext } from "../context/PatientContext";
+import { useToast } from "../context/ToastContext";
 
 const ENTDashboard: React.FC = () => {
+  const { showToast } = useToast();
   // Left Ear fields
   const [leftEarDeformity, setLeftEarDeformity] = useState("");
   const [leftEarWax, setLeftEarWax] = useState("");
@@ -144,7 +146,7 @@ const ENTDashboard: React.FC = () => {
       !neckNodes ||
       !tonsils
     ) {
-      alert("Please fill all fields.");
+      showToast("Please fill all fields.", "error");
       return;
     }
     const data = {
@@ -168,9 +170,29 @@ const ENTDashboard: React.FC = () => {
       tonsils: tonsils,
     };
     updateDepartment("ent", data);
-    alert("ENT data saved successfully.");
+    showToast("ENT data saved successfully.", "success");
     resetForm();
     resetPatientData("ent"); // Specify department
+  };
+
+  const handleFinalSubmit = async () => {
+    // ...validate ENT data...
+    try {
+      const res = await fetch("http://localhost:5000/api/submit_ent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ /* ENT data */ })
+      });
+      const result = await res.json();
+      if (result.message === "ENT info submitted successfully.") {
+        showToast("ENT data submitted successfully.", "success");
+        // ...other logic...
+      } else {
+        showToast(result.message, "error");
+      }
+    } catch (error) {
+      showToast("Error submitting ENT data.", "error");
+    }
   };
 
   return (
