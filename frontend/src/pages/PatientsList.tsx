@@ -15,10 +15,12 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { useToast } from "../context/ToastContext";  // added import
 
 const placeholderImage = "https://via.placeholder.com/150"; // default placeholder
 
 const PatientsList: React.FC = () => {
+  const { showToast } = useToast(); // added toast hook
   const [patients, setPatients] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
@@ -32,6 +34,7 @@ const PatientsList: React.FC = () => {
       const res = await fetch(`http://localhost:5000/api/patients`);
       const data = await res.json();
       setPatients(data.patients || []);
+      showToast("Patients list refreshed successfully", "success");  // show toast on refresh success
     } catch (error) {
       console.error("Error fetching patients:", error);
     } finally {
@@ -47,8 +50,8 @@ const PatientsList: React.FC = () => {
     patient.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  // New: Download report handler
-  const handleDownloadReport = async (patientId: string) => {
+  // Modified download report handler:
+  const handleDownloadReport = async (patientId: string, patientName: string) => {
     try {
       const res = await fetch(`http://localhost:5000/api/generate_report?patientId=${patientId}`);
       if (!res.ok) throw new Error("Failed to download report");
@@ -56,14 +59,15 @@ const PatientsList: React.FC = () => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `Medical_Report_${patientId}.docx`;
+      a.download = `${patientName}'s Report.docx`;  // updated filename to use patient name
       document.body.appendChild(a);
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
+      showToast("Report downloaded successfully", "success");  // show toast on download success
     } catch (error) {
       console.error(error);
-      // Optionally, show a toast notification (if desired)
+      showToast("Failed to download report", "error");
     }
   };
 
@@ -119,87 +123,93 @@ const PatientsList: React.FC = () => {
             {loading ? "Refreshing..." : "Refresh"}
           </Button>
         </Box>
-        <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
-          <Table size="small">
-            <TableHead>
-              <TableRow sx={{ backgroundColor: "#1976d2" }}>
-                <TableCell align="center" sx={{ color: "white", fontWeight: "bold" }}>
-                  Photo
-                </TableCell>
-                <TableCell align="center" sx={{ color: "white", fontWeight: "bold" }}>
-                  Patient ID
-                </TableCell>
-                <TableCell align="center" sx={{ color: "white", fontWeight: "bold" }}>
-                  Name
-                </TableCell>
-                <TableCell align="center" sx={{ color: "white", fontWeight: "bold" }}>
-                  Division
-                </TableCell>
-                <TableCell align="center" sx={{ color: "white", fontWeight: "bold" }}>
-                  Roll No
-                </TableCell>
-                <TableCell align="center" sx={{ color: "white", fontWeight: "bold" }}>
-                  Admin No
-                </TableCell>
-                <TableCell align="center" sx={{ color: "white", fontWeight: "bold" }}>
-                  Mobile
-                </TableCell>
-                {/* New Report column */}
-                <TableCell align="center" sx={{ color: "white", fontWeight: "bold" }}>
-                  Report
-                </TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredPatients.map((patient, index) => (
-                <TableRow
-                  key={patient.patientId} // changed from patient.patient_id
-                  sx={{
-                    backgroundColor: index % 2 === 0 ? "#f5f5f5" : "white",
-                    transition: "background-color 0.3s",
-                    "&:hover": { backgroundColor: "#e3f2fd" },
-                  }}
-                >
-                  <TableCell align="center">
-                    <img
-                      src={patient.photo || placeholderImage}
-                      alt={patient.name}
-                      style={{
-                        width: "40px",
-                        height: "40px",
-                        borderRadius: "50%",
-                        objectFit: "cover",
-                      }}
-                    />
+        {/* Add horizontal scrolling for the table */}
+        <Box sx={{ overflowX: "auto" }}>
+          <TableContainer component={Paper} sx={{ borderRadius: 2, minWidth: "600px" }}>
+            <Table size="small">
+              <TableHead>
+                <TableRow sx={{ backgroundColor: "#1976d2" }}>
+                  <TableCell align="center" sx={{ color: "white", fontWeight: "bold", minWidth: "80px" }}>
+                    {/* Empty header for photo */}
                   </TableCell>
-                  <TableCell align="center">{patient.patientId}</TableCell> {/* updated */}
-                  <TableCell align="center">{patient.name}</TableCell>
-                  <TableCell align="center">{patient.div}</TableCell>
-                  <TableCell align="center">{patient.rollNo}</TableCell> {/* updated */}
-                  <TableCell align="center">{patient.adminNo}</TableCell> {/* updated */}
-                  <TableCell align="center">{patient.mobile}</TableCell>
-                  <TableCell align="center">
-                    <Button
-                      variant="contained"
-                      color="secondary"
-                      size="small"
-                      onClick={() => handleDownloadReport(patient.patientId)}
-                    >
-                      Download Report
-                    </Button>
+                  <TableCell align="center" sx={{ color: "white", fontWeight: "bold" }}>
+                    Patient No.
+                  </TableCell>
+                  <TableCell align="center" sx={{ color: "white", fontWeight: "bold" }}>
+                    Name
+                  </TableCell>
+                  <TableCell align="center" sx={{ color: "white", fontWeight: "bold" }}>
+                    Division
+                  </TableCell>
+                  <TableCell align="center" sx={{ color: "white", fontWeight: "bold" }}>
+                    Roll No.
+                  </TableCell>
+                  <TableCell align="center" sx={{ color: "white", fontWeight: "bold" }}>
+                    Admission No.
+                  </TableCell>
+                  <TableCell align="center" sx={{ color: "white", fontWeight: "bold" }}>
+                    Mobile
+                  </TableCell>
+                  <TableCell align="center" sx={{ color: "white", fontWeight: "bold" }}>
+                    {/* Empty header for actions */}
                   </TableCell>
                 </TableRow>
-              ))}
-              {filteredPatients.length === 0 && !loading && (
-                <TableRow>
-                  <TableCell colSpan={8} align="center">
-                    No patients found
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+              </TableHead>
+              <TableBody>
+                {filteredPatients.map((patient, index) => (
+                  <TableRow
+                    key={patient.patientId} // changed from patient.patient_id
+                    sx={{
+                      backgroundColor: index % 2 === 0 ? "#f5f5f5" : "white",
+                      transition: "background-color 0.3s",
+                      "&:hover": { backgroundColor: "#e3f2fd" },
+                    }}
+                  >
+                    <TableCell align="center">
+                      <img
+                        src={patient.photo || placeholderImage}
+                        alt={patient.name}
+                        style={{
+                          width: isMobile ? "30px" : "40px", // smaller on mobile
+                          height: isMobile ? "30px" : "40px",
+                          borderRadius: "50%",
+                          objectFit: "cover",
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell align="center">{patient.patientId}</TableCell> {/* updated */}
+                    <TableCell align="center">{patient.name}</TableCell>
+                    <TableCell align="center">{patient.div}</TableCell>
+                    <TableCell align="center">{patient.rollNo}</TableCell> {/* updated */}
+                    <TableCell align="center">{patient.adminNo}</TableCell> {/* updated */}
+                    <TableCell align="center">{patient.mobile}</TableCell>
+                    <TableCell align="center">
+                      <Button
+                        variant="contained"
+                        sx={{
+                          backgroundColor: "#1976d2 !important", // force override blue
+                          color: "white !important",
+                          "&:hover": { backgroundColor: "#1565c0 !important" }
+                        }}
+                        size="small"
+                        onClick={() => handleDownloadReport(patient.patientId, patient.name)}
+                      >
+                        Download Report
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {filteredPatients.length === 0 && !loading && (
+                  <TableRow>
+                    <TableCell colSpan={8} align="center">
+                      No patients found
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Box>
       </Paper>
     </Box>
   );
