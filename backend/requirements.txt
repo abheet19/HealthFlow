@@ -93,6 +93,8 @@ distro @ file:///C:/b/abs_71xr36ua5r/croot/distro_1714488282676/work
 dnspython==2.7.0
 docstring-to-markdown @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/docstring-to-markdown_1699484265167/work
 docutils @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/docutils_1699474820579/work
+docxcompose==1.4.0
+docxtpl==0.19.1
 et-xmlfile @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/et_xmlfile_1699500373144/work
 eventlet==0.39.1
 executing @ file:///opt/conda/conda-bld/executing_1646925071911/work
@@ -272,7 +274,7 @@ PyQtWebEngine==5.15.6
 PySocks @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/pysocks_1699473336188/work
 pytest @ file:///C:/b/abs_een_3z747j/croot/pytest_1717793253670/work
 python-dateutil @ file:///C:/b/abs_3au_koqnbs/croot/python-dateutil_1716495777160/work
-python-docx==0.8.11
+python-docx==1.1.2
 python-dotenv @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/python-dotenv_1699475097728/work
 python-engineio==4.11.2
 python-json-logger @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/python-json-logger_1699543626759/work

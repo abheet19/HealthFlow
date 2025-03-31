@@ -47,6 +47,26 @@ const PatientsList: React.FC = () => {
     patient.name.toLowerCase().includes(search.toLowerCase())
   );
 
+  // New: Download report handler
+  const handleDownloadReport = async (patientId: string) => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/generate_report?patientId=${patientId}`);
+      if (!res.ok) throw new Error("Failed to download report");
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Medical_Report_${patientId}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error(error);
+      // Optionally, show a toast notification (if desired)
+    }
+  };
+
   return (
     <Box sx={{ p: 2, backgroundColor: "#f9f9f9", minHeight: "100vh" }}>
       <Paper
@@ -124,6 +144,10 @@ const PatientsList: React.FC = () => {
                 <TableCell align="center" sx={{ color: "white", fontWeight: "bold" }}>
                   Mobile
                 </TableCell>
+                {/* New Report column */}
+                <TableCell align="center" sx={{ color: "white", fontWeight: "bold" }}>
+                  Report
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -154,11 +178,22 @@ const PatientsList: React.FC = () => {
                   <TableCell align="center">{patient.rollno}</TableCell>
                   <TableCell align="center">{patient.adminno}</TableCell>
                   <TableCell align="center">{patient.mobile}</TableCell>
+                  {/* New Report download button */}
+                  <TableCell align="center">
+                    <Button
+                      variant="contained"
+                      color="secondary"
+                      size="small"
+                      onClick={() => handleDownloadReport(patient.patient_id)}
+                    >
+                      Download Report
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
               {filteredPatients.length === 0 && !loading && (
                 <TableRow>
-                  <TableCell colSpan={7} align="center">
+                  <TableCell colSpan={8} align="center">
                     No patients found
                   </TableCell>
                 </TableRow>

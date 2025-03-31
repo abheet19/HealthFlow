@@ -27,6 +27,7 @@ def init_db():
         address TEXT,
         mobile VARCHAR(20),
         dob DATE,
+        capture_date DATE ,  -- New column for capture date
         gender VARCHAR(10),
         bloodgroup VARCHAR(5),       /* Changed from blood_group */
         photo TEXT,                 /* Column to store the image data */

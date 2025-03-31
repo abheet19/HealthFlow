@@ -250,7 +250,8 @@ const ITDashboard: React.FC = () => {
       ent: patientData.ent,
       vision: patientData.vision,
       general: patientData.general,
-      dental: patientData.dental
+      dental: patientData.dental,
+      captured_date: new Date().toISOString()  // New field for current date capture
     };
 
     try {

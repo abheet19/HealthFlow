@@ -13,6 +13,8 @@ import os
 from dotenv import load_dotenv
 from sqlalchemy import text
 import base64
+from docx.shared import Inches
+from docxtpl import DocxTemplate, InlineImage
 
 app = Flask(__name__)
 CORS(app)
@@ -156,50 +158,50 @@ def submit_dental():
 # New endpoint to generate a Word report using the submitted data
 @app.route('/api/generate_report', methods=['GET'])
 def generate_report():
-    # Ensure all submissions are present
-    for dept, submission in global_data.items():
-        if submission is None:
-            return jsonify({"error": f"{dept.upper()} submission is missing."}), 400
+    patient_id = request.args.get("patientId")
+    if not patient_id:
+        return jsonify({"error": "patientId query parameter is required."}), 400
+    db = SessionLocal()
+    try:
+        query = text("SELECT * FROM patient_records WHERE patient_id = :pid")
+        result = db.execute(query, {"pid": patient_id})
+        record = result.fetchone()
+        if not record:
+            return jsonify({"error": "Patient record not found."}), 404
 
-    # Load the empty medical report card template
-    template_path = "template.docx"  # ensure this file exists in the backend folder
-    document = Document(template_path)
-
-    # Create a flat dictionary for replacements, e.g., { "it_name": "John Doe", ... }
-    replacements = {}
-    for dept, data in global_data.items():
-        for key, value in data.items():
-            replacements[f"{{{dept}_{key}}}"] = value
-
-    # Function to replace placeholders in paragraphs
-    def replace_placeholders_in_paragraphs(paragraphs):
-        for para in paragraphs:
-            for placeholder, replacement in replacements.items():
-                if placeholder in para.text:
-                    for run in para.runs:
-                        if placeholder in run.text:
-                            run.text = run.text.replace(placeholder, str(replacement))
-
-    # Replace placeholders in paragraphs
-    replace_placeholders_in_paragraphs(document.paragraphs)
-
-    # Also replace placeholders in tables if your template has them
-    for table in document.tables:
-        for row in table.rows:
-            for cell in row.cells:
-                replace_placeholders_in_paragraphs(cell.paragraphs)
-
-    # Save updated document to a BytesIO stream
-    doc_io = BytesIO()
-    document.save(doc_io)
-    doc_io.seek(0)
-    logging.info("Medical report card generated successfully from template.")
-    return send_file(
-        doc_io,
-        as_attachment=True,
-        download_name="medical_report_card.docx",
-        mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    )
+        patient_record = {k: v for k, v in record._mapping.items()}
+        # Use a freshly saved DOCX template from Word
+        template_path = "templateClean.docx"  # Save a new copy from Word and update the path
+        doc = DocxTemplate(template_path)
+        context = {}
+        for key, value in patient_record.items():
+            if key == "photo" and value:
+                if isinstance(value, bytes):
+                    img_stream = BytesIO(value)
+                else:
+                    img_str = value
+                    if img_str.startswith("data:image"):
+                        img_str = img_str.split(",")[1]
+                    img_stream = BytesIO(base64.b64decode(img_str))
+                context[key] = InlineImage(doc, img_stream, width=Inches(1.5))
+            else:
+                context[key] = str(value) if value is not None else ""
+        doc.render(context)
+        doc_io = BytesIO()
+        doc.save(doc_io)
+        doc_io.seek(0)
+        logging.info(f"Report generated for patient {patient_id} using docxtpl.")
+        return send_file(
+            doc_io,
+            as_attachment=True,
+            download_name=f"Medical_Report_{patient_id}.docx",
+            mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
+    except Exception as e:
+        logging.error(f"Error generating report: {str(e)}")
+        return jsonify({"error": "Failed to generate report."}), 500
+    finally:
+        db.close()
 
 @app.route('/api/submit_patient', methods=['POST'])
 def submit_patient():
@@ -232,6 +234,12 @@ def submit_patient():
             "photo": it_photo if it_photo else None
         }
 
+        # Add new captured date from payload if provided, else default to current datetime
+        try:
+            capture_date = datetime.fromisoformat(data["captured_date"])
+        except Exception:
+            capture_date = datetime.now()
+
         flat_data = {
             "patient_id": data["patientId"],
             **it_data,
@@ -239,6 +247,7 @@ def submit_patient():
             **data["vision"],
             **data["general"],
             **data["dental"],
+            "capture_date": capture_date,  # New column for the capture date
             "created_at": datetime.now()
         }
 
