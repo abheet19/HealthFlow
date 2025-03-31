@@ -286,32 +286,66 @@ def generate_report():
         if not record:
             return jsonify({"error": "Patient record not found."}), 404
 
-        # Option A: Use mapping directly:
         patient_record = {k: v for k, v in record._mapping.items()}
-        # Option B: Use translate_record to maintain frontend key names:
         patient = translate_record(record)
-        # ... then use patient[...] as expected in your document generation logic ...
-        # (Ensure consistency between what the frontend expects and what you return.)
         template_path = "template.docx"
         doc = DocxTemplate(template_path)
         context = {}
 
         for key, value in patient_record.items():
             if key == "photo" and value:
-                # Prepare the image: if already bytes, use it; otherwise decode Base64.
                 if isinstance(value, bytes):
                     img_bytes = value
                 else:
                     img_str = value.split(",")[1] if value.startswith("data:image") else value
                     img_bytes = base64.b64decode(img_str)
-                # Open image with Pillow
                 image = Image.open(BytesIO(img_bytes)).convert("RGB")
-                # Crop image to circle; Inches(1.5) approximates to 144 pixels at 96 DPI
                 cropped_stream = crop_image_circle(image, 144)
                 context[key] = InlineImage(doc, cropped_stream, width=Inches(1.5))
             else:
                 context[key] = str(value) if value is not None else ""
-                
+
+        # NEW: Compute remaining teeth for each subgroup
+        perm_group1 = ["18", "17", "16", "15", "14", "13", "12", "11"]
+        perm_group2 = ["21", "22", "23", "24", "25", "26", "27", "28"]
+        perm_group3 = ["48", "47", "46", "45", "44", "43", "42", "41"]
+        perm_group4 = ["31", "32", "33", "34", "35", "36", "37", "38"]
+
+        prim_group1 = ["55", "54", "53", "52", "51"]
+        prim_group2 = ["61", "62", "63", "64", "65"]
+        prim_group3 = ["85", "84", "83", "82", "81"]
+        prim_group4 = ["71", "72", "73", "74", "75"]
+
+        selected_perm = patient_record.get("tooth_perm", "")
+        selected_perm_list = [x.strip() for x in selected_perm.split(",") if x.strip()] if selected_perm else []
+        selected_prim = patient_record.get("tooth_prim", "")
+        selected_prim_list = [x.strip() for x in selected_prim.split(",") if x.strip()] if selected_prim else []
+
+        rem_perm_group1 = [t for t in perm_group1 if t not in selected_perm_list]
+        rem_perm_group2 = [t for t in perm_group2 if t not in selected_perm_list]
+        rem_perm_group3 = [t for t in perm_group3 if t not in selected_perm_list]
+        rem_perm_group4 = [t for t in perm_group4 if t not in selected_perm_list]
+
+        rem_prim_group1 = [t for t in prim_group1 if t not in selected_prim_list]
+        rem_prim_group2 = [t for t in prim_group2 if t not in selected_prim_list]
+        rem_prim_group3 = [t for t in prim_group3 if t not in selected_prim_list]
+        rem_prim_group4 = [t for t in prim_group4 if t not in selected_prim_list]
+
+        context["remaining_perm_group1"] = ", ".join(rem_perm_group1)
+        context["remaining_perm_group2"] = ", ".join(rem_perm_group2)
+        context["remaining_perm_group3"] = ", ".join(rem_perm_group3)
+        context["remaining_perm_group4"] = ", ".join(rem_perm_group4)
+        context["remaining_prim_group1"] = ", ".join(rem_prim_group1)
+        context["remaining_prim_group2"] = ", ".join(rem_prim_group2)
+        context["remaining_prim_group3"] = ", ".join(rem_prim_group3)
+        context["remaining_prim_group4"] = ", ".join(rem_prim_group4)
+
+        # Debug: log context keys for remaining teeth
+        print("Remaining Permanent Groups:", context["remaining_perm_group1"], context["remaining_perm_group2"],
+              context["remaining_perm_group3"], context["remaining_perm_group4"])
+        print("Remaining Primary Groups:", context["remaining_prim_group1"], context["remaining_prim_group2"],
+              context["remaining_prim_group3"], context["remaining_prim_group4"])
+
         doc.render(context)
         doc_io = BytesIO()
         doc.save(doc_io)
@@ -320,7 +354,7 @@ def generate_report():
         return send_file(
             doc_io,
             as_attachment=True,
-            download_name=f"Medical_Report_{patient_id}.docx",
+            download_name=f"{patient_record.get('name', 'Patient')}.docx",  # use patient's name
             mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
     except Exception as e:
