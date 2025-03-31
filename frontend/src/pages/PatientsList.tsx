@@ -153,7 +153,7 @@ const PatientsList: React.FC = () => {
             <TableBody>
               {filteredPatients.map((patient, index) => (
                 <TableRow
-                  key={patient.patient_id}
+                  key={patient.patientId} // changed from patient.patient_id
                   sx={{
                     backgroundColor: index % 2 === 0 ? "#f5f5f5" : "white",
                     transition: "background-color 0.3s",
@@ -172,19 +172,18 @@ const PatientsList: React.FC = () => {
                       }}
                     />
                   </TableCell>
-                  <TableCell align="center">{patient.patient_id}</TableCell>
+                  <TableCell align="center">{patient.patientId}</TableCell> {/* updated */}
                   <TableCell align="center">{patient.name}</TableCell>
                   <TableCell align="center">{patient.div}</TableCell>
-                  <TableCell align="center">{patient.rollno}</TableCell>
-                  <TableCell align="center">{patient.adminno}</TableCell>
+                  <TableCell align="center">{patient.rollNo}</TableCell> {/* updated */}
+                  <TableCell align="center">{patient.adminNo}</TableCell> {/* updated */}
                   <TableCell align="center">{patient.mobile}</TableCell>
-                  {/* New Report download button */}
                   <TableCell align="center">
                     <Button
                       variant="contained"
                       color="secondary"
                       size="small"
-                      onClick={() => handleDownloadReport(patient.patient_id)}
+                      onClick={() => handleDownloadReport(patient.patientId)}
                     >
                       Download Report
                     </Button>
