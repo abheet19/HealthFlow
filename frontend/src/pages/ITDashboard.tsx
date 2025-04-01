@@ -288,7 +288,7 @@ const ITDashboard: React.FC = () => {
 
     return (
       <div className="mt-6">
-        <h2 className="text-xl font-bold mb-4">Department Status & Summary</h2>
+        <h2 className="text-xl font-bold mb-4">Status & Summary</h2>
         <div className="grid grid-cols-2 gap-4 mb-6">
           {['ENT', 'Vision', 'General', 'Dental'].map(dept => (
             <div 
