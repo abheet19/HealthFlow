@@ -19,7 +19,7 @@ from PIL import Image, ImageDraw, ImageOps  # new import for image processing
 
 app = Flask(__name__)
 CORS(app)
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 logging.basicConfig(level=logging.INFO)
 
 # Load environment variables
@@ -165,7 +165,7 @@ def crop_image_circle(image: Image.Image, size: int) -> BytesIO:
     mask = Image.new('L', bigsize, 0)
     draw = ImageDraw.Draw(mask)
     draw.ellipse((0, 0) + bigsize, fill=255)
-    mask = mask.resize((size, size), Image.ANTIALIAS)
+    mask = mask.resize((size, size), Image.Resampling.LANCZOS)
     # Apply mask to image and use white background for transparency removal if needed
     output = Image.new('RGBA', (size, size), (255, 255, 255, 0))
     output.paste(image, (0, 0), mask)
@@ -537,4 +537,4 @@ def handle_department_update(data):
     emit('departmentUpdate', data, broadcast=True)
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=5000)
+    socketio.run(app, host='0.0.0.0', port=5000, allow_unsafe_werkzeug=True)
