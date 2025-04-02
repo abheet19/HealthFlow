@@ -9,7 +9,7 @@ import {
   MenuItem,
 } from "@mui/material";
 import { PatientContext } from "../context/PatientContext";
-import io from 'socket.io-client';
+import { getApiUrl } from "../config/api"; // Import API helper
 import { useToast } from "../context/ToastContext";
 
 interface PatientData {
@@ -138,7 +138,7 @@ const ITDashboard: React.FC = () => {
 
   const generatePatientId = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/generate_patient_id', {
+      const response = await fetch(getApiUrl('api/generate_patient_id'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -255,7 +255,7 @@ const ITDashboard: React.FC = () => {
     };
 
     try {
-      const res = await fetch("http://localhost:5000/api/submit_patient", {
+      const res = await fetch(getApiUrl("api/submit_patient"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(combinedData)

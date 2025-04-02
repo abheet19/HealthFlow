@@ -1,0 +1,56 @@
+services:
+  # PostgreSQL Database
+  - type: pserv
+    name: doctor-report-db
+    plan: free
+    env: docker
+    disk:
+      name: doctor-report-data
+      mountPath: /var/lib/postgresql/data
+      sizeGB: 1
+    envVars:
+      - key: POSTGRES_USER
+        value: postgres
+      - key: POSTGRES_PASSWORD
+        generateValue: true
+      - key: POSTGRES_DB
+        value: doctor_reports
+
+  # Backend API service
+  - type: web
+    name: doctor-report-backend
+    plan: free
+    env: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    envVars:
+      - key: POSTGRES_USER
+        value: postgres
+      - key: POSTGRES_PASSWORD
+        fromService:
+          name: doctor-report-db
+          type: pserv
+          envVarKey: POSTGRES_PASSWORD
+      - key: POSTGRES_DB
+        value: doctor_reports
+      - key: POSTGRES_HOST
+        fromService:
+          name: doctor-report-db
+          type: pserv
+          property: host
+      - key: POSTGRES_PORT
+        value: "5432"
+
+  # Frontend service
+  - type: web
+    name: doctor-report-frontend
+    plan: free
+    env: docker
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    envVars:
+      - key: BACKEND_URL
+        fromService:
+          name: doctor-report-backend
+          type: web
+          property: host

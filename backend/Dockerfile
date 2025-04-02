@@ -4,8 +4,9 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
-# Copy the entrypoint script and make it executable
-COPY entrypoint.sh .
-RUN chmod +x entrypoint.sh
+# Copy the entrypoint script, convert line endings and make it executable
+COPY entrypoint.sh /app/
+RUN sed -i 's/\r$//' /app/entrypoint.sh && \
+    chmod +x /app/entrypoint.sh
 EXPOSE 5000
-CMD ["./entrypoint.sh"]
+CMD ["/bin/sh", "/app/entrypoint.sh"]

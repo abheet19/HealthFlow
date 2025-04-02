@@ -1,5 +1,6 @@
 import { createContext, useState, useEffect, ReactNode } from "react";
 import io from 'socket.io-client';
+import { SOCKET_URL } from "../config/api";
 
 export interface PatientData {
   it?: Record<string, any>;
@@ -42,7 +43,7 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
 
   // WebSocket initialization
   useEffect(() => {
-    const newSocket = io('http://localhost:5000', {
+    const newSocket = io(SOCKET_URL, {
       reconnection: true,
       reconnectionAttempts: 5,
       transports: ['websocket']  // Force WebSocket transport
