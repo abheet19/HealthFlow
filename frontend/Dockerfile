@@ -7,10 +7,13 @@ RUN npm config set registry https://registry.npmjs.org/
 RUN npm config set strict-ssl false
 RUN npm install --legacy-peer-deps
 
-# Copy all files
+# Copy all files including env files
 COPY . .
 
-# Create production build
+# Explicitly set NODE_ENV to production to ensure .env.production is used
+ENV NODE_ENV=production
+
+# Create production build with production environment variables
 RUN npm run build
 
 # Use nginx to serve static files

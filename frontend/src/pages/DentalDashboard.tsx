@@ -11,6 +11,7 @@ import {
 } from "@mui/material";
 import { PatientContext } from "../context/PatientContext";
 import { useToast } from "../context/ToastContext";
+import { getApiUrl } from "../config/api";  // Import the API URL helper
 
 const ToothSelector: React.FC<{
   label: string;
@@ -266,7 +267,7 @@ const DentalDashboard: React.FC = () => {
       return;
     }
     try {
-      const res = await fetch("http://localhost:5000/api/submit_dental", {
+      const res = await fetch(getApiUrl("/api/submit_dental"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

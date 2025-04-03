@@ -11,6 +11,7 @@ import {
 } from "@mui/material";
 import { PatientContext } from "../context/PatientContext";
 import { useToast } from "../context/ToastContext";
+import { getApiUrl } from "../config/api";  // Import the API URL helper
 
 const ENTDashboard: React.FC = () => {
   const { showToast } = useToast();
@@ -178,7 +179,7 @@ const ENTDashboard: React.FC = () => {
   const handleFinalSubmit = async () => {
     // ...validate ENT data...
     try {
-      const res = await fetch("http://localhost:5000/api/submit_ent", {
+      const res = await fetch(getApiUrl("/api/submit_ent"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ /* ENT data */ })
