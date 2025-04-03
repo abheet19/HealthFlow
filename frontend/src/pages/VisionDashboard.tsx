@@ -4,6 +4,7 @@ import { useLocation } from "react-router-dom";
 import { Button, TextField, FormControl, InputLabel, Select, MenuItem } from "@mui/material";
 import { PatientContext } from "../context/PatientContext";
 import { useToast } from "../context/ToastContext";
+import { getApiUrl } from "../config/api";  // Import the API URL helper
 
 const VisionDashboard: React.FC = () => {
   const [reVision, setReVision] = useState("6/6");
@@ -91,7 +92,7 @@ const VisionDashboard: React.FC = () => {
   const handleFinalSubmit = async () => {
     // ...validate Vision data...
     try {
-      const res = await fetch("http://localhost:5000/api/submit_vision", {
+      const res = await fetch(getApiUrl("/api/submit_vision"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ /* Vision data */ })

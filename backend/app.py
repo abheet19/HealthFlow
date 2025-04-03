@@ -41,8 +41,29 @@ patient_counter = 0
 LAST_PATIENT_NUMBER = 0
 
 # Add database configuration using environment variables
-DATABASE_URL = f"postgresql://{os.getenv('POSTGRES_USER')}:{os.getenv('POSTGRES_PASSWORD')}@{os.getenv('POSTGRES_HOST')}:{os.getenv('POSTGRES_PORT')}/{os.getenv('POSTGRES_DB')}"
-engine = create_engine(DATABASE_URL)
+# Determine if we're running in Cloud Run
+CLOUD_RUN = os.getenv('CLOUD_RUN', 'false').lower() == 'true'
+
+if CLOUD_RUN:
+    # Use Cloud SQL Auth Proxy connection method for Cloud Run
+    instance_connection_name = os.getenv('INSTANCE_CONNECTION_NAME')
+    db_user = os.getenv('POSTGRES_USER')
+    db_pass = os.getenv('POSTGRES_PASSWORD')
+    db_name = os.getenv('POSTGRES_DB')
+    
+    # Unix socket connection string for Cloud SQL
+    # Format: postgresql+psycopg2://<db_user>:<db_pass>@/<db_name>?host=/cloudsql/<instance_connection_name>
+    DATABASE_URL = f"postgresql+psycopg2://{db_user}:{db_pass}@/{db_name}?host=/cloudsql/{instance_connection_name}"
+    logging.info(f"Using Cloud SQL Auth Proxy connection method")
+else:
+    # Standard TCP connection for local development
+    DATABASE_URL = f"postgresql://{os.getenv('POSTGRES_USER')}:{os.getenv('POSTGRES_PASSWORD')}@{os.getenv('POSTGRES_HOST')}:{os.getenv('POSTGRES_PORT')}/{os.getenv('POSTGRES_DB')}"
+    logging.info(f"Using standard TCP connection method")
+
+# Log connection type but not credentials
+logging.info(f"DB Connection type: {'Cloud SQL Auth Proxy' if CLOUD_RUN else 'TCP'}")
+
+engine = create_engine(DATABASE_URL, pool_pre_ping=True)  # Added pool_pre_ping for better connection reliability
 SessionLocal = sessionmaker(bind=engine)
 
 # Log every API call

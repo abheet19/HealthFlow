@@ -11,6 +11,7 @@ import {
 import { PatientContext } from "../context/PatientContext";
 import { useLocation } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
+import { getApiUrl } from "../config/api";  // Import the API URL helper
 
 const GeneralDashboard: React.FC = () => {
   const { showToast } = useToast();
@@ -211,7 +212,7 @@ const GeneralDashboard: React.FC = () => {
 
   const handleFinalSubmit = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/submit_general", {
+      const res = await fetch(getApiUrl("/api/submit_general"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ /* General data */ })

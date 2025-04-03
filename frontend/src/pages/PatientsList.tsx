@@ -16,6 +16,7 @@ import {
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useToast } from "../context/ToastContext";  // added import
+import { getApiUrl } from "../config/api";  // Import the API URL helper
 
 const placeholderImage = "https://via.placeholder.com/150"; // default placeholder
 
@@ -31,12 +32,17 @@ const PatientsList: React.FC = () => {
   const fetchPatients = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/patients`);
+      // Use the API helper instead of hardcoded URL
+      const res = await fetch(getApiUrl('/api/patients'));
+      if (!res.ok) {
+        throw new Error(`Server responded with status: ${res.status}`);
+      }
       const data = await res.json();
       setPatients(data.patients || []);
       showToast("Patients list refreshed successfully", "success");  // show toast on refresh success
     } catch (error) {
       console.error("Error fetching patients:", error);
+      showToast(`Error fetching patients: ${error instanceof Error ? error.message : 'Unknown error'}`, "error");
     } finally {
       setLoading(false);
     }
@@ -53,7 +59,8 @@ const PatientsList: React.FC = () => {
   // Modified download report handler:
   const handleDownloadReport = async (patientId: string, patientName: string) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/generate_report?patientId=${patientId}`);
+      // Use the API helper instead of hardcoded URL
+      const res = await fetch(getApiUrl(`/api/generate_report?patientId=${patientId}`));
       if (!res.ok) throw new Error("Failed to download report");
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
