@@ -97,6 +97,28 @@ const GeneralDashboard: React.FC = () => {
     }
   }, [patientData.patientId]);
 
+  // Add new useEffect to calculate BMI automatically when height or weight changes
+  useEffect(() => {
+    if (height && weight) {
+      try {
+        // Convert height from cm to meters
+        const heightInMeters = parseFloat(height) / 100;
+        const weightInKg = parseFloat(weight);
+        
+        if (heightInMeters > 0 && weightInKg > 0) {
+          // BMI formula: weight (kg) / (height (m))²
+          const calculatedBMI = (weightInKg / (heightInMeters * heightInMeters)).toFixed(2);
+          setBmi(calculatedBMI);
+        }
+      } catch (error) {
+        console.error("Error calculating BMI:", error);
+      }
+    } else {
+      // Reset BMI when either height or weight is cleared
+      setBmi("");
+    }
+  }, [height, weight]);
+
   const dropdown = (
     label: string,
     value: string,
@@ -248,25 +270,33 @@ const GeneralDashboard: React.FC = () => {
               </h2>
               <div className="flex flex-wrap gap-4">
                 <TextField
-                  label="Height"
+                  label="Height (cm)"
                   variant="outlined"
                   size="small"
                   className="w-full sm:w-64"
+                  value={height}
                   onChange={(e) => setHeight(e.target.value)}
+                  placeholder="Enter height in cm"
                 />
                 <TextField
-                  label="Weight"
+                  label="Weight (kg)"
                   variant="outlined"
                   size="small"
                   className="w-full sm:w-64"
+                  value={weight}
                   onChange={(e) => setWeight(e.target.value)}
+                  placeholder="Enter weight in kg"
                 />
                 <TextField
                   label="BMI"
                   variant="outlined"
                   size="small"
                   className="w-full sm:w-64"
-                  onChange={(e) => setBmi(e.target.value)}
+                  value={bmi}
+                  InputProps={{
+                    readOnly: true,
+                  }}
+                  helperText="Automatically calculated"
                 />
               </div>
             </div>
