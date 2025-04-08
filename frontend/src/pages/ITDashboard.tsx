@@ -21,11 +21,11 @@ interface PatientData {
     adminNo: string;
     fatherName: string;
     motherName: string;
-    address: string;
     mobile: string;
     dob: string;
     gender: string;
     bloodGroup: string;
+    medicalOfficer: string;
     photo?: string; // Add photo field to IT data
   };
   ent?: Record<string, any>;
@@ -41,11 +41,11 @@ const ITDashboard: React.FC = () => {
   const [adminNo, setAdminNo] = useState("");
   const [fatherName, setFatherName] = useState("");
   const [motherName, setMotherName] = useState("");
-  const [address, setAddress] = useState("");
   const [mobile, setMobile] = useState("");
   const [dob, setDob] = useState("");
   const [gender, setGender] = useState("");
   const [bloodGroup, setBloodGroup] = useState("");
+  const [medicalOfficer, setMedicalOfficer] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoBase64, setPhotoBase64] = useState<string>("");
   const { patientData, updatePatientId, updateDepartment, resetPatientData } = useContext(PatientContext);
@@ -63,7 +63,6 @@ const ITDashboard: React.FC = () => {
       setAdminNo(patientData.it.adminNo || "");
       setFatherName(patientData.it.fatherName || "");
       setMotherName(patientData.it.motherName || "");
-      setAddress(patientData.it.address || "");
       setMobile(patientData.it.mobile || "");
       setDob(patientData.it.dob || "");
       setGender(patientData.it.gender || "");
@@ -88,11 +87,11 @@ const ITDashboard: React.FC = () => {
       case 'adminNo': setAdminNo(value); break;
       case 'fatherName': setFatherName(value); break;
       case 'motherName': setMotherName(value); break;
-      case 'address': setAddress(value); break;
       case 'mobile': setMobile(value); break;
       case 'dob': setDob(value); break;
       case 'gender': setGender(value); break;
       case 'bloodGroup': setBloodGroup(value); break;
+      case 'medicalOfficer': setMedicalOfficer(value); break;
     }
 
     // Debounced context update
@@ -103,11 +102,11 @@ const ITDashboard: React.FC = () => {
       adminNo: field === 'adminNo' ? value : adminNo,
       fatherName: field === 'fatherName' ? value : fatherName,
       motherName: field === 'motherName' ? value : motherName,
-      address: field === 'address' ? value : address,
       mobile: field === 'mobile' ? value : mobile,
       dob: field === 'dob' ? value : dob,
       gender: field === 'gender' ? value : gender,
       bloodGroup: field === 'bloodGroup' ? value : bloodGroup,
+      medicalOfficer: field === 'medicalOfficer' ? value : medicalOfficer,
     });
   };
 
@@ -172,11 +171,11 @@ const ITDashboard: React.FC = () => {
     setAdminNo("");
     setFatherName("");
     setMotherName("");
-    setAddress("");
     setMobile("");
     setDob("");
     setGender("");
     setBloodGroup("");
+    setMedicalOfficer("");
     setPhoto(null);
   };
 
@@ -188,11 +187,11 @@ const ITDashboard: React.FC = () => {
       adminNo,
       fatherName,
       motherName,
-      address,
       mobile,
       dob,
       gender,
-      bloodGroup
+      bloodGroup,
+      medicalOfficer
     };
 
     if (!photo) {
@@ -240,11 +239,11 @@ const ITDashboard: React.FC = () => {
         adminNo, 
         fatherName, 
         motherName, 
-        address, 
         mobile, 
         dob, 
         gender, 
         bloodGroup,
+        medicalOfficer,
         photo: photoBase64  // include base64 photo string in IT data
       },
       ent: patientData.ent,
@@ -323,6 +322,7 @@ const ITDashboard: React.FC = () => {
               <p><span className="font-medium">DOB:</span> {dob || '-'}</p>
               <p><span className="font-medium">Blood Group:</span> {bloodGroup || '-'}</p>
               <p><span className="font-medium">Mobile:</span> {mobile || '-'}</p>
+              <p><span className="font-medium">Medical Officer:</span> {medicalOfficer || '-'}</p>
             </div>
           </div>
         </div>
@@ -413,14 +413,6 @@ const ITDashboard: React.FC = () => {
               onChange={(e) => handleInputChange('motherName', e.target.value)}
             />
             <TextField
-              label="Address"
-              variant="outlined"
-              size="small"
-              className="w-full sm:w-64"
-              value={address}
-              onChange={(e) => handleInputChange('address', e.target.value)}
-            />
-            <TextField
               label="Mobile"
               variant="outlined"
               size="small"
@@ -475,14 +467,23 @@ const ITDashboard: React.FC = () => {
               >
                 <MenuItem value="A+">A+</MenuItem>
                 <MenuItem value="A-">A-</MenuItem>
-                <MenuItem value="B+">B+</MenuItem>  {/* Fixed closing tag */}
+                <MenuItem value="B+">B+</MenuItem>
                 <MenuItem value="B-">B-</MenuItem>
                 <MenuItem value="O+">O+</MenuItem>
                 <MenuItem value="O-">O-</MenuItem>
                 <MenuItem value="AB+">AB+</MenuItem>
                 <MenuItem value="AB-">AB-</MenuItem>
+                <MenuItem value="NA">NA</MenuItem>
               </Select>
             </FormControl>
+            <TextField
+              label="Medical Officer"
+              variant="outlined"
+              size="small"
+              className="w-full sm:w-64"
+              value={medicalOfficer}
+              onChange={(e) => handleInputChange('medicalOfficer', e.target.value)}
+            />
             <input
               type="file"
               accept="image/*"

@@ -15,8 +15,8 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { useToast } from "../context/ToastContext";  // added import
-import { getApiUrl } from "../config/api";  // Import the API URL helper
+import { useToast } from "../context/ToastContext"; // added import
+import { getApiUrl } from "../config/api"; // Import the API URL helper
 
 const placeholderImage = "https://via.placeholder.com/150"; // default placeholder
 
@@ -33,16 +33,21 @@ const PatientsList: React.FC = () => {
     setLoading(true);
     try {
       // Use the API helper instead of hardcoded URL
-      const res = await fetch(getApiUrl('/api/patients'));
+      const res = await fetch(getApiUrl("/api/patients"));
       if (!res.ok) {
         throw new Error(`Server responded with status: ${res.status}`);
       }
       const data = await res.json();
       setPatients(data.patients || []);
-      showToast("Patients list refreshed successfully", "success");  // show toast on refresh success
+      showToast("Patients list refreshed successfully", "success"); // show toast on refresh success
     } catch (error) {
       console.error("Error fetching patients:", error);
-      showToast(`Error fetching patients: ${error instanceof Error ? error.message : 'Unknown error'}`, "error");
+      showToast(
+        `Error fetching patients: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+        "error"
+      );
     } finally {
       setLoading(false);
     }
@@ -57,21 +62,26 @@ const PatientsList: React.FC = () => {
   );
 
   // Modified download report handler:
-  const handleDownloadReport = async (patientId: string, patientName: string) => {
+  const handleDownloadReport = async (
+    patientId: string,
+    patientName: string
+  ) => {
     try {
       // Use the API helper instead of hardcoded URL
-      const res = await fetch(getApiUrl(`/api/generate_report?patientId=${patientId}`));
+      const res = await fetch(
+        getApiUrl(`/api/generate_report?patientId=${patientId}`)
+      );
       if (!res.ok) throw new Error("Failed to download report");
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${patientName}'s Report.docx`;  // updated filename to use patient name
+      a.download = `${patientName}'s Report.docx`; // updated filename to use patient name
       document.body.appendChild(a);
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-      showToast("Report downloaded successfully", "success");  // show toast on download success
+      showToast("Report downloaded successfully", "success"); // show toast on download success
     } catch (error) {
       console.error(error);
       showToast("Failed to download report", "error");
@@ -132,32 +142,63 @@ const PatientsList: React.FC = () => {
         </Box>
         {/* Add horizontal scrolling for the table */}
         <Box sx={{ overflowX: "auto" }}>
-          <TableContainer component={Paper} sx={{ borderRadius: 2, minWidth: "600px" }}>
+          <TableContainer
+            component={Paper}
+            sx={{ borderRadius: 2, minWidth: "600px" }}
+          >
             <Table size="small">
               <TableHead>
                 <TableRow sx={{ backgroundColor: "#1976d2" }}>
-                  <TableCell align="center" sx={{ color: "white", fontWeight: "bold", minWidth: "80px" }}>
+                  <TableCell
+                    align="center"
+                    sx={{
+                      color: "white",
+                      fontWeight: "bold",
+                      minWidth: "80px",
+                    }}
+                  >
                     {/* Empty header for photo */}
                   </TableCell>
-                  <TableCell align="center" sx={{ color: "white", fontWeight: "bold" }}>
+                  <TableCell
+                    align="center"
+                    sx={{ color: "white", fontWeight: "bold" }}
+                  >
                     Patient No.
                   </TableCell>
-                  <TableCell align="center" sx={{ color: "white", fontWeight: "bold" }}>
+                  <TableCell
+                    align="center"
+                    sx={{ color: "white", fontWeight: "bold" }}
+                  >
                     Name
                   </TableCell>
-                  <TableCell align="center" sx={{ color: "white", fontWeight: "bold" }}>
+                  <TableCell
+                    align="center"
+                    sx={{ color: "white", fontWeight: "bold" }}
+                  >
                     Division
                   </TableCell>
-                  <TableCell align="center" sx={{ color: "white", fontWeight: "bold" }}>
+                  <TableCell
+                    align="center"
+                    sx={{ color: "white", fontWeight: "bold" }}
+                  >
                     Roll No.
                   </TableCell>
-                  <TableCell align="center" sx={{ color: "white", fontWeight: "bold" }}>
+                  <TableCell
+                    align="center"
+                    sx={{ color: "white", fontWeight: "bold" }}
+                  >
                     Admission No.
                   </TableCell>
-                  <TableCell align="center" sx={{ color: "white", fontWeight: "bold" }}>
+                  <TableCell
+                    align="center"
+                    sx={{ color: "white", fontWeight: "bold" }}
+                  >
                     Mobile
                   </TableCell>
-                  <TableCell align="center" sx={{ color: "white", fontWeight: "bold" }}>
+                  <TableCell
+                    align="center"
+                    sx={{ color: "white", fontWeight: "bold" }}
+                  >
                     {/* Empty header for actions */}
                   </TableCell>
                 </TableRow>
@@ -184,22 +225,26 @@ const PatientsList: React.FC = () => {
                         }}
                       />
                     </TableCell>
-                    <TableCell align="center">{patient.patientId}</TableCell> {/* updated */}
+                    <TableCell align="center">{patient.patientId}</TableCell>{" "}
+                    {/* updated */}
                     <TableCell align="center">{patient.name}</TableCell>
                     <TableCell align="center">{patient.div}</TableCell>
-                    <TableCell align="center">{patient.rollNo}</TableCell> {/* updated */}
-                    <TableCell align="center">{patient.adminNo}</TableCell> {/* updated */}
-                    <TableCell align="center">{patient.mobile}</TableCell>
+                    <TableCell align="center">{patient.rollNo}</TableCell>{" "}
+                    {/* updated */}
+                    <TableCell align="center">{patient.adminNo}</TableCell>{" "}
+                    {/* updated */}
                     <TableCell align="center">
                       <Button
                         variant="contained"
                         sx={{
                           backgroundColor: "#1976d2 !important", // force override blue
                           color: "white !important",
-                          "&:hover": { backgroundColor: "#1565c0 !important" }
+                          "&:hover": { backgroundColor: "#1565c0 !important" },
                         }}
                         size="small"
-                        onClick={() => handleDownloadReport(patient.patientId, patient.name)}
+                        onClick={() =>
+                          handleDownloadReport(patient.patientId, patient.name)
+                        }
                       >
                         Download Report
                       </Button>

@@ -43,6 +43,9 @@ LAST_PATIENT_NUMBER = 0
 # Add database configuration using environment variables
 # Determine if we're running in Cloud Run
 CLOUD_RUN = os.getenv('CLOUD_RUN', 'false').lower() == 'true'
+import platform
+if platform.system() == 'Windows':
+    CLOUD_RUN = False  # Force standard TCP connection on Windows
 
 if CLOUD_RUN:
     # Use Cloud SQL Auth Proxy connection method for Cloud Run
@@ -90,7 +93,8 @@ def submit_it():
         return jsonify({"error": "Missing photo file."}), 400
     required = [
         "name", "div", "roll_no", "admin_no", "father_name",
-        "mother_name", "address", "mobile", "dob", "gender", "blood_group"
+        "mother_name", "mobile", "dob", "gender", "blood_group",
+        "medical_officer"
     ]
     valid, msg = validate_fields(data, required)
     if not valid:
@@ -205,11 +209,11 @@ def transform_it(data_it: dict) -> dict:
         "admin": data_it.get("adminNo", ""),
         "father": data_it.get("fatherName", ""),
         "mother": data_it.get("motherName", ""),
-        "addr": data_it.get("address", ""),
         "mob": data_it.get("mobile", ""),
         "dob": data_it.get("dob", ""),
         "gen": data_it.get("gender", ""),
         "blood": data_it.get("bloodGroup", ""),
+        "medical_officer": data_it.get("medicalOfficer", ""),
         "photo": data_it.get("photo", None)
     }
 
@@ -495,6 +499,7 @@ def translate_record(record):
         "captured_date": mapping.get("cap_dt", ""),
         "gender": mapping.get("gen", ""),
         "bloodGroup": mapping.get("blood", ""),
+        "medicalOfficer": mapping.get("medical_officer", ""),
         "photo": mapping.get("photo", ""),
         # (Optional) add subgroup objects if needed for detail pages:
         "ent": {

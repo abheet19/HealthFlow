@@ -31,12 +31,12 @@ def init_db():
         admin VARCHAR(50),
         father VARCHAR(100),
         mother VARCHAR(100),
-        addr TEXT,
         mob VARCHAR(20),
         dob DATE,
         cap_dt DATE,
         gen VARCHAR(10),
         blood VARCHAR(5),
+        medical_officer VARCHAR(100),
         photo TEXT,
         
         -- ENT Department fields (shortened)
