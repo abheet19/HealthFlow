@@ -181,28 +181,18 @@ const ENTDashboard: React.FC = () => {
     updateDepartment('ent', { [field]: value });
   };
 
-  const handleSubmit = async () => {
-    if (
-      !leftEarDeformity ||
-      !leftEarWax ||
-      !leftEarTympanic ||
-      !leftEarDischarge ||
-      !leftEarNormHearing ||
-      !rightEarDeformity ||
-      !rightEarWax ||
-      !rightEarTympanic ||
-      !rightEarDischarge ||
-      !rightEarNormHearing ||
-      !leftNoseObstruction ||
-      !leftNoseDischarge ||
-      !rightNoseObstruction ||
-      !rightNoseDischarge ||
-      !neckNodes ||
-      !tonsils
-    ) {
-      showToast("Please fill all fields.", "error");
+  const handleSubmit = () => {
+    // Validate all required fields
+    if (!leftEarDeformity || !leftEarWax || !leftEarTympanic || !leftEarDischarge || !leftEarNormHearing ||
+        !rightEarDeformity || !rightEarWax || !rightEarTympanic || !rightEarDischarge || !rightEarNormHearing ||
+        !leftNoseObstruction || !leftNoseDischarge || !rightNoseObstruction || !rightNoseDischarge ||
+        !throatPain || !neckNodes || !tonsils) {
+      // Show toast notification for validation errors
+      showToast("Please fill all required fields.", "error");
       return;
     }
+    
+    // Create data object with all field values
     const data = {
       left_ear_deformity: leftEarDeformity,
       left_ear_wax: leftEarWax,
@@ -214,18 +204,21 @@ const ENTDashboard: React.FC = () => {
       right_ear_tympanic_membrane: rightEarTympanic,
       right_ear_discharge: rightEarDischarge,
       right_ear_normal_hearing: rightEarNormHearing,
-      left_nose_obstruction: leftNoseObstruction,
+      left_nose_obstruction: leftNoseObstruction, 
       left_nose_discharge: leftNoseDischarge,
       right_nose_obstruction: rightNoseObstruction,
       right_nose_discharge: rightNoseDischarge,
       throat_pain: throatPain,
       neck_nodes: neckNodes,
       tonsils: tonsils,
+      isSubmitted: true // Add isSubmitted flag to mark this department as complete
     };
+    
+    // Update patient data in context
     updateDepartment("ent", data);
+    // Show success notification
     showToast("ENT data saved successfully.", "success");
     resetForm();
-    resetPatientData("ent"); // Specify department
   };
 
   const handleFinalSubmit = async () => {

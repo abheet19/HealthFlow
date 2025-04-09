@@ -2,14 +2,43 @@ import { createContext, useState, useEffect, ReactNode } from "react";
 import io from 'socket.io-client';
 import { SOCKET_URL } from "../config/api";
 
+// Define dental data structure
+interface DentalData {
+  tooth_cavity_permanent?: any;
+  tooth_cavity_primary?: any;
+  isSubmitted?: boolean;
+  [key: string]: any;
+}
+
+// Define department data types
+type DepartmentData = {
+  isSubmitted?: boolean;
+  [key: string]: any;
+}
+
+// Define valid department names as a union type
+type DepartmentName = 'it' | 'ent' | 'vision' | 'general' | 'dental' | 'patientId' | 'timestamp';
+
 export interface PatientData {
-  it?: Record<string, any>;
-  ent?: Record<string, any>;
-  vision?: Record<string, any>;
-  general?: Record<string, any>;
-  dental?: Record<string, any>;
+  it?: DepartmentData;
+  ent?: DepartmentData;
+  vision?: DepartmentData;
+  general?: DepartmentData;
+  dental?: DentalData;
   patientId?: string;
   timestamp?: number;
+  [key: string]: DepartmentData | DentalData | string | number | undefined;
+}
+
+// Helper type for type safety in updating patient data
+type PatientDataUpdate = {
+  [K in DepartmentName]?: K extends 'dental' 
+    ? DentalData 
+    : K extends 'patientId' 
+      ? string 
+      : K extends 'timestamp' 
+        ? number 
+        : DepartmentData;
 }
 
 interface PatientContextProps {
@@ -66,33 +95,66 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
       }));
     });
 
-    // Add new listener for department updates
+    // Enhanced departmentUpdate listener with special handling for tooth data
     newSocket.on('departmentUpdate', (updatedData: PatientData) => {
       console.log('Received department update:', updatedData);
       setPatientData(prev => {
-        const result = { ...prev, timestamp: Date.now() };
+        const result: PatientDataUpdate = { ...prev, timestamp: Date.now() };
         
         // Merge changes for each department rather than replacing
         Object.entries(updatedData).forEach(([dept, data]) => {
+          const deptKey = dept as DepartmentName;
+          
           if (data === undefined) {
             // If the department data is undefined, it means it was reset
-            result[dept as keyof PatientData] = undefined;
+            result[deptKey] = undefined;
           } else {
             // Ensure we're working with objects
-            const prevDeptData = prev[dept as keyof PatientData] || {};
-            const updatedDeptData = data || {};
+            const prevDeptData = prev[deptKey] || {};
+            const updatedDeptData = data as DepartmentData;
             
-            // Merge the new department data with existing data
-            result[dept as keyof PatientData] = {
-              ...(typeof prevDeptData === 'object' ? prevDeptData : {}),
-              ...(typeof updatedDeptData === 'object' ? updatedDeptData : {})
-            };
-            
-            console.log(`Updated ${dept} data:`, result[dept as keyof PatientData]);
+            // Special handling for dental department tooth data
+            if (deptKey === 'dental' && 
+                ('tooth_cavity_permanent' in updatedDeptData || 
+                 'tooth_cavity_primary' in updatedDeptData)) {
+              
+              // Create a deep copy to avoid reference issues
+              const mergedDentalData: DentalData = {
+                ...(typeof prevDeptData === 'object' ? prevDeptData as DentalData : {}),
+              };
+              
+              // Handle permanent teeth data - prioritize incoming updates
+              if ('tooth_cavity_permanent' in updatedDeptData) {
+                mergedDentalData.tooth_cavity_permanent = updatedDeptData.tooth_cavity_permanent;
+              }
+              
+              // Handle primary teeth data - prioritize incoming updates
+              if ('tooth_cavity_primary' in updatedDeptData) {
+                mergedDentalData.tooth_cavity_primary = updatedDeptData.tooth_cavity_primary;
+              }
+              
+              // Add all other dental properties
+              Object.entries(updatedDeptData).forEach(([key, value]) => {
+                if (key !== 'tooth_cavity_permanent' && key !== 'tooth_cavity_primary') {
+                  mergedDentalData[key] = value;
+                }
+              });
+              
+              result[deptKey] = mergedDentalData as any;
+              console.log(`Updated dental tooth data:`, mergedDentalData);
+            } else {
+              // Standard merge for other departments or dental fields
+              result[deptKey] = {
+                ...(typeof prevDeptData === 'object' ? prevDeptData as Record<string, any> : {}),
+                ...(typeof updatedDeptData === 'object' ? updatedDeptData : {})
+              } as any;
+              
+              console.log(`Updated ${dept} data:`, result[deptKey]);
+            }
           }
         });
         
-        return result;
+        return result as PatientData;
       });
     });
 
@@ -154,54 +216,99 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []); // Empty dependency array to run once
 
+  // Enhanced updateDepartment with special handling for dental data
   const updateDepartment = (dept: keyof PatientData, data: Record<string, any>) => {
     console.log('Updating department:', dept, data); // Debug log
     
-    // Merge new data with existing department data instead of replacing
-    const updatedDeptData = {
-      ...(patientData[dept] || {}),
-      ...data
-    };
-    
-    const updatedData = {
-      ...patientData,
-      [dept]: updatedDeptData,
-      timestamp: Date.now()
-    };
-    
-    setPatientData(updatedData);
-    localStorage.setItem('patientData', JSON.stringify(updatedData));
-    
-    // Broadcast department update to all clients
-    if (socket?.connected) {
-      console.log('Broadcasting department update'); // Debug log
+    // Special handling for dental department to ensure teeth data is properly handled
+    if (dept === 'dental' && (data.tooth_cavity_permanent !== undefined || data.tooth_cavity_primary !== undefined)) {
+      console.log('Processing dental teeth data update', data);
       
-      // If this update contains a photo property, handle it separately
-      if (dept === 'it' && data.photo !== undefined) {
-        // Send the photo update
-        socket.emit('photoUpdate', { 
-          photo: data.photo, 
-          photoFileName: data.photoFileName || 'photo.jpg' 
-        });
-        
-        // ALSO send the other updated fields (excluding photo) to keep fields in sync
-        const nonPhotoData = { ...data };
-        delete nonPhotoData.photo;
-        delete nonPhotoData.photoFileName;
-        
-        // Only emit non-photo fields if there are any
-        if (Object.keys(nonPhotoData).length > 0) {
-          socket.emit('departmentUpdate', { [dept]: nonPhotoData });
+      // Get current dental data or empty object
+      const currentDental = (patientData[dept] || {}) as DentalData;
+      
+      // Create a new dental object with proper merging of teeth data
+      const updatedDentalData = { ...currentDental };
+      
+      // Update permanent teeth only if present in new data
+      if (data.tooth_cavity_permanent !== undefined) {
+        updatedDentalData.tooth_cavity_permanent = data.tooth_cavity_permanent;
+      }
+      
+      // Update primary teeth only if present in new data
+      if (data.tooth_cavity_primary !== undefined) {
+        updatedDentalData.tooth_cavity_primary = data.tooth_cavity_primary;
+      }
+      
+      // Add all other dental properties
+      Object.entries(data).forEach(([key, value]) => {
+        if (key !== 'tooth_cavity_permanent' && key !== 'tooth_cavity_primary') {
+          updatedDentalData[key] = value;
         }
-      } else if (dept === 'it' && data.photo === undefined && patientData.it?.photo) {
-        // If the photo was removed, broadcast deletion to all clients
-        socket.emit('photoDelete');
+      });
+      
+      const updatedData: PatientData = {
+        ...patientData,
+        [dept]: updatedDentalData,
+        timestamp: Date.now()
+      };
+      
+      setPatientData(updatedData);
+      localStorage.setItem('patientData', JSON.stringify(updatedData));
+      
+      // Broadcast dental update to all clients
+      if (socket?.connected) {
+        console.log('Broadcasting dental data update'); 
+        socket.emit('departmentUpdate', { [dept]: updatedDentalData });
+      }
+    } else {
+      // Standard handling for other departments
+      // Merge new data with existing department data instead of replacing
+      const updatedDeptData = {
+        ...((typeof patientData[dept] === 'object') ? patientData[dept] as Record<string, any> : {}),
+        ...data
+      };
+      
+      const updatedData = {
+        ...patientData,
+        [dept]: updatedDeptData,
+        timestamp: Date.now()
+      };
+      
+      setPatientData(updatedData);
+      localStorage.setItem('patientData', JSON.stringify(updatedData));
+      
+      // Broadcast department update to all clients
+      if (socket?.connected) {
+        console.log('Broadcasting department update'); // Debug log
         
-        // Also send any other updated fields
-        socket.emit('departmentUpdate', { [dept]: { ...data } });
-      } else {
-        // Normal updates (no photo involved)
-        socket.emit('departmentUpdate', { [dept]: { ...data } });
+        // If this update contains a photo property, handle it separately
+        if (dept === 'it' && data.photo !== undefined) {
+          // Send the photo update
+          socket.emit('photoUpdate', { 
+            photo: data.photo, 
+            photoFileName: data.photoFileName || 'photo.jpg' 
+          });
+          
+          // ALSO send the other updated fields (excluding photo) to keep fields in sync
+          const nonPhotoData = { ...data };
+          delete nonPhotoData.photo;
+          delete nonPhotoData.photoFileName;
+          
+          // Only emit non-photo fields if there are any
+          if (Object.keys(nonPhotoData).length > 0) {
+            socket.emit('departmentUpdate', { [dept]: nonPhotoData });
+          }
+        } else if (dept === 'it' && data.photo === undefined && patientData.it?.photo) {
+          // If the photo was removed, broadcast deletion to all clients
+          socket.emit('photoDelete');
+          
+          // Also send any other updated fields
+          socket.emit('departmentUpdate', { [dept]: { ...data } });
+        } else {
+          // Normal updates (no photo involved)
+          socket.emit('departmentUpdate', { [dept]: { ...data } });
+        }
       }
     }
   };
