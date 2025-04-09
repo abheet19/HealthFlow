@@ -54,7 +54,6 @@ def init_db():
         ln_dis VARCHAR(10),
         rn_obs VARCHAR(10),
         rn_dis VARCHAR(10),
-        throat VARCHAR(10),
         th_pain VARCHAR(10),
         neck VARCHAR(10),
         tons VARCHAR(20),
@@ -72,10 +71,14 @@ def init_db():
         wt VARCHAR(10),
         bmi VARCHAR(10),
         nails VARCHAR(20),
+        nails_desc TEXT, -- Added field for nails abnormality description
         hair VARCHAR(20),
+        hair_desc TEXT, -- Added field for hair abnormality description
         skin VARCHAR(20),
+        skin_desc TEXT, -- Added field for skin abnormality description
         anem VARCHAR(20),
         allergy VARCHAR(10),
+        allergy_desc TEXT, -- Added field for allergy description
         ab_soft VARCHAR(10),
         ab_hard VARCHAR(10),
         ab_dist VARCHAR(10),
@@ -86,6 +89,7 @@ def init_db():
         cns_act VARCHAR(10),
         cns_alrt VARCHAR(10),
         cns_spch VARCHAR(10),
+        cns_spch_desc TEXT, -- Added field for speech abnormality description
         past_med VARCHAR(10),
         past_surg VARCHAR(10),
         bp VARCHAR(20),
@@ -95,6 +99,7 @@ def init_db():
         
         -- Dental Department fields (shortened)
         dental_ext VARCHAR(20),
+        dental_rmk TEXT, -- Dental remarks field
         tooth_perm TEXT,
         tooth_prim TEXT,
         plaque VARCHAR(10),

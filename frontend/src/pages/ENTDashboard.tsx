@@ -15,6 +15,8 @@ import { getApiUrl } from "../config/api";  // Import the API URL helper
 
 const ENTDashboard: React.FC = () => {
   const { showToast } = useToast();
+  // Add entData state variable
+  const [entData, setEntData] = useState<Record<string, string>>({});
   // Left Ear fields
   const [leftEarDeformity, setLeftEarDeformity] = useState("");
   const [leftEarWax, setLeftEarWax] = useState("");
@@ -33,7 +35,6 @@ const ENTDashboard: React.FC = () => {
   const [rightNoseObstruction, setRightNoseObstruction] = useState("");
   const [rightNoseDischarge, setRightNoseDischarge] = useState("");
   // Throat & Neck fields
-  const [throat, setThroat] = useState("");
   const [throatPain, setThroatPain] = useState("");
   const [neckNodes, setNeckNodes] = useState("");
   const [tonsils, setTonsils] = useState("");
@@ -68,7 +69,6 @@ const ENTDashboard: React.FC = () => {
       setLeftNoseDischarge(patientData.ent.left_nose_discharge || "");
       setRightNoseObstruction(patientData.ent.right_nose_obstruction || "");
       setRightNoseDischarge(patientData.ent.right_nose_discharge || "");
-      setThroat(patientData.ent.throat || "");
       setThroatPain(patientData.ent.throat_pain || "");
       setNeckNodes(patientData.ent.neck_nodes || "");
       setTonsils(patientData.ent.tonsils || "");
@@ -82,6 +82,20 @@ const ENTDashboard: React.FC = () => {
     }
   }, [patientData.patientId]);
 
+  // Add reset event listener
+  useEffect(() => {
+    const handleGlobalReset = () => {
+      console.log('ENT Dashboard received global reset signal');
+      resetForm(); // Reset all form fields
+    };
+    
+    window.addEventListener('patientDataReset', handleGlobalReset);
+    
+    return () => {
+      window.removeEventListener('patientDataReset', handleGlobalReset);
+    };
+  }, []);
+
   // Dropdown helper with custom options parameter; default is ["Yes", "No"]
   const dropdown = (
     label: string,
@@ -94,7 +108,44 @@ const ENTDashboard: React.FC = () => {
       <Select
         label={label}
         value={value}
-        onChange={(e) => setValue(e.target.value as string)}
+        onChange={(e) => {
+          const newValue = e.target.value as string;
+          setValue(newValue);
+          
+          // Map field name based on label to match backend field names
+          let fieldName = '';
+          switch (label) {
+            // Left Ear
+            case "Deformity": 
+              fieldName = setValue === setLeftEarDeformity ? 'left_ear_deformity' : 'right_ear_deformity'; 
+              break;
+            case "Wax": 
+              fieldName = setValue === setLeftEarWax ? 'left_ear_wax' : 'right_ear_wax'; 
+              break;
+            case "Tympanic Membrane": 
+              fieldName = setValue === setLeftEarTympanic ? 'left_ear_tympanic_membrane' : 'right_ear_tympanic_membrane'; 
+              break;
+            case "Discharge": 
+              fieldName = setValue === setLeftEarDischarge ? 'left_ear_discharge' : 'right_ear_discharge';
+              break;
+            case "Normal Hearing": 
+              fieldName = setValue === setLeftEarNormHearing ? 'left_ear_normal_hearing' : 'right_ear_normal_hearing';
+              break;
+            // Nose
+            case "Left Obstruction": fieldName = 'left_nose_obstruction'; break;
+            case "Left Discharge": fieldName = 'left_nose_discharge'; break;
+            case "Right Obstruction": fieldName = 'right_nose_obstruction'; break;
+            case "Right Discharge": fieldName = 'right_nose_discharge'; break;
+            // Throat & Neck
+            case "Throat Pain": fieldName = 'throat_pain'; break;
+            case "Neck Nodes": fieldName = 'neck_nodes'; break;
+            case "Tonsils": fieldName = 'tonsils'; break;
+            default: fieldName = label.toLowerCase().replace(' ', '_');
+          }
+          
+          // Update in real-time
+          handleInputChange(fieldName, newValue);
+        }}
       >
         {options.map((opt) => (
           <MenuItem key={opt} value={opt}>
@@ -120,10 +171,14 @@ const ENTDashboard: React.FC = () => {
     setLeftNoseDischarge("");
     setRightNoseObstruction("");
     setRightNoseDischarge("");
-    setThroat("");
     setThroatPain("");
     setNeckNodes("");
     setTonsils("");
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    // Update only the specific field that changed
+    updateDepartment('ent', { [field]: value });
   };
 
   const handleSubmit = async () => {
@@ -142,8 +197,6 @@ const ENTDashboard: React.FC = () => {
       !leftNoseDischarge ||
       !rightNoseObstruction ||
       !rightNoseDischarge ||
-      !throat ||
-      !throatPain ||
       !neckNodes ||
       !tonsils
     ) {
@@ -165,7 +218,6 @@ const ENTDashboard: React.FC = () => {
       left_nose_discharge: leftNoseDischarge,
       right_nose_obstruction: rightNoseObstruction,
       right_nose_discharge: rightNoseDischarge,
-      throat: throat,
       throat_pain: throatPain,
       neck_nodes: neckNodes,
       tonsils: tonsils,
@@ -202,7 +254,7 @@ const ENTDashboard: React.FC = () => {
         {patientData.patientId ? (
           <>
             <div className="mb-4 text-gray-600">
-              <p>Patient Number: <span className="font-bold">{patientData.patientId}</span></p>
+              <p>Patient ID: {patientData.patientId}</p>
               {patientData.it?.name && (
                 <p>Patient Name: <span className="font-bold">{patientData.it.name}</span></p>
               )}
@@ -283,7 +335,6 @@ const ENTDashboard: React.FC = () => {
                 Throat & Neck
               </h2>
               <div className="flex flex-wrap gap-2">
-                {dropdown("Throat", throat, setThroat)}
                 {dropdown("Throat Pain", throatPain, setThroatPain)}
                 {dropdown("Neck Nodes", neckNodes, setNeckNodes, [
                   "Present",

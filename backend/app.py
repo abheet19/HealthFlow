@@ -72,11 +72,11 @@ SessionLocal = sessionmaker(bind=engine)
 # Log every API call
 @app.before_request
 def log_request_info():
-    logging.info(f"{datetime.utcnow()} - {request.method} {request.path} - IP: {request.remote_addr}")
+    logging.info(f"{datetime.now()} - {request.method} {request.path} - IP: {request.remote_addr}")
 
 @app.after_request
 def log_response_info(response):
-    logging.info(f"{datetime.utcnow()} - Response Status: {response.status}")
+    logging.info(f"{datetime.now()} - Response Status: {response.status}")
     return response
 
 def validate_fields(data, required_fields):
@@ -84,102 +84,6 @@ def validate_fields(data, required_fields):
     if missing:
         return False, f"Missing fields: {', '.join(missing)}"
     return True, ""
-
-# IT Department: main page receives photo and general details
-@app.route('/api/it', methods=['POST'])
-def submit_it():
-    data = request.form.to_dict()
-    if 'photo' not in request.files:
-        return jsonify({"error": "Missing photo file."}), 400
-    required = [
-        "name", "div", "roll_no", "admin_no", "father_name",
-        "mother_name", "mobile", "dob", "gender", "blood_group",
-        "medical_officer"
-    ]
-    valid, msg = validate_fields(data, required)
-    if not valid:
-        return jsonify({"error": msg}), 400
-    file = request.files['photo']
-    file_data = file.read()  # read binary data
-    data["photo"] = file_data   # attach photo data to IT data
-    global_data["it"] = data  # store submission data
-    logging.info("IT record received and processed.")
-    return jsonify({"message": "IT info submitted successfully."}), 200
-
-# ENT Department endpoint update
-@app.route('/api/ent', methods=['POST'])
-def submit_ent():
-    data = request.json
-    required = [
-        "left_ear_deformity", "left_ear_wax", "left_ear_tympanic_membrane", 
-        "left_ear_discharge", "left_ear_normal_hearing",
-        "right_ear_deformity", "right_ear_wax", "right_ear_tympanic_membrane", 
-        "right_ear_discharge", "right_ear_normal_hearing",
-        "left_nose_obstruction", "left_nose_discharge", "right_nose_obstruction", 
-        "right_nose_discharge",
-        "throat", "throat_pain", "neck_nodes", "tonsils"
-    ]
-    valid, msg = validate_fields(data, required)
-    if not valid:
-        return jsonify({"error": msg}), 400
-    global_data["ent"] = data  # store ENT data
-    logging.info("ENT record received and processed.")
-    return jsonify({"message": "ENT info submitted successfully."}), 200
-
-# VISION Department endpoint update
-@app.route('/api/vision', methods=['POST'])
-def submit_vision():
-    data = request.json
-    required = [
-        "re_vision", "le_vision",
-        "re_color_blindness", "le_color_blindness",
-        "re_squint", "le_squint"
-    ]
-    valid, msg = validate_fields(data, required)
-    if not valid:
-        return jsonify({"error": msg}), 400
-    global_data["vision"] = data  # store Vision data
-    logging.info("Vision record received and processed.")
-    return jsonify({"message": "Vision info submitted successfully."}), 200
-
-# GENERAL Department endpoint update
-@app.route('/api/general', methods=['POST'])
-def submit_general():
-    data = request.json
-    required = [
-        "height", "weight", "bmi",
-        "nails", "hair", "skin",
-        "anemia_figure",
-        "allergy",
-        "abdomen_soft", "abdomen_hard", "abdomen_distended", "abdomen_bowel_sound",
-        "cns_conscious", "cns_oriented", "cns_playful", "cns_active", "cns_alert", "cns_speech",
-        "past_medical", "past_surgical", "bp", "pulse",
-        "hip", "waist"
-    ]
-    valid, msg = validate_fields(data, required)
-    if not valid:
-        return jsonify({"error": msg}), 400
-    global_data["general"] = data  # store General data
-    logging.info("General record received and processed.")
-    return jsonify({"message": "General info submitted successfully."}), 200
-
-# DENTAL Department endpoint update
-@app.route('/api/dental', methods=['POST'])
-def submit_dental():
-    data = request.json
-    required = [
-        "dental_extra_oral",
-        "tooth_cavity_permanent", "tooth_cavity_primary",
-        "plaque", "gum_inflammation", "stains", "tooth_discoloration",
-        "tarter", "bad_breath", "gum_bleeding", "soft_tissue",
-        "fluorosis", "malocclusion", "root_stump", "missing_teeth"
-    ]
-    valid, msg = validate_fields(data, required)
-    if not valid:
-        return jsonify({"error": msg}), 400
-    global_data["dental"] = data  # store Dental data
-    logging.info("Dental record received and processed.")
-    return jsonify({"message": "Dental info submitted successfully."}), 200
 
 # Add this helper function below your imports:
 def crop_image_circle(image: Image.Image, size: int) -> BytesIO:
@@ -233,7 +137,6 @@ def transform_ent(data_ent: dict) -> dict:
         "ln_dis": data_ent.get("left_nose_discharge", ""),
         "rn_obs": data_ent.get("right_nose_obstruction", ""),
         "rn_dis": data_ent.get("right_nose_discharge", ""),
-        "throat": data_ent.get("throat", ""),
         "th_pain": data_ent.get("throat_pain", ""),
         "neck": data_ent.get("neck_nodes", ""),
         "tons": data_ent.get("tonsils", "")
@@ -252,6 +155,7 @@ def transform_vision(data_vision: dict) -> dict:
 def transform_dental(data_dental: dict) -> dict:
     return {
         "dental_ext": data_dental.get("dental_extra_oral", ""),
+        "dental_rmk": data_dental.get("dental_remarks", ""),
         "tooth_perm": data_dental.get("tooth_cavity_permanent", ""),
         "tooth_prim": data_dental.get("tooth_cavity_primary", ""),
         "plaque": data_dental.get("plaque", ""),
@@ -275,10 +179,14 @@ def transform_general(data_general: dict) -> dict:
         "wt": data_general.get("weight", ""),
         "bmi": data_general.get("bmi", ""),
         "nails": data_general.get("nails", ""),
+        "nails_desc": data_general.get("nails_desc", ""),
         "hair": data_general.get("hair", ""),
+        "hair_desc": data_general.get("hair_desc", ""),
         "skin": data_general.get("skin", ""),
+        "skin_desc": data_general.get("skin_desc", ""),
         "anem": data_general.get("anemia_figure", ""),
         "allergy": data_general.get("allergy", ""),
+        "allergy_desc": data_general.get("allergy_desc", ""),
         "ab_soft": data_general.get("abdomen_soft", ""),
         "ab_hard": data_general.get("abdomen_hard", ""),
         "ab_dist": data_general.get("abdomen_distended", ""),
@@ -289,6 +197,7 @@ def transform_general(data_general: dict) -> dict:
         "cns_act": data_general.get("cns_active", ""),
         "cns_alrt": data_general.get("cns_alert", ""),
         "cns_spch": data_general.get("cns_speech", ""),
+        "cns_spch_desc": data_general.get("cns_speech_desc", ""),
         "past_med": data_general.get("past_medical", ""),
         "past_surg": data_general.get("past_surgical", ""),
         "bp": data_general.get("bp", ""),
@@ -460,19 +369,43 @@ def get_last_patient_id():
         logging.error(f"Error getting last patient ID: {str(e)}")
         return 0
 
+import uuid
+
+def generate_unique_pid():
+    """Generate a unique patient identifier combining timestamp and UUID"""
+    timestamp = datetime.now().strftime("%Y%m%d")
+    unique_part = str(uuid.uuid4())[:8]  # First 8 chars of UUID
+    return f"PID-{timestamp}-{unique_part}"
+
 @app.route('/api/generate_patient_id', methods=['POST'])
 def generate_patient_id():
     try:
-        # Get the last used ID from database
-        last_id = get_last_patient_id()
-        new_id = str(last_id + 1)
+        # Create a new PID and verify it doesn't exist in the database
+        db = SessionLocal()
+        max_attempts = 5  # Safety limit to prevent infinite loop
         
-        logging.info(f"Generated new patient ID: {new_id}")
-        socketio.emit('newPatientId', new_id)
+        for _ in range(max_attempts):
+            # Generate a unique PID
+            new_pid = generate_unique_pid()
+            
+            # Check if this PID already exists in the database
+            query = text("SELECT COUNT(*) FROM patient_records WHERE pid = :pid")
+            result = db.execute(query, {"pid": new_pid}).scalar()
+            
+            if result == 0:  # PID doesn't exist in database
+                db.close()
+                logging.info(f"Generated new unique patient ID: {new_pid}")
+                socketio.emit('newPatientId', new_pid)
+                return jsonify({"patientId": new_pid, "success": True}), 200
         
-        return jsonify({"patientId": new_id, "success": True}), 200
+        # If we reached here, we couldn't generate a unique ID after multiple attempts
+        db.close()
+        logging.error("Failed to generate a unique patient ID after multiple attempts")
+        return jsonify({"error": "Failed to generate a unique patient ID", "success": False}), 500
         
     except Exception as e:
+        if 'db' in locals():
+            db.close()
         logging.error(f"Error generating patient ID: {str(e)}")
         return jsonify({"error": "Failed to generate patient ID", "success": False}), 500
 
@@ -556,6 +489,16 @@ def handle_new_patient_id(patient_id):
 def handle_reset():
     print("Broadcasting reset signal")
     emit('resetPatientData', broadcast=True)
+
+@socketio.on('photoDelete')
+def handle_photo_delete():
+    print(f"Broadcasting photo deletion")
+    emit('photoDelete', broadcast=True)
+
+@socketio.on('photoUpdate')
+def handle_photo_update(data):
+    print(f"Broadcasting photo update")
+    emit('photoUpdate', data, broadcast=True)
 
 @socketio.on('departmentUpdate')
 def handle_department_update(data):
