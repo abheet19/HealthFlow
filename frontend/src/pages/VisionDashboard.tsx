@@ -14,6 +14,8 @@ const VisionDashboard: React.FC = () => {
   const [reSquint, setReSquint] = useState("");
   const [leSquint, setLeSquint] = useState("");
   const [manualPatientId, setManualPatientId] = useState("");
+  // Add visionData state variable
+  const [visionData, setVisionData] = useState<Record<string, string>>({});
 
   const { updateDepartment, patientData, updatePatientId, resetPatientData } = useContext(PatientContext);
   const { showToast } = useToast();
@@ -54,6 +56,32 @@ const VisionDashboard: React.FC = () => {
       resetForm();
     }
   }, [patientData.patientId]);
+
+  // Add reset event listener
+  useEffect(() => {
+    const handleGlobalReset = () => {
+      console.log('Vision Dashboard received global reset signal');
+      resetForm(); // Reset all form fields
+    };
+    
+    window.addEventListener('patientDataReset', handleGlobalReset);
+    
+    return () => {
+      window.removeEventListener('patientDataReset', handleGlobalReset);
+    };
+  }, []);
+
+  // Original effect for loading data from context
+  useEffect(() => {
+    if (patientData.vision) {
+      setReVision(patientData.vision.re_vision || "6/6");
+      setLeVision(patientData.vision.le_vision || "6/6");
+      setReColor(patientData.vision.re_color_blindness || "");
+      setLeColor(patientData.vision.le_color_blindness || "");
+      setReSquint(patientData.vision.re_squint || "");
+      setLeSquint(patientData.vision.le_squint || "");
+    }
+  }, [patientData.vision]);
 
   const updateVision = (updates: Partial<Record<string, string>>) => {
     // Don't update department data until submit button is clicked
@@ -108,13 +136,18 @@ const VisionDashboard: React.FC = () => {
     }
   };
 
+  const handleInputChange = (field: string, value: string) => {
+    // Update only the specific field that changed
+    updateDepartment('vision', { [field]: value });
+  };
+
   return (
     <div className="p-4 flex flex-col items-center bg-gray-50 min-h-screen">
       <div className="bg-white shadow-lg rounded-lg p-6 w-full max-w-4xl">
         {patientData.patientId ? (
           <>
             <div className="mb-4 text-gray-600">
-              <p>Patient Number: <span className="font-bold">{patientData.patientId}</span></p>
+              <p>Patient ID: {patientData.patientId}</p>
               {patientData.it?.name && (
                 <p>Patient Name: <span className="font-bold">{patientData.it.name}</span></p>
               )}
@@ -135,7 +168,7 @@ const VisionDashboard: React.FC = () => {
                   className="w-full sm:w-64"
                   value={reVision}
                   onChange={(e) => {
-                    setReVision(e.target.value);
+                    handleInputChange('re_vision', e.target.value);
                   }}
                 />
                 <FormControl variant="outlined" size="small" className="w-full sm:w-64">
@@ -144,7 +177,7 @@ const VisionDashboard: React.FC = () => {
                     label="Color Blindness"
                     value={reColor}
                     onChange={(e) => {
-                      setReColor(e.target.value as string);
+                      handleInputChange('re_color_blindness', e.target.value as string);
                     }}
                   >
                     <MenuItem value="No">No</MenuItem>
@@ -157,7 +190,7 @@ const VisionDashboard: React.FC = () => {
                     label="Squint"
                     value={reSquint}
                     onChange={(e) => {
-                      setReSquint(e.target.value as string);
+                      handleInputChange('re_squint', e.target.value as string);
                     }}
                   >
                     <MenuItem value="No">No</MenuItem>
@@ -177,7 +210,7 @@ const VisionDashboard: React.FC = () => {
                   className="w-full sm:w-64"
                   value={leVision}
                   onChange={(e) => {
-                    setLeVision(e.target.value);
+                    handleInputChange('le_vision', e.target.value);
                   }}
                 />
                 <FormControl variant="outlined" size="small" className="w-full sm:w-64">
@@ -186,7 +219,7 @@ const VisionDashboard: React.FC = () => {
                     label="Color Blindness"
                     value={leColor}
                     onChange={(e) => {
-                      setLeColor(e.target.value as string);
+                      handleInputChange('le_color_blindness', e.target.value as string);
                     }}
                   >
                     <MenuItem value="No">No</MenuItem>
@@ -199,7 +232,7 @@ const VisionDashboard: React.FC = () => {
                     label="Squint"
                     value={leSquint}
                     onChange={(e) => {
-                      setLeSquint(e.target.value as string);
+                      handleInputChange('le_squint', e.target.value as string);
                     }}
                   >
                     <MenuItem value="No">No</MenuItem>

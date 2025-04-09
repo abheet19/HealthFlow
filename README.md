@@ -96,9 +96,9 @@ Use appropriate Docker commands to run the containers.
 ### Database Setup
 1. Create a PostgreSQL instance on Cloud SQL
    ```bash
-   gcloud sql instances create doctor-report-db \
-     --database-version=POSTGRES_13 \
-     --tier=db-f1-micro \
+   gcloud sql instances create doctor-report-db ^
+     --database-version=POSTGRES_13 ^
+     --tier=db-f1-micro ^
      --region=asia-south1
    ```
 2. Create a database
@@ -107,9 +107,9 @@ Use appropriate Docker commands to run the containers.
    ```
 3. Set a password for the postgres user
    ```bash
-   gcloud sql users set-password postgres \
-     --instance=doctor-report-db \
-     --password=YOUR_PASSWORD
+   gcloud sql users set-password postgres ^
+     --instance=doctor-report-db ^
+     --password=Secret_271919
    ```
 
 ### Backend Deployment
@@ -120,34 +120,34 @@ Use appropriate Docker commands to run the containers.
 
 2. **Build the Docker image**
    ```bash
-   docker build -t gcr.io/YOUR_PROJECT_ID/doctor-report-backend .
+   docker build -t gcr.io/doctor-report-app/doctor-report-backend .
    ```
 
 3. **Push the image to Google Container Registry**
    ```bash
-   docker push gcr.io/YOUR_PROJECT_ID/doctor-report-backend
+   docker push gcr.io/doctor-report-app/doctor-report-backend
    ```
 
 4. **Deploy to Cloud Run with Cloud SQL connection**
    ```bash
-   gcloud run deploy doctor-report-backend \
-     --image gcr.io/YOUR_PROJECT_ID/doctor-report-backend \
-     --platform managed \
-     --region asia-south1 \
-     --allow-unauthenticated \
-     --add-cloudsql-instances YOUR_PROJECT_ID:asia-south1:doctor-report-db \
-     --set-env-vars="CLOUD_RUN=true,INSTANCE_CONNECTION_NAME=YOUR_PROJECT_ID:asia-south1:doctor-report-db,POSTGRES_USER=postgres,POSTGRES_PASSWORD=YOUR_PASSWORD,POSTGRES_DB=doctor_reports"
+   gcloud run deploy doctor-report-backend ^
+     --image gcr.io/doctor-report-app/doctor-report-backend ^
+     --platform managed ^
+     --region asia-south1 ^
+     --allow-unauthenticated ^
+     --add-cloudsql-instances doctor-report-app:asia-south1:doctor-report-db ^
+     --set-env-vars="CLOUD_RUN=true,INSTANCE_CONNECTION_NAME=doctor-report-app:asia-south1:doctor-report-db,POSTGRES_USER=postgres,POSTGRES_PASSWORD=Secret_271919,POSTGRES_DB=doctor_reports"
    ```
 
 5. **Initialize the database (one-time setup)**
    ```bash
-   gcloud run deploy doctor-report-backend \
-     --image gcr.io/YOUR_PROJECT_ID/doctor-report-backend \
-     --platform managed \
-     --region asia-south1 \
-     --allow-unauthenticated \
-     --add-cloudsql-instances YOUR_PROJECT_ID:asia-south1:doctor-report-db \
-     --set-env-vars="CLOUD_RUN=true,INITIALIZE_DB=true,INSTANCE_CONNECTION_NAME=YOUR_PROJECT_ID:asia-south1:doctor-report-db,POSTGRES_USER=postgres,POSTGRES_PASSWORD=YOUR_PASSWORD,POSTGRES_DB=doctor_reports"
+   gcloud run deploy doctor-report-backend ^
+     --image gcr.io/doctor-report-app/doctor-report-backend ^
+     --platform managed ^
+     --region asia-south1 ^
+     --allow-unauthenticated ^
+     --add-cloudsql-instances doctor-report-app:asia-south1:doctor-report-db ^
+     --set-env-vars="CLOUD_RUN=true,INITIALIZE_DB=true,INSTANCE_CONNECTION_NAME=doctor-report-app:asia-south1:doctor-report-db,POSTGRES_USER=postgres,POSTGRES_PASSWORD=Secret_271919,POSTGRES_DB=doctor_reports"
    ```
 
 ### Frontend Deployment
@@ -166,20 +166,20 @@ Use appropriate Docker commands to run the containers.
 
 3. **Build the Docker image**
    ```bash
-   docker build -t gcr.io/YOUR_PROJECT_ID/doctor-report-frontend .
+   docker build -t gcr.io/doctor-report-app/doctor-report-frontend .
    ```
 
 4. **Push the image to Google Container Registry**
    ```bash
-   docker push gcr.io/YOUR_PROJECT_ID/doctor-report-frontend
+   docker push gcr.io/doctor-report-app/doctor-report-frontend
    ```
 
 5. **Deploy to Cloud Run**
    ```bash
-   gcloud run deploy doctor-report-frontend \
-     --image gcr.io/YOUR_PROJECT_ID/doctor-report-frontend \
-     --platform managed \
-     --region asia-south1 \
+   gcloud run deploy doctor-report-frontend ^
+     --image gcr.io/doctor-report-app/doctor-report-frontend ^
+     --platform managed ^
+     --region asia-south1 ^
      --allow-unauthenticated
    ```
 

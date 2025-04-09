@@ -149,46 +149,16 @@ const PatientsList: React.FC = () => {
             <Table size="small">
               <TableHead>
                 <TableRow sx={{ backgroundColor: "#1976d2" }}>
-                  <TableCell
-                    align="center"
-                    sx={{
-                      color: "white",
-                      fontWeight: "bold",
-                      minWidth: "80px",
-                    }}
-                  >
-                    {/* Empty header for photo */}
-                  </TableCell>
-                  <TableCell
-                    align="center"
-                    sx={{ color: "white", fontWeight: "bold" }}
-                  >
-                    Patient No.
-                  </TableCell>
-                  <TableCell
-                    align="center"
-                    sx={{ color: "white", fontWeight: "bold" }}
-                  >
-                    Name
-                  </TableCell>
-                  <TableCell
-                    align="center"
-                    sx={{ color: "white", fontWeight: "bold" }}
-                  >
-                    Division
-                  </TableCell>
-                  <TableCell
-                    align="center"
-                    sx={{ color: "white", fontWeight: "bold" }}
-                  >
-                    Roll No.
-                  </TableCell>
-                  <TableCell
-                    align="center"
-                    sx={{ color: "white", fontWeight: "bold" }}
-                  >
-                    Admission No.
-                  </TableCell>
+                  {isMobile ? null : (
+                    <TableCell align="center">Photo</TableCell>
+                  )}
+                  <TableCell align="center">Name</TableCell>
+                  <TableCell align="center">Division</TableCell>
+                  {!isMobile && (
+                    <>
+                      <TableCell align="center">Roll No</TableCell>
+                    </>
+                  )}
                   <TableCell
                     align="center"
                     sx={{ color: "white", fontWeight: "bold" }}
@@ -206,33 +176,33 @@ const PatientsList: React.FC = () => {
               <TableBody>
                 {filteredPatients.map((patient, index) => (
                   <TableRow
-                    key={patient.patientId} // changed from patient.patient_id
+                    key={patient.patientId}
                     sx={{
                       backgroundColor: index % 2 === 0 ? "#f5f5f5" : "white",
                       transition: "background-color 0.3s",
                       "&:hover": { backgroundColor: "#e3f2fd" },
                     }}
                   >
-                    <TableCell align="center">
-                      <img
-                        src={patient.photo || placeholderImage}
-                        alt={patient.name}
-                        style={{
-                          width: isMobile ? "30px" : "40px", // smaller on mobile
-                          height: isMobile ? "30px" : "40px",
-                          borderRadius: "50%",
-                          objectFit: "cover",
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell align="center">{patient.patientId}</TableCell>{" "}
-                    {/* updated */}
+                    {!isMobile && (
+                      <TableCell align="center">
+                        <img
+                          src={patient.photo || placeholderImage}
+                          alt={patient.name}
+                          style={{
+                            width: isMobile ? "30px" : "40px", // smaller on mobile
+                            height: isMobile ? "30px" : "40px",
+                            borderRadius: "50%",
+                            objectFit: "cover",
+                          }}
+                        />
+                      </TableCell>
+                    )}
                     <TableCell align="center">{patient.name}</TableCell>
                     <TableCell align="center">{patient.div}</TableCell>
-                    <TableCell align="center">{patient.rollNo}</TableCell>{" "}
-                    {/* updated */}
-                    <TableCell align="center">{patient.adminNo}</TableCell>{" "}
-                    {/* updated */}
+                    {!isMobile && (
+                      <TableCell align="center">{patient.rollNo}</TableCell>
+                    )}
+                    <TableCell align="center">{patient.mobile}</TableCell>
                     <TableCell align="center">
                       <Button
                         variant="contained"

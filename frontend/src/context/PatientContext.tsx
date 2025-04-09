@@ -69,11 +69,69 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
     // Add new listener for department updates
     newSocket.on('departmentUpdate', (updatedData: PatientData) => {
       console.log('Received department update:', updatedData);
-      setPatientData(prev => ({
-        ...prev,
-        ...updatedData,
-        timestamp: Date.now()
-      }));
+      setPatientData(prev => {
+        const result = { ...prev, timestamp: Date.now() };
+        
+        // Merge changes for each department rather than replacing
+        Object.entries(updatedData).forEach(([dept, data]) => {
+          if (data === undefined) {
+            // If the department data is undefined, it means it was reset
+            result[dept as keyof PatientData] = undefined;
+          } else {
+            // Ensure we're working with objects
+            const prevDeptData = prev[dept as keyof PatientData] || {};
+            const updatedDeptData = data || {};
+            
+            // Merge the new department data with existing data
+            result[dept as keyof PatientData] = {
+              ...(typeof prevDeptData === 'object' ? prevDeptData : {}),
+              ...(typeof updatedDeptData === 'object' ? updatedDeptData : {})
+            };
+            
+            console.log(`Updated ${dept} data:`, result[dept as keyof PatientData]);
+          }
+        });
+        
+        return result;
+      });
+    });
+
+    // Listen specifically for photo updates
+    newSocket.on('photoUpdate', (photoData: { photo: string, photoFileName: string }) => {
+      console.log('Received photo update');
+      setPatientData(prev => {
+        // Only update if we have IT data already or create a new IT object
+        const currentIT = prev.it || {};
+        return {
+          ...prev,
+          it: {
+            ...currentIT,
+            photo: photoData.photo,
+            photoFileName: photoData.photoFileName
+          },
+          timestamp: Date.now()
+        };
+      });
+    });
+
+    // Listen for photo deletion events
+    newSocket.on('photoDelete', () => {
+      console.log('Received photo deletion event');
+      setPatientData(prev => {
+        // Only update if we have IT data
+        if (!prev.it) return prev;
+        
+        // Create a new IT object without the photo properties
+        const updatedIT = { ...prev.it };
+        delete updatedIT.photo;
+        delete updatedIT.photoFileName;
+        
+        return {
+          ...prev,
+          it: updatedIT,
+          timestamp: Date.now()
+        };
+      });
     });
 
     // Add new listener for reset event
@@ -81,6 +139,10 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
       console.log('Received reset signal');
       setPatientData({});
       localStorage.removeItem('patientData');
+      
+      // Dispatch a custom event that all components can listen for
+      const resetEvent = new CustomEvent('patientDataReset');
+      window.dispatchEvent(resetEvent);
     });
 
     newSocket.on('connect_error', (error: Error) => {
@@ -94,9 +156,16 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
 
   const updateDepartment = (dept: keyof PatientData, data: Record<string, any>) => {
     console.log('Updating department:', dept, data); // Debug log
+    
+    // Merge new data with existing department data instead of replacing
+    const updatedDeptData = {
+      ...(patientData[dept] || {}),
+      ...data
+    };
+    
     const updatedData = {
       ...patientData,
-      [dept]: data,
+      [dept]: updatedDeptData,
       timestamp: Date.now()
     };
     
@@ -106,7 +175,34 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
     // Broadcast department update to all clients
     if (socket?.connected) {
       console.log('Broadcasting department update'); // Debug log
-      socket.emit('departmentUpdate', updatedData);
+      
+      // If this update contains a photo property, handle it separately
+      if (dept === 'it' && data.photo !== undefined) {
+        // Send the photo update
+        socket.emit('photoUpdate', { 
+          photo: data.photo, 
+          photoFileName: data.photoFileName || 'photo.jpg' 
+        });
+        
+        // ALSO send the other updated fields (excluding photo) to keep fields in sync
+        const nonPhotoData = { ...data };
+        delete nonPhotoData.photo;
+        delete nonPhotoData.photoFileName;
+        
+        // Only emit non-photo fields if there are any
+        if (Object.keys(nonPhotoData).length > 0) {
+          socket.emit('departmentUpdate', { [dept]: nonPhotoData });
+        }
+      } else if (dept === 'it' && data.photo === undefined && patientData.it?.photo) {
+        // If the photo was removed, broadcast deletion to all clients
+        socket.emit('photoDelete');
+        
+        // Also send any other updated fields
+        socket.emit('departmentUpdate', { [dept]: { ...data } });
+      } else {
+        // Normal updates (no photo involved)
+        socket.emit('departmentUpdate', { [dept]: { ...data } });
+      }
     }
   };
 
@@ -160,7 +256,10 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
       }
       
       if (socket?.connected) {
+        console.log('Emitting department reset for:', department);
         socket.emit('departmentUpdate', { [department]: undefined });
+      } else {
+        console.warn('Socket not connected when trying to reset department:', department);
       }
     } else {
       // Full reset - clear everything
@@ -172,7 +271,19 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
       if (fileInput) fileInput.value = '';
       
       if (socket?.connected) {
+        console.log('Emitting full reset to all connected clients');
         socket.emit('resetPatientData');
+        
+        // Force dispatch the event locally to ensure it happens
+        console.log('Dispatching patientDataReset event locally');
+        const resetEvent = new CustomEvent('patientDataReset');
+        window.dispatchEvent(resetEvent);
+      } else {
+        console.warn('Socket not connected when trying to perform full reset');
+        // Still dispatch the event locally even if socket is disconnected
+        console.log('Dispatching patientDataReset event locally despite socket disconnect');
+        const resetEvent = new CustomEvent('patientDataReset');
+        window.dispatchEvent(resetEvent);
       }
     }
   };

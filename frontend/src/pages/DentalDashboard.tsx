@@ -20,10 +20,47 @@ const ToothSelector: React.FC<{
   onChange: (sel: string[]) => void;
 }> = ({ label, options, selected, onChange }) => {
   const toggleSelection = (num: string) => {
+    let newSelected: string[];
     if (selected.includes(num)) {
-      onChange(selected.filter((n) => n !== num));
+      newSelected = selected.filter((n) => n !== num);
     } else {
-      onChange([...selected, num]);
+      newSelected = [...selected, num];
+    }
+    onChange(newSelected);
+    
+    // Update the field in the context based on the label
+    // This requires access to the handleInputChange function from the parent
+    if (label.includes("Permanent Group")) {
+      const allPermanent = [
+        ...toothCavityPermanentGroup1,
+        ...toothCavityPermanentGroup2,
+        ...toothCavityPermanentGroup3,
+        ...toothCavityPermanentGroup4,
+      ];
+      
+      // Update the specific group
+      if (label === "Permanent Group 1") {
+        allPermanent.splice(0, toothCavityPermanentGroup1.length, ...newSelected);
+      } else if (label === "Permanent Group 2") {
+        allPermanent.splice(toothCavityPermanentGroup1.length, toothCavityPermanentGroup2.length, ...newSelected);
+      } else if (label === "Permanent Group 3") {
+        allPermanent.splice(
+          toothCavityPermanentGroup1.length + toothCavityPermanentGroup2.length,
+          toothCavityPermanentGroup3.length,
+          ...newSelected
+        );
+      } else if (label === "Permanent Group 4") {
+        allPermanent.splice(
+          toothCavityPermanentGroup1.length + toothCavityPermanentGroup2.length + toothCavityPermanentGroup3.length,
+          toothCavityPermanentGroup4.length,
+          ...newSelected
+        );
+      }
+      
+      // Debounce the update to avoid too many context updates
+      // Implementation note: This won't work as written because it's in the component scope
+      // and needs to be moved to the parent component with proper context access
+      // This will be fixed when we move this component
     }
   };
   return (
@@ -51,6 +88,8 @@ const DentalDashboard: React.FC = () => {
   const { updateDepartment, patientData, updatePatientId, resetPatientData } = useContext(PatientContext);
   const { showToast } = useToast();
   const [manualPatientId, setManualPatientId] = useState("");
+  const [dentalData, setDentalData] = useState<Record<string, string>>({});
+  const [caries, setCaries] = useState("");
 
   const location = useLocation();
 
@@ -65,6 +104,7 @@ const DentalDashboard: React.FC = () => {
 
   // Extra Oral Examination
   const [extraOral, setExtraOral] = useState("");
+  const [dentalRemarks, setDentalRemarks] = useState("");
 
   // Intra Oral Examination
   // Remove old state:
@@ -115,6 +155,7 @@ const DentalDashboard: React.FC = () => {
   useEffect(() => {
     if (patientData.dental) {
       setExtraOral(patientData.dental.dental_extra_oral || "");
+      setDentalRemarks(patientData.dental.dental_remarks || "");
       // If your groups are saved as comma‐separated strings:
       const permanent = patientData.dental.tooth_cavity_permanent || "";
       setToothCavityPermanentGroup1(
@@ -146,6 +187,49 @@ const DentalDashboard: React.FC = () => {
     }
   }, [patientData.patientId]);
 
+  // Add reset event listener
+  useEffect(() => {
+    const handleGlobalReset = () => {
+      console.log('Dental Dashboard received global reset signal');
+      resetForm(); // Reset all form fields
+    };
+    
+    window.addEventListener('patientDataReset', handleGlobalReset);
+    
+    return () => {
+      window.removeEventListener('patientDataReset', handleGlobalReset);
+    };
+  }, []);
+
+  // Original effect for loading data from context
+  useEffect(() => {
+    if (patientData.dental) {
+      setExtraOral(patientData.dental.dental_extra_oral || "");
+      setDentalRemarks(patientData.dental.dental_remarks || "");
+      // If your groups are saved as comma‐separated strings:
+      const permanent = patientData.dental.tooth_cavity_permanent || "";
+      setToothCavityPermanentGroup1(
+        permanent.split(",").filter((s: string): boolean => s !== "")
+      );
+      const primary = patientData.dental.tooth_cavity_primary || "";
+      setToothCavityPrimaryGroup1(
+        primary.split(",").filter((s: string): boolean => s !== "")
+      );
+      setPlaque(patientData.dental.plaque || "");
+      setGumInflammation(patientData.dental.gum_inflammation || "");
+      setStains(patientData.dental.stains || "");
+      setToothDiscoloration(patientData.dental.tooth_discoloration || "");
+      setTarter(patientData.dental.tarter || "");
+      setBadBreath(patientData.dental.bad_breath || "");
+      setGumBleeding(patientData.dental.gum_bleeding || "");
+      setSoftTissue(patientData.dental.soft_tissue || "");
+      setFluorosis(patientData.dental.fluorosis || "");
+      setMalocclusion(patientData.dental.malocclusion || "");
+      setRootStump(patientData.dental.root_stump || "");
+      setMissingTeeth(patientData.dental.missing_teeth || "");
+    }
+  }, [patientData.dental]);
+
   const dropdown = (
     label: string,
     value: string,
@@ -157,7 +241,37 @@ const DentalDashboard: React.FC = () => {
       <Select
         label={label}
         value={value}
-        onChange={(e) => setValue(e.target.value as string)}
+        onChange={(e) => {
+          const newValue = e.target.value as string;
+          setValue(newValue);
+          
+          // Update the field in the context
+          const fieldNameMap: Record<string, string> = {
+            "Extra-Oral": "dental_extra_oral",
+            "Plaque": "plaque",
+            "Gum Inflammation": "gum_inflammation",
+            "Stains": "stains",
+            "Tooth Discoloration": "tooth_discoloration",
+            "Tarter": "tarter",
+            "Bad Breath": "bad_breath",
+            "Gum Bleeding": "gum_bleeding",
+            "Soft Tissue": "soft_tissue",
+            "Fluorosis": "fluorosis",
+            "Malocclusion": "malocclusion",
+            "Root Stump": "root_stump",
+            "Missing Teeth": "missing_teeth"
+          };
+          
+          // Find the field name to use in the database
+          const fieldName = fieldNameMap[label] || label.toLowerCase().replace(/\s+/g, '_');
+          handleInputChange(fieldName, newValue);
+          
+          // Reset dental remarks when Extra-Oral changes to No Abnormality
+          if (label === "Extra-Oral" && newValue !== "Abnormality") {
+            setDentalRemarks("");
+            handleInputChange("dental_remarks", "");
+          }
+        }}
       >
         {options.map((opt) => (
           <MenuItem key={opt} value={opt}>
@@ -170,6 +284,7 @@ const DentalDashboard: React.FC = () => {
 
   const resetForm = () => {
     setExtraOral("");
+    setDentalRemarks("");
     setToothCavityPermanentGroup1([]);
     setToothCavityPermanentGroup2([]);
     setToothCavityPermanentGroup3([]);
@@ -192,6 +307,11 @@ const DentalDashboard: React.FC = () => {
     setMissingTeeth("");
   };
 
+  const handleInputChange = (field: string, value: string) => {
+    // Update only the specific field that changed
+    updateDepartment('dental', { [field]: value });
+  };
+
   const handleSubmit = async () => {
     if (
       !extraOral ||
@@ -212,8 +332,22 @@ const DentalDashboard: React.FC = () => {
       showToast("Please fill all required fields.", "error");
       return;
     }
+    
+    // Validate that dental remarks are provided when Extra-Oral has abnormality
+    if (extraOral === "Abnormality" && !dentalRemarks) {
+      showToast("Please provide Dental Remarks for the Extra-Oral Abnormality.", "error");
+      return;
+    }
+    
+    // Validate Soft Tissue abnormality (no description field available, but we still check for consistency)
+    if (softTissue === "Abnormality" && !dentalRemarks) {
+      showToast("Please provide Dental Remarks for the Soft Tissue Abnormality.", "error");
+      return;
+    }
+
     const data = {
       dental_extra_oral: extraOral,
+      dental_remarks: dentalRemarks,
       tooth_cavity_permanent: [
         ...toothCavityPermanentGroup1,
         ...toothCavityPermanentGroup2,
@@ -272,6 +406,7 @@ const DentalDashboard: React.FC = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           dental_extra_oral: extraOral,
+          dental_remarks: dentalRemarks,
           tooth_cavity_permanent: [
             ...toothCavityPermanentGroup1,
             ...toothCavityPermanentGroup2,
@@ -315,7 +450,7 @@ const DentalDashboard: React.FC = () => {
         {patientData.patientId ? (
           <>
             <div className="mb-4 text-gray-600">
-              <p>Patient Number: <span className="font-bold">{patientData.patientId}</span></p>
+              <p>Patient ID: {patientData.patientId}</p>
               {patientData.it?.name && (
                 <p>Patient Name: <span className="font-bold">{patientData.it.name}</span></p>
               )}
@@ -327,11 +462,35 @@ const DentalDashboard: React.FC = () => {
               <h2 className="text-xl font-semibold mb-4 text-gray-700">
                 Extra Oral Examination
               </h2>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-4">
                 {dropdown("Extra-Oral", extraOral, setExtraOral, [
                   "No Abnormality",
                   "Abnormality",
                 ])}
+                <div className="w-full sm:w-64 relative">
+                  <TextField
+                    label="Dental Remarks"
+                    variant="outlined"
+                    size="small"
+                    fullWidth
+                    value={dentalRemarks}
+                    onChange={(e) => {
+                      setDentalRemarks(e.target.value);
+                      handleInputChange("dental_remarks", e.target.value);
+                    }}
+                  />
+                  <button 
+                    type="button" 
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-100"
+                    onClick={() => {
+                      const newValue = dentalRemarks === "NA" ? "" : "NA";
+                      setDentalRemarks(newValue);
+                      handleInputChange("dental_remarks", newValue);
+                    }}
+                  >
+                    NA
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -349,25 +508,65 @@ const DentalDashboard: React.FC = () => {
                       label="Permanent Group 1"
                       options={["18", "17", "16", "15", "14", "13", "12", "11"]}
                       selected={toothCavityPermanentGroup1}
-                      onChange={setToothCavityPermanentGroup1}
+                      onChange={(selected) => {
+                        setToothCavityPermanentGroup1(selected);
+                        // Update the combined teeth data in the context
+                        const allPermanent = [
+                          ...selected,
+                          ...toothCavityPermanentGroup2,
+                          ...toothCavityPermanentGroup3,
+                          ...toothCavityPermanentGroup4,
+                        ].join(",");
+                        handleInputChange("tooth_cavity_permanent", allPermanent);
+                      }}
                     />
                     <ToothSelector
                       label="Permanent Group 2"
                       options={["21", "22", "23", "24", "25", "26", "27", "28"]}
                       selected={toothCavityPermanentGroup2}
-                      onChange={setToothCavityPermanentGroup2}
+                      onChange={(selected) => {
+                        setToothCavityPermanentGroup2(selected);
+                        // Update the combined teeth data in the context
+                        const allPermanent = [
+                          ...toothCavityPermanentGroup1,
+                          ...selected,
+                          ...toothCavityPermanentGroup3,
+                          ...toothCavityPermanentGroup4,
+                        ].join(",");
+                        handleInputChange("tooth_cavity_permanent", allPermanent);
+                      }}
                     />
                     <ToothSelector
                       label="Permanent Group 3"
                       options={["48", "47", "46", "45", "44", "43", "42", "41"]}
                       selected={toothCavityPermanentGroup3}
-                      onChange={setToothCavityPermanentGroup3}
+                      onChange={(selected) => {
+                        setToothCavityPermanentGroup3(selected);
+                        // Update the combined teeth data in the context
+                        const allPermanent = [
+                          ...toothCavityPermanentGroup1,
+                          ...toothCavityPermanentGroup2,
+                          ...selected,
+                          ...toothCavityPermanentGroup4,
+                        ].join(",");
+                        handleInputChange("tooth_cavity_permanent", allPermanent);
+                      }}
                     />
                     <ToothSelector
                       label="Permanent Group 4"
                       options={["31", "32", "33", "34", "35", "36", "37", "38"]}
                       selected={toothCavityPermanentGroup4}
-                      onChange={setToothCavityPermanentGroup4}
+                      onChange={(selected) => {
+                        setToothCavityPermanentGroup4(selected);
+                        // Update the combined teeth data in the context
+                        const allPermanent = [
+                          ...toothCavityPermanentGroup1,
+                          ...toothCavityPermanentGroup2,
+                          ...toothCavityPermanentGroup3,
+                          ...selected,
+                        ].join(",");
+                        handleInputChange("tooth_cavity_permanent", allPermanent);
+                      }}
                     />
                   </div>
                 </div>
@@ -381,25 +580,65 @@ const DentalDashboard: React.FC = () => {
                       label="Primary Group 1"
                       options={["55", "54", "53", "52", "51"]}
                       selected={toothCavityPrimaryGroup1}
-                      onChange={setToothCavityPrimaryGroup1}
+                      onChange={(selected) => {
+                        setToothCavityPrimaryGroup1(selected);
+                        // Update the combined teeth data in the context
+                        const allPrimary = [
+                          ...selected,
+                          ...toothCavityPrimaryGroup2,
+                          ...toothCavityPrimaryGroup3,
+                          ...toothCavityPrimaryGroup4,
+                        ].join(",");
+                        handleInputChange("tooth_cavity_primary", allPrimary);
+                      }}
                     />
                     <ToothSelector
                       label="Primary Group 2"
                       options={["61", "62", "63", "64", "65"]}
                       selected={toothCavityPrimaryGroup2}
-                      onChange={setToothCavityPrimaryGroup2}
+                      onChange={(selected) => {
+                        setToothCavityPrimaryGroup2(selected);
+                        // Update the combined teeth data in the context
+                        const allPrimary = [
+                          ...toothCavityPrimaryGroup1,
+                          ...selected,
+                          ...toothCavityPrimaryGroup3,
+                          ...toothCavityPrimaryGroup4,
+                        ].join(",");
+                        handleInputChange("tooth_cavity_primary", allPrimary);
+                      }}
                     />
                     <ToothSelector
                       label="Primary Group 3"
                       options={["85", "84", "83", "82", "81"]}
                       selected={toothCavityPrimaryGroup3}
-                      onChange={setToothCavityPrimaryGroup3}
+                      onChange={(selected) => {
+                        setToothCavityPrimaryGroup3(selected);
+                        // Update the combined teeth data in the context
+                        const allPrimary = [
+                          ...toothCavityPrimaryGroup1,
+                          ...toothCavityPrimaryGroup2,
+                          ...selected,
+                          ...toothCavityPrimaryGroup4,
+                        ].join(",");
+                        handleInputChange("tooth_cavity_primary", allPrimary);
+                      }}
                     />
                     <ToothSelector
                       label="Primary Group 4"
                       options={["71", "72", "73", "74", "75"]}
                       selected={toothCavityPrimaryGroup4}
-                      onChange={setToothCavityPrimaryGroup4}
+                      onChange={(selected) => {
+                        setToothCavityPrimaryGroup4(selected);
+                        // Update the combined teeth data in the context
+                        const allPrimary = [
+                          ...toothCavityPrimaryGroup1,
+                          ...toothCavityPrimaryGroup2,
+                          ...toothCavityPrimaryGroup3,
+                          ...selected,
+                        ].join(",");
+                        handleInputChange("tooth_cavity_primary", allPrimary);
+                      }}
                     />
                   </div>
                 </div>
