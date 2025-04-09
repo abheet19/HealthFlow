@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useState, useContext, useEffect } from "react";
+import { useState, useContext, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import {
   Button,
@@ -13,56 +13,32 @@ import { PatientContext } from "../context/PatientContext";
 import { useToast } from "../context/ToastContext";
 import { getApiUrl } from "../config/api";  // Import the API URL helper
 
+// Define Timer type to fix NodeJS.Timeout error
+type TimerType = ReturnType<typeof setTimeout>;
+
+// Improved tooth selector component with better click handling
 const ToothSelector: React.FC<{
   label: string;
   options: string[];
   selected: string[];
   onChange: (sel: string[]) => void;
 }> = ({ label, options, selected, onChange }) => {
+  // Improved toggleSelection function with explicit handling of selection state
   const toggleSelection = (num: string) => {
-    let newSelected: string[];
+    // Create a proper copy of the selected array to avoid reference issues
+    let newSelected;
     if (selected.includes(num)) {
-      newSelected = selected.filter((n) => n !== num);
+      // Remove if present 
+      newSelected = selected.filter((item) => item !== num);
     } else {
+      // Add if not present
       newSelected = [...selected, num];
     }
-    onChange(newSelected);
     
-    // Update the field in the context based on the label
-    // This requires access to the handleInputChange function from the parent
-    if (label.includes("Permanent Group")) {
-      const allPermanent = [
-        ...toothCavityPermanentGroup1,
-        ...toothCavityPermanentGroup2,
-        ...toothCavityPermanentGroup3,
-        ...toothCavityPermanentGroup4,
-      ];
-      
-      // Update the specific group
-      if (label === "Permanent Group 1") {
-        allPermanent.splice(0, toothCavityPermanentGroup1.length, ...newSelected);
-      } else if (label === "Permanent Group 2") {
-        allPermanent.splice(toothCavityPermanentGroup1.length, toothCavityPermanentGroup2.length, ...newSelected);
-      } else if (label === "Permanent Group 3") {
-        allPermanent.splice(
-          toothCavityPermanentGroup1.length + toothCavityPermanentGroup2.length,
-          toothCavityPermanentGroup3.length,
-          ...newSelected
-        );
-      } else if (label === "Permanent Group 4") {
-        allPermanent.splice(
-          toothCavityPermanentGroup1.length + toothCavityPermanentGroup2.length + toothCavityPermanentGroup3.length,
-          toothCavityPermanentGroup4.length,
-          ...newSelected
-        );
-      }
-      
-      // Debounce the update to avoid too many context updates
-      // Implementation note: This won't work as written because it's in the component scope
-      // and needs to be moved to the parent component with proper context access
-      // This will be fixed when we move this component
-    }
+    // Call onChange with the new array
+    onChange(newSelected);
   };
+  
   return (
     <div className="flex flex-col space-y-1">
       <span className="font-medium text-sm">{label}:</span>
@@ -70,11 +46,17 @@ const ToothSelector: React.FC<{
         {options.map((num) => (
           <button
             key={num}
-            onClick={() => toggleSelection(num)}
-            className={`border rounded px-1 py-1 text-center text-xs ${selected.includes(num)
+            type="button"
+            onClick={(e) => {
+              e.preventDefault(); // Prevent any default behavior
+              e.stopPropagation(); // Stop event propagation
+              toggleSelection(num);
+            }}
+            className={`border rounded px-1 py-1 text-center text-xs ${
+              selected.includes(num)
                 ? "bg-blue-500 text-white"
                 : "bg-gray-200 text-black"
-              }`}
+            }`}
           >
             {num}
           </button>
@@ -90,6 +72,9 @@ const DentalDashboard: React.FC = () => {
   const [manualPatientId, setManualPatientId] = useState("");
   const [dentalData, setDentalData] = useState<Record<string, string>>({});
   const [caries, setCaries] = useState("");
+  // Add polling interval for data synchronization
+  const pollingIntervalRef = useRef<TimerType | null>(null);
+  const lastSyncTimestamp = useRef<number>(Date.now());
 
   const location = useLocation();
 
@@ -105,11 +90,6 @@ const DentalDashboard: React.FC = () => {
   // Extra Oral Examination
   const [extraOral, setExtraOral] = useState("");
   const [dentalRemarks, setDentalRemarks] = useState("");
-
-  // Intra Oral Examination
-  // Remove old state:
-  // const [toothCavityPermanent, setToothCavityPermanent] = useState<string[]>([]);
-  // const [toothCavityPrimary, setToothCavityPrimary] = useState<string[]>([]);
 
   // Add new state variables:
   const [toothCavityPermanentGroup1, setToothCavityPermanentGroup1] = useState<
@@ -151,36 +131,116 @@ const DentalDashboard: React.FC = () => {
   const [rootStump, setRootStump] = useState("");
   const [missingTeeth, setMissingTeeth] = useState("");
 
+  // Add effect for real-time data sync for cross-device synchronization
+  useEffect(() => {
+    // Setup polling for data synchronization if we have a patient ID
+    if (patientData.patientId) {
+      // Clear any existing interval
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+      
+      // Function to fetch latest patient data
+      const fetchLatestData = async () => {
+        try {
+          const res = await fetch(getApiUrl(`/api/get_patient_data?patient_id=${patientData.patientId}&timestamp=${lastSyncTimestamp.current}`));
+          const data = await res.json();
+          
+          // If the data has been updated since our last sync
+          if (data.updated) {
+            // Update the lastSyncTimestamp
+            lastSyncTimestamp.current = Date.now();
+            
+            // Update the local state with the latest data from the backend
+            if (data.dental) {
+              // Only update if there's actual data to prevent unnecessary state changes
+              loadPatientData(data.dental);
+            }
+          }
+        } catch (error) {
+          console.error("Error syncing patient data:", error);
+        }
+      };
+      
+      // Start polling for updates every 5 seconds
+      pollingIntervalRef.current = setInterval(fetchLatestData, 5000);
+    }
+    
+    // Clean up the interval on unmount
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+  }, [patientData.patientId]);
+
+  // Helper function to load patient data into state
+  const loadPatientData = (dentalData: any) => {
+    if (dentalData) {
+      setExtraOral(dentalData.dental_extra_oral || "");
+      setDentalRemarks(dentalData.dental_remarks || "");
+      
+      // Process permanent teeth
+      const permanent = dentalData.tooth_cavity_permanent || "";
+      const permanentTeeth = permanent.split(",").filter((s: string): boolean => s !== "");
+      
+      // Separate permanent teeth into their respective groups
+      setToothCavityPermanentGroup1(
+        permanentTeeth.filter((tooth: string) => ["18", "17", "16", "15", "14", "13", "12", "11"].includes(tooth))
+      );
+      setToothCavityPermanentGroup2(
+        permanentTeeth.filter((tooth: string) => ["21", "22", "23", "24", "25", "26", "27", "28"].includes(tooth))
+      );
+      setToothCavityPermanentGroup3(
+        permanentTeeth.filter((tooth: string) => ["48", "47", "46", "45", "44", "43", "42", "41"].includes(tooth))
+      );
+      setToothCavityPermanentGroup4(
+        permanentTeeth.filter((tooth: string) => ["31", "32", "33", "34", "35", "36", "37", "38"].includes(tooth))
+      );
+      
+      // Process primary teeth
+      const primary = dentalData.tooth_cavity_primary || "";
+      const primaryTeeth = primary.split(",").filter((s: string): boolean => s !== "");
+      
+      // Separate primary teeth into their respective groups
+      setToothCavityPrimaryGroup1(
+        primaryTeeth.filter((tooth: string) => ["55", "54", "53", "52", "51"].includes(tooth))
+      );
+      setToothCavityPrimaryGroup2(
+        primaryTeeth.filter((tooth: string) => ["61", "62", "63", "64", "65"].includes(tooth))
+      );
+      setToothCavityPrimaryGroup3(
+        primaryTeeth.filter((tooth: string) => ["85", "84", "83", "82", "81"].includes(tooth))
+      );
+      setToothCavityPrimaryGroup4(
+        primaryTeeth.filter((tooth: string) => ["71", "72", "73", "74", "75"].includes(tooth))
+      );
+      
+      // Set dropdown values
+      setPlaque(dentalData.plaque || "");
+      setGumInflammation(dentalData.gum_inflammation || "");
+      setStains(dentalData.stains || "");
+      setToothDiscoloration(dentalData.tooth_discoloration || "");
+      setTarter(dentalData.tarter || "");
+      setBadBreath(dentalData.bad_breath || "");
+      setGumBleeding(dentalData.gum_bleeding || "");
+      setSoftTissue(dentalData.soft_tissue || "");
+      setFluorosis(dentalData.fluorosis || "");
+      setMalocclusion(dentalData.malocclusion || "");
+      setRootStump(dentalData.root_stump || "");
+      setMissingTeeth(dentalData.missing_teeth || "");
+    }
+  };
+
   // Persist Dental form data across tab switches
   useEffect(() => {
     if (patientData.dental) {
-      setExtraOral(patientData.dental.dental_extra_oral || "");
-      setDentalRemarks(patientData.dental.dental_remarks || "");
-      // If your groups are saved as comma‐separated strings:
-      const permanent = patientData.dental.tooth_cavity_permanent || "";
-      setToothCavityPermanentGroup1(
-        permanent.split(",").filter((s: string): boolean => s !== "")
-      );
-      const primary = patientData.dental.tooth_cavity_primary || "";
-      setToothCavityPrimaryGroup1(
-        primary.split(",").filter((s: string): boolean => s !== "")
-      );
-      setPlaque(patientData.dental.plaque || "");
-      setGumInflammation(patientData.dental.gum_inflammation || "");
-      setStains(patientData.dental.stains || "");
-      setToothDiscoloration(patientData.dental.tooth_discoloration || "");
-      setTarter(patientData.dental.tarter || "");
-      setBadBreath(patientData.dental.bad_breath || "");
-      setGumBleeding(patientData.dental.gum_bleeding || "");
-      setSoftTissue(patientData.dental.soft_tissue || "");
-      setFluorosis(patientData.dental.fluorosis || "");
-      setMalocclusion(patientData.dental.malocclusion || "");
-      setRootStump(patientData.dental.root_stump || "");
-      setMissingTeeth(patientData.dental.missing_teeth || "");
+      loadPatientData(patientData.dental);
     }
   }, [patientData.dental]);
 
-  // Add new effect to reset form when patientId is cleared
+  // Add reset effect when patientId is cleared
   useEffect(() => {
     if (!patientData.patientId) {
       resetForm();
@@ -201,34 +261,52 @@ const DentalDashboard: React.FC = () => {
     };
   }, []);
 
-  // Original effect for loading data from context
-  useEffect(() => {
-    if (patientData.dental) {
-      setExtraOral(patientData.dental.dental_extra_oral || "");
-      setDentalRemarks(patientData.dental.dental_remarks || "");
-      // If your groups are saved as comma‐separated strings:
-      const permanent = patientData.dental.tooth_cavity_permanent || "";
-      setToothCavityPermanentGroup1(
-        permanent.split(",").filter((s: string): boolean => s !== "")
-      );
-      const primary = patientData.dental.tooth_cavity_primary || "";
-      setToothCavityPrimaryGroup1(
-        primary.split(",").filter((s: string): boolean => s !== "")
-      );
-      setPlaque(patientData.dental.plaque || "");
-      setGumInflammation(patientData.dental.gum_inflammation || "");
-      setStains(patientData.dental.stains || "");
-      setToothDiscoloration(patientData.dental.tooth_discoloration || "");
-      setTarter(patientData.dental.tarter || "");
-      setBadBreath(patientData.dental.bad_breath || "");
-      setGumBleeding(patientData.dental.gum_bleeding || "");
-      setSoftTissue(patientData.dental.soft_tissue || "");
-      setFluorosis(patientData.dental.fluorosis || "");
-      setMalocclusion(patientData.dental.malocclusion || "");
-      setRootStump(patientData.dental.root_stump || "");
-      setMissingTeeth(patientData.dental.missing_teeth || "");
-    }
-  }, [patientData.dental]);
+  // Improved function to handle teeth updates for all groups
+  const updateTeethData = (updatedData?: {
+    permanentGroup1?: string[],
+    permanentGroup2?: string[],
+    permanentGroup3?: string[],
+    permanentGroup4?: string[],
+    primaryGroup1?: string[],
+    primaryGroup2?: string[],
+    primaryGroup3?: string[],
+    primaryGroup4?: string[],
+  }) => {
+    // Use the provided updated data or current state
+    const pg1 = updatedData?.permanentGroup1 || toothCavityPermanentGroup1;
+    const pg2 = updatedData?.permanentGroup2 || toothCavityPermanentGroup2;
+    const pg3 = updatedData?.permanentGroup3 || toothCavityPermanentGroup3;
+    const pg4 = updatedData?.permanentGroup4 || toothCavityPermanentGroup4;
+    const prg1 = updatedData?.primaryGroup1 || toothCavityPrimaryGroup1;
+    const prg2 = updatedData?.primaryGroup2 || toothCavityPrimaryGroup2;
+    const prg3 = updatedData?.primaryGroup3 || toothCavityPrimaryGroup3;
+    const prg4 = updatedData?.primaryGroup4 || toothCavityPrimaryGroup4;
+    
+    // Combine all permanent teeth groups
+    const allPermanentTeeth = [
+      ...pg1,
+      ...pg2,
+      ...pg3,
+      ...pg4,
+    ].join(",");
+    
+    // Combine all primary teeth groups
+    const allPrimaryTeeth = [
+      ...prg1,
+      ...prg2,
+      ...prg3,
+      ...prg4,
+    ].join(",");
+    
+    // Update both teeth types in the context at once to ensure consistency
+    updateDepartment("dental", {
+      tooth_cavity_permanent: allPermanentTeeth,
+      tooth_cavity_primary: allPrimaryTeeth
+    });
+    
+    // Update the timestamp of the last sync to prevent immediate overwriting
+    lastSyncTimestamp.current = Date.now();
+  };
 
   const dropdown = (
     label: string,
@@ -310,6 +388,9 @@ const DentalDashboard: React.FC = () => {
   const handleInputChange = (field: string, value: string) => {
     // Update only the specific field that changed
     updateDepartment('dental', { [field]: value });
+    
+    // Update the timestamp of the last sync to prevent immediate overwriting
+    lastSyncTimestamp.current = Date.now();
   };
 
   const handleSubmit = async () => {
@@ -372,6 +453,7 @@ const DentalDashboard: React.FC = () => {
       malocclusion,
       root_stump: rootStump,
       missing_teeth: missingTeeth,
+      isSubmitted: true // Set the submitted flag to true
     };
 
     updateDepartment("dental", data);
@@ -510,14 +592,8 @@ const DentalDashboard: React.FC = () => {
                       selected={toothCavityPermanentGroup1}
                       onChange={(selected) => {
                         setToothCavityPermanentGroup1(selected);
-                        // Update the combined teeth data in the context
-                        const allPermanent = [
-                          ...selected,
-                          ...toothCavityPermanentGroup2,
-                          ...toothCavityPermanentGroup3,
-                          ...toothCavityPermanentGroup4,
-                        ].join(",");
-                        handleInputChange("tooth_cavity_permanent", allPermanent);
+                        // Update teeth data immediately with the new selection
+                        updateTeethData({ permanentGroup1: selected });
                       }}
                     />
                     <ToothSelector
@@ -526,14 +602,8 @@ const DentalDashboard: React.FC = () => {
                       selected={toothCavityPermanentGroup2}
                       onChange={(selected) => {
                         setToothCavityPermanentGroup2(selected);
-                        // Update the combined teeth data in the context
-                        const allPermanent = [
-                          ...toothCavityPermanentGroup1,
-                          ...selected,
-                          ...toothCavityPermanentGroup3,
-                          ...toothCavityPermanentGroup4,
-                        ].join(",");
-                        handleInputChange("tooth_cavity_permanent", allPermanent);
+                        // Update teeth data immediately with the new selection
+                        updateTeethData({ permanentGroup2: selected });
                       }}
                     />
                     <ToothSelector
@@ -542,14 +612,8 @@ const DentalDashboard: React.FC = () => {
                       selected={toothCavityPermanentGroup3}
                       onChange={(selected) => {
                         setToothCavityPermanentGroup3(selected);
-                        // Update the combined teeth data in the context
-                        const allPermanent = [
-                          ...toothCavityPermanentGroup1,
-                          ...toothCavityPermanentGroup2,
-                          ...selected,
-                          ...toothCavityPermanentGroup4,
-                        ].join(",");
-                        handleInputChange("tooth_cavity_permanent", allPermanent);
+                        // Update teeth data immediately with the new selection
+                        updateTeethData({ permanentGroup3: selected });
                       }}
                     />
                     <ToothSelector
@@ -558,14 +622,8 @@ const DentalDashboard: React.FC = () => {
                       selected={toothCavityPermanentGroup4}
                       onChange={(selected) => {
                         setToothCavityPermanentGroup4(selected);
-                        // Update the combined teeth data in the context
-                        const allPermanent = [
-                          ...toothCavityPermanentGroup1,
-                          ...toothCavityPermanentGroup2,
-                          ...toothCavityPermanentGroup3,
-                          ...selected,
-                        ].join(",");
-                        handleInputChange("tooth_cavity_permanent", allPermanent);
+                        // Update teeth data immediately with the new selection
+                        updateTeethData({ permanentGroup4: selected });
                       }}
                     />
                   </div>
@@ -582,14 +640,8 @@ const DentalDashboard: React.FC = () => {
                       selected={toothCavityPrimaryGroup1}
                       onChange={(selected) => {
                         setToothCavityPrimaryGroup1(selected);
-                        // Update the combined teeth data in the context
-                        const allPrimary = [
-                          ...selected,
-                          ...toothCavityPrimaryGroup2,
-                          ...toothCavityPrimaryGroup3,
-                          ...toothCavityPrimaryGroup4,
-                        ].join(",");
-                        handleInputChange("tooth_cavity_primary", allPrimary);
+                        // Update teeth data immediately with the new selection
+                        updateTeethData({ primaryGroup1: selected });
                       }}
                     />
                     <ToothSelector
@@ -598,14 +650,8 @@ const DentalDashboard: React.FC = () => {
                       selected={toothCavityPrimaryGroup2}
                       onChange={(selected) => {
                         setToothCavityPrimaryGroup2(selected);
-                        // Update the combined teeth data in the context
-                        const allPrimary = [
-                          ...toothCavityPrimaryGroup1,
-                          ...selected,
-                          ...toothCavityPrimaryGroup3,
-                          ...toothCavityPrimaryGroup4,
-                        ].join(",");
-                        handleInputChange("tooth_cavity_primary", allPrimary);
+                        // Update teeth data immediately with the new selection
+                        updateTeethData({ primaryGroup2: selected });
                       }}
                     />
                     <ToothSelector
@@ -614,14 +660,8 @@ const DentalDashboard: React.FC = () => {
                       selected={toothCavityPrimaryGroup3}
                       onChange={(selected) => {
                         setToothCavityPrimaryGroup3(selected);
-                        // Update the combined teeth data in the context
-                        const allPrimary = [
-                          ...toothCavityPrimaryGroup1,
-                          ...toothCavityPrimaryGroup2,
-                          ...selected,
-                          ...toothCavityPrimaryGroup4,
-                        ].join(",");
-                        handleInputChange("tooth_cavity_primary", allPrimary);
+                        // Update teeth data immediately with the new selection
+                        updateTeethData({ primaryGroup3: selected });
                       }}
                     />
                     <ToothSelector
@@ -630,14 +670,8 @@ const DentalDashboard: React.FC = () => {
                       selected={toothCavityPrimaryGroup4}
                       onChange={(selected) => {
                         setToothCavityPrimaryGroup4(selected);
-                        // Update the combined teeth data in the context
-                        const allPrimary = [
-                          ...toothCavityPrimaryGroup1,
-                          ...toothCavityPrimaryGroup2,
-                          ...toothCavityPrimaryGroup3,
-                          ...selected,
-                        ].join(",");
-                        handleInputChange("tooth_cavity_primary", allPrimary);
+                        // Update teeth data immediately with the new selection
+                        updateTeethData({ primaryGroup4: selected });
                       }}
                     />
                   </div>

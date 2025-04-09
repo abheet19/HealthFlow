@@ -97,24 +97,27 @@ const VisionDashboard: React.FC = () => {
   };
 
   const handleSubmit = () => {
-    const allFields = {
+    // Validate all required fields
+    if (!reVision || !leVision || !reColor || !leColor || !reSquint || !leSquint) {
+      showToast("Please fill all required fields", "error");
+      return;
+    }
+
+    // Create data object with all field values
+    const data = {
       re_vision: reVision,
       le_vision: leVision,
       re_color_blindness: reColor,
       le_color_blindness: leColor,
       re_squint: reSquint,
       le_squint: leSquint,
+      isSubmitted: true // Add isSubmitted flag to mark this department as complete
     };
 
-    if (Object.values(allFields).some(value => !value)) {
-      showToast("Please fill all fields before submitting.", "error");
-      return;
-    }
-
-    updateDepartment("vision", allFields);
-    showToast("Vision data saved successfully.", "success");
+    // Update patient data in context
+    updateDepartment("vision", data);
+    showToast("Vision data saved successfully", "success");
     resetForm();
-    resetPatientData("vision"); // Specify department
   };
 
   const handleFinalSubmit = async () => {

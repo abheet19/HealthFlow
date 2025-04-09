@@ -128,7 +128,8 @@ const ITDashboard: React.FC = () => {
     const completed = ['ent', 'vision', 'general', 'dental'].filter(
       dept => {
         const deptData = patientData[dept as keyof PatientData];
-        return deptData && Object.keys(deptData).length > 0;
+        // Check for the isSubmitted flag instead of just checking if data exists
+        return deptData && (deptData as any).isSubmitted === true;
       }
     );
     console.log('Departments completed:', completed); // Debug log
