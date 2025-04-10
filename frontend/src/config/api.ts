@@ -16,11 +16,11 @@ const getEnvVariable = (key: string): string | undefined => {
   return undefined;
 };
 
-// For local development, it defaults to localhost:5000
-// For production, it will use the VITE_API_URL environment variable if available
+// For docker or production, it will use the VITE_API_URL environment variable
+// Default to the Cloud Run backend URL if no env variable is set
 export const API_BASE_URL = 
   getEnvVariable('VITE_API_URL') || 
-  'http://localhost:5000';
+  'https://doctor-report-backend-720901500415.asia-south1.run.app';
 
 console.log('API_BASE_URL:', API_BASE_URL);
 

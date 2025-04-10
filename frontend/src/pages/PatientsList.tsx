@@ -23,7 +23,7 @@ import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'; // Import PDF i
 const placeholderImage = "https://via.placeholder.com/150"; // default placeholder
 
 const PatientsList: React.FC = () => {
-  const { showToast } = useToast(); // added toast hook
+  const { showToast, hideToast } = useToast(); // added toast hook
   const [patients, setPatients] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
@@ -70,9 +70,9 @@ const PatientsList: React.FC = () => {
     format: 'docx' | 'pdf' = 'docx'
   ) => {
     try {
-      // Show a toast indicating generation is in progress, without patient name
+      // For PDF, show a persistent toast that won't disappear until process completes
       if (format === 'pdf') {
-        showToast("PDF generation in progress...", "info");
+        showToast("PDF generation in progress...", "info", true);
       }
       
       const endpoint = format === 'pdf' 
@@ -92,9 +92,22 @@ const PatientsList: React.FC = () => {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
+      
+      // For PDF, hide the persistent toast first
+      if (format === 'pdf') {
+        hideToast();
+      }
+      
+      // Show success toast
       showToast(`${format.toUpperCase()} report downloaded successfully`, "success");
     } catch (error) {
       console.error(error);
+      
+      // For PDF, hide the persistent toast first
+      if (format === 'pdf') {
+        hideToast();
+      }
+      
       showToast(`Failed to download ${format.toUpperCase()} report`, "error");
     }
   };

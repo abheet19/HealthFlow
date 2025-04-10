@@ -1,19 +1,39 @@
 from sqlalchemy import create_engine, text
 import os
 from dotenv import load_dotenv
+import platform
 
 # Load environment variables
 load_dotenv()
 
 # Create database URL from environment variables
-postgres_user = os.environ.get("POSTGRES_USER")
-postgres_password = os.environ.get("POSTGRES_PASSWORD")
-postgres_db = os.environ.get("POSTGRES_DB")
-postgres_host = os.environ.get("POSTGRES_HOST", "localhost")
-postgres_port = os.environ.get("POSTGRES_PORT", "5432")
-if not (postgres_user and postgres_password and postgres_db):
-    raise EnvironmentError("Missing required PostgreSQL environment variables.")
-DATABASE_URL = f"postgresql://{postgres_user}:{postgres_password}@{postgres_host}:{postgres_port}/{postgres_db}"
+def get_database_url():
+    postgres_user = os.environ.get("POSTGRES_USER")
+    postgres_password = os.environ.get("POSTGRES_PASSWORD")
+    postgres_db = os.environ.get("POSTGRES_DB")
+    postgres_host = os.environ.get("POSTGRES_HOST", "db")  # Default to container name in docker-compose
+    postgres_port = os.environ.get("POSTGRES_PORT", "5432")
+    
+    if not (postgres_user and postgres_password and postgres_db):
+        raise EnvironmentError("Missing required PostgreSQL environment variables.")
+    
+    # Determine if we're running in Cloud Run
+    CLOUD_RUN = os.getenv('CLOUD_RUN', 'false').lower() == 'true'
+    
+    if CLOUD_RUN:
+        # Use Cloud SQL Auth Proxy connection method for Cloud Run
+        instance_connection_name = os.getenv('INSTANCE_CONNECTION_NAME')
+        if not instance_connection_name:
+            raise EnvironmentError("Missing INSTANCE_CONNECTION_NAME for Cloud SQL connection")
+            
+        # Unix socket connection string for Cloud SQL
+        return f"postgresql+psycopg2://{postgres_user}:{postgres_password}@/{postgres_db}?host=/cloudsql/{instance_connection_name}"
+    else:
+        # Standard TCP connection for local development or Docker
+        return f"postgresql://{postgres_user}:{postgres_password}@{postgres_host}:{postgres_port}/{postgres_db}"
+
+# Get the connection URL
+DATABASE_URL = get_database_url()
 
 def init_db():
     # Create engine

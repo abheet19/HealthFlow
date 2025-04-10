@@ -1,0 +1,105 @@
+from sqlalchemy import Column, Integer, String, DateTime, Date, Text, text
+from sqlalchemy.ext.declarative import declarative_base
+from datetime import datetime
+
+Base = declarative_base()
+
+class PatientRecord(Base):
+    __tablename__ = "patient_records"
+    
+    id = Column(Integer, primary_key=True)
+    pid = Column(String(30), nullable=False, unique=True)
+    created_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
+    name = Column(String(100))
+    div = Column(String(50))
+    roll = Column(String(50))
+    admin = Column(String(50))
+    father = Column(String(100))
+    mother = Column(String(100))
+    mob = Column(String(20))
+    dob = Column(Date)
+    cap_dt = Column(Date)
+    gen = Column(String(10))
+    blood = Column(String(5))
+    medical_officer = Column(String(100))
+    photo = Column(Text)
+    
+    # ENT Department fields
+    le_def = Column(String(10))
+    le_wax = Column(String(10))
+    le_tm = Column(String(10))
+    le_dis = Column(String(10))
+    le_nh = Column(String(10))
+    re_def = Column(String(10))
+    re_wax = Column(String(10))
+    re_tm = Column(String(10))
+    re_dis = Column(String(10))
+    re_nh = Column(String(10))
+    ln_obs = Column(String(10))
+    ln_dis = Column(String(10))
+    rn_obs = Column(String(10))
+    rn_dis = Column(String(10))
+    th_pain = Column(String(10))
+    neck = Column(String(10))
+    tons = Column(String(20))
+    
+    # Vision Department fields
+    rev = Column(String(10))
+    lev = Column(String(10))
+    rcb = Column(String(10))
+    lcb = Column(String(10))
+    rsq = Column(String(10))
+    lsq = Column(String(10))
+    
+    # General Department fields
+    ht = Column(String(10))
+    wt = Column(String(10))
+    bmi = Column(String(10))
+    nails = Column(String(20))
+    nails_desc = Column(Text)
+    hair = Column(String(20))
+    hair_desc = Column(Text)
+    skin = Column(String(20))
+    skin_desc = Column(Text)
+    anem = Column(String(20))
+    allergy = Column(String(10))
+    allergy_desc = Column(Text)
+    ab_soft = Column(String(10))
+    ab_hard = Column(String(10))
+    ab_dist = Column(String(10))
+    ab_bowel = Column(String(10))
+    cns_con = Column(String(10))
+    cns_ori = Column(String(10))
+    cns_pl = Column(String(10))
+    cns_act = Column(String(10))
+    cns_alrt = Column(String(10))
+    cns_spch = Column(String(10))
+    cns_spch_desc = Column(Text)
+    past_med = Column(String(10))
+    past_surg = Column(String(10))
+    bp = Column(String(20))
+    pulse = Column(String(20))
+    hip = Column(String(20))
+    waist = Column(String(20))
+    
+    # Dental Department fields
+    dental_ext = Column(String(20))
+    dental_rmk = Column(Text)
+    tooth_perm = Column(Text)
+    tooth_prim = Column(Text)
+    plaque = Column(String(10))
+    gum_inf = Column(String(10))
+    stains = Column(String(10))
+    tooth_disc = Column(String(10))
+    tarter = Column(String(10))
+    bad_brth = Column(String(10))
+    gum_bleed = Column(String(10))
+    soft_tiss = Column(String(20))
+    fluor = Column(String(10))
+    maloccl = Column(String(10))
+    root_stmp = Column(String(10))
+    miss_teeth = Column(String(10))
+    
+    def to_dict(self):
+        """Convert the model instance to a dictionary."""
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}

@@ -2,7 +2,8 @@ import React, { createContext, useContext, useState } from "react";
 import { Snackbar, Alert } from "@mui/material";
 
 interface ToastContextProps {
-  showToast: (message: string, severity?: "success" | "error" | "info" | "warning") => void;
+  showToast: (message: string, severity?: "success" | "error" | "info" | "warning", persistent?: boolean) => void;
+  hideToast: () => void;
 }
 
 const ToastContext = createContext<ToastContextProps | undefined>(undefined);
@@ -11,28 +12,40 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [open, setOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [severity, setSeverity] = useState<"success" | "error" | "info" | "warning">("info");
+  const [isPersistent, setIsPersistent] = useState(false);
 
-  const showToast = (message: string, sev: "success" | "error" | "info" | "warning" = "info") => {
+  const showToast = (
+    message: string, 
+    sev: "success" | "error" | "info" | "warning" = "info",
+    persistent: boolean = false
+  ) => {
     setToastMessage(message);
     setSeverity(sev);
+    setIsPersistent(persistent);
     setOpen(true);
+  };
+
+  const hideToast = () => {
+    setOpen(false);
   };
 
   const handleClose = (_event?: React.SyntheticEvent | Event, reason?: string) => {
     if (reason === "clickaway") return;
-    setOpen(false);
+    if (!isPersistent) {
+      setOpen(false);
+    }
   };
 
   return (
-    <ToastContext.Provider value={{ showToast }}>
+    <ToastContext.Provider value={{ showToast, hideToast }}>
       {children}
       <Snackbar
         open={open}
-        autoHideDuration={3000}
+        autoHideDuration={isPersistent ? null : 3000}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         onClose={handleClose}
       >
-        <Alert onClose={handleClose} severity={severity} variant="filled" sx={{ width: "100%" }}>
+        <Alert onClose={isPersistent ? undefined : handleClose} severity={severity} variant="filled" sx={{ width: "100%" }}>
           {toastMessage}
         </Alert>
       </Snackbar>
