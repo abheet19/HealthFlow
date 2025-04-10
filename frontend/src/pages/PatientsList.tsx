@@ -17,6 +17,8 @@ import {
 import { useTheme } from "@mui/material/styles";
 import { useToast } from "../context/ToastContext"; // added import
 import { getApiUrl } from "../config/api"; // Import the API URL helper
+import CloudDownloadIcon from '@mui/icons-material/CloudDownload'; // Import download icon
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'; // Import PDF icon
 
 const placeholderImage = "https://via.placeholder.com/150"; // default placeholder
 
@@ -64,28 +66,54 @@ const PatientsList: React.FC = () => {
   // Modified download report handler:
   const handleDownloadReport = async (
     patientId: string,
-    patientName: string
+    patientName: string,
+    format: 'docx' | 'pdf' = 'docx'
   ) => {
     try {
-      // Use the API helper instead of hardcoded URL
-      const res = await fetch(
-        getApiUrl(`/api/generate_report?patientId=${patientId}`)
-      );
-      if (!res.ok) throw new Error("Failed to download report");
+      // Show a toast indicating generation is in progress, without patient name
+      if (format === 'pdf') {
+        showToast("PDF generation in progress...", "info");
+      }
+      
+      const endpoint = format === 'pdf' 
+        ? getApiUrl(`/api/generate_pdf_report?patientId=${patientId}`)
+        : getApiUrl(`/api/generate_report?patientId=${patientId}`);
+        
+      const res = await fetch(endpoint);
+      
+      if (!res.ok) throw new Error(`Failed to download ${format.toUpperCase()} report`);
+      
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${patientName}'s Report.docx`; // updated filename to use patient name
+      a.download = `${patientName}'s Report.${format}`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-      showToast("Report downloaded successfully", "success"); // show toast on download success
+      showToast(`${format.toUpperCase()} report downloaded successfully`, "success");
     } catch (error) {
       console.error(error);
-      showToast("Failed to download report", "error");
+      showToast(`Failed to download ${format.toUpperCase()} report`, "error");
     }
+  };
+
+  // Updated button styling with increased width
+  const downloadButtonStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '0.375rem',
+    transition: 'all 200ms',
+    fontSize: '0.875rem',
+    fontWeight: 'medium',
+    padding: '0.5rem 0.75rem',
+    marginRight: '0.5rem',
+    marginBottom: isMobile ? '0.5rem' : '0',
+    boxShadow: 'rgba(0, 0, 0, 0.1) 0px 1px 3px 0px, rgba(0, 0, 0, 0.06) 0px 1px 2px 0px',
+    width: isMobile ? '100%' : '120px', // Increased width
+    cursor: 'pointer'
   };
 
   return (
@@ -149,15 +177,13 @@ const PatientsList: React.FC = () => {
             <Table size="small">
               <TableHead>
                 <TableRow sx={{ backgroundColor: "#1976d2" }}>
-                  {isMobile ? null : (
-                    <TableCell align="center">Photo</TableCell>
-                  )}
-                  <TableCell align="center">Name</TableCell>
-                  <TableCell align="center">Division</TableCell>
+                  <TableCell align="center" sx={{ color: "white", fontWeight: "bold" }}>
+                    Photo
+                  </TableCell>
+                  <TableCell align="center" sx={{ color: "white", fontWeight: "bold" }}>Name</TableCell>
+                  <TableCell align="center" sx={{ color: "white", fontWeight: "bold" }}>Division</TableCell>
                   {!isMobile && (
-                    <>
-                      <TableCell align="center">Roll No</TableCell>
-                    </>
+                    <TableCell align="center" sx={{ color: "white", fontWeight: "bold" }}>Roll No</TableCell>
                   )}
                   <TableCell
                     align="center"
@@ -169,7 +195,7 @@ const PatientsList: React.FC = () => {
                     align="center"
                     sx={{ color: "white", fontWeight: "bold" }}
                   >
-                    {/* Empty header for actions */}
+                    Actions
                   </TableCell>
                 </TableRow>
               </TableHead>
@@ -183,20 +209,19 @@ const PatientsList: React.FC = () => {
                       "&:hover": { backgroundColor: "#e3f2fd" },
                     }}
                   >
-                    {!isMobile && (
-                      <TableCell align="center">
-                        <img
-                          src={patient.photo || placeholderImage}
-                          alt={patient.name}
-                          style={{
-                            width: isMobile ? "30px" : "40px", // smaller on mobile
-                            height: isMobile ? "30px" : "40px",
-                            borderRadius: "50%",
-                            objectFit: "cover",
-                          }}
-                        />
-                      </TableCell>
-                    )}
+                    <TableCell align="center">
+                      <img
+                        src={patient.photo || placeholderImage}
+                        alt={patient.name}
+                        style={{
+                          width: isMobile ? "30px" : "40px", // smaller on mobile
+                          height: isMobile ? "30px" : "40px",
+                          borderRadius: "50%",
+                          objectFit: "cover",
+                          display: "inline-block" // Ensure image is visible on all devices
+                        }}
+                      />
+                    </TableCell>
                     <TableCell align="center">{patient.name}</TableCell>
                     <TableCell align="center">{patient.div}</TableCell>
                     {!isMobile && (
@@ -204,20 +229,40 @@ const PatientsList: React.FC = () => {
                     )}
                     <TableCell align="center">{patient.mobile}</TableCell>
                     <TableCell align="center">
-                      <Button
-                        variant="contained"
-                        sx={{
-                          backgroundColor: "#1976d2 !important", // force override blue
-                          color: "white !important",
-                          "&:hover": { backgroundColor: "#1565c0 !important" },
-                        }}
-                        size="small"
-                        onClick={() =>
-                          handleDownloadReport(patient.patientId, patient.name)
-                        }
-                      >
-                        Download Report
-                      </Button>
+                      <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'center',
+                        flexDirection: isMobile ? 'column' : 'row' // Stack buttons vertically on mobile
+                      }}>
+                        {/* Word Document Button */}
+                        <button
+                          onClick={() => handleDownloadReport(patient.patientId, patient.name, 'docx')}
+                          style={{
+                            ...downloadButtonStyle,
+                            backgroundColor: '#1976d2',
+                            color: 'white',
+                          }}
+                          title="Download Word Document"
+                        >
+                          <CloudDownloadIcon style={{ fontSize: '1rem', marginRight: '0.5rem' }} />
+                          <span style={{ whiteSpace: 'nowrap' }}>Word Doc</span>
+                        </button>
+                        
+                        {/* PDF Button */}
+                        <button
+                          onClick={() => handleDownloadReport(patient.patientId, patient.name, 'pdf')}
+                          style={{
+                            ...downloadButtonStyle,
+                            backgroundColor: '#dc3545',
+                            color: 'white',
+                            marginRight: '0'
+                          }}
+                          title="Download PDF"
+                        >
+                          <PictureAsPdfIcon style={{ fontSize: '1rem', marginRight: '0.5rem' }} />
+                          <span style={{ whiteSpace: 'nowrap' }}>PDF Doc</span>
+                        </button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
