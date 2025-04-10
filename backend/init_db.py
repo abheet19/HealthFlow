@@ -23,7 +23,7 @@ def init_db():
     create_table_query = """
     CREATE TABLE IF NOT EXISTS patient_records (
         id SERIAL PRIMARY KEY,
-        pid VARCHAR(10) NOT NULL UNIQUE,
+        pid VARCHAR(30) NOT NULL UNIQUE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         name VARCHAR(100),
         div VARCHAR(50),
