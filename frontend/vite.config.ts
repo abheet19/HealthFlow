@@ -11,7 +11,15 @@ export default defineConfig(({ command, mode }) => {
     // vite config
     plugins: [react()],
     server: {
-      port: 3000
+      port: 3000,
+      hmr: {
+        // Improve HMR for large transfers like images
+        clientPort: 3000
+      }
+    },
+    build: {
+      // Increase size limit for base64 inlining (helps with image handling)
+      assetsInlineLimit: 10240, // 10KB
     },
     define: {
       // Make sure environment variables are properly exposed
