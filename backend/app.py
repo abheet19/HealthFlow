@@ -358,6 +358,184 @@ def generate_report():
     finally:
         db.close()
 
+@app.route('/api/generate_pdf_report', methods=['GET'])
+def generate_pdf_report():
+    patient_id = request.args.get("patientId")
+    if not patient_id:
+        return jsonify({"error": "patientId query parameter is required."}), 400
+    db = SessionLocal()
+    try:
+        # First generate the Word document as before
+        query = text("SELECT * FROM patient_records WHERE pid = :pid")
+        result = db.execute(query, {"pid": patient_id})
+        record = result.fetchone()
+        if not record:
+            return jsonify({"error": "Patient record not found."}), 404
+
+        patient_record = {k: v for k, v in record._mapping.items()}
+        patient = translate_record(record)
+        template_path = "template.docx"
+        doc = DocxTemplate(template_path)
+        context = {}
+
+        # Standard processing for general data
+        for key, value in patient_record.items():
+            if key == "photo" and value:
+                if isinstance(value, bytes):
+                    img_bytes = value
+                else:
+                    img_str = value.split(",")[1] if value.startswith("data:image") else value
+                    img_bytes = base64.b64decode(img_str)
+                
+                image = Image.open(BytesIO(img_bytes)).convert("RGB")
+                
+                # Process image to properly handle orientation and create a circular crop
+                cropped_stream = crop_image_circle(image, 144)
+                context[key] = InlineImage(doc, cropped_stream, width=Inches(1.5))
+            else:
+                context[key] = str(value) if value is not None else ""
+        
+        # Ensure description fields are explicitly included in the context
+        context["nails_description"] = patient_record.get("nails_desc", "")
+        context["hair_description"] = patient_record.get("hair_desc", "")
+        context["skin_description"] = patient_record.get("skin_desc", "")
+        context["allergy_description"] = patient_record.get("allergy_desc", "")
+        context["speech_description"] = patient_record.get("cns_spch_desc", "")
+
+        # Process teeth data as in the original function
+        perm_group1 = ["18", "17", "16", "15", "14", "13", "12", "11"]
+        perm_group2 = ["21", "22", "23", "24", "25", "26", "27", "28"]
+        perm_group3 = ["48", "47", "46", "45", "44", "43", "42", "41"]
+        perm_group4 = ["31", "32", "33", "34", "35", "36", "37", "38"]
+
+        prim_group1 = ["55", "54", "53", "52", "51"]
+        prim_group2 = ["61", "62", "63", "64", "65"]
+        prim_group3 = ["85", "84", "83", "82", "81"]
+        prim_group4 = ["71", "72", "73", "74", "75"]
+
+        selected_perm = patient_record.get("tooth_perm", "")
+        selected_prim = patient_record.get("tooth_prim", "")
+
+        selected_perm_list = selected_perm.split(",") if selected_perm else []
+        selected_prim_list = selected_prim.split(",") if selected_prim else []
+        
+        selected_perm_list = [tooth.strip() for tooth in selected_perm_list]
+        selected_prim_list = [tooth.strip() for tooth in selected_prim_list]
+
+        context["remaining_perm_group1"] = ", ".join([t for t in perm_group1 if t not in selected_perm_list])
+        context["remaining_perm_group2"] = ", ".join([t for t in perm_group2 if t not in selected_perm_list])
+        context["remaining_perm_group3"] = ", ".join([t for t in perm_group3 if t not in selected_perm_list])
+        context["remaining_perm_group4"] = ", ".join([t for t in perm_group4 if t not in selected_perm_list])
+        context["remaining_prim_group1"] = ", ".join([t for t in prim_group1 if t not in selected_prim_list])
+        context["remaining_prim_group2"] = ", ".join([t for t in prim_group2 if t not in selected_prim_list])
+        context["remaining_prim_group3"] = ", ".join([t for t in prim_group3 if t not in selected_prim_list])
+        context["remaining_prim_group4"] = ", ".join([t for t in prim_group4 if t not in selected_prim_list])
+
+        context["selected_perm_group1"] = ", ".join([t for t in perm_group1 if t in selected_perm_list])
+        context["selected_perm_group2"] = ", ".join([t for t in perm_group2 if t in selected_perm_list])
+        context["selected_perm_group3"] = ", ".join([t for t in perm_group3 if t in selected_perm_list])
+        context["selected_perm_group4"] = ", ".join([t for t in perm_group4 if t in selected_perm_list])
+        context["selected_prim_group1"] = ", ".join([t for t in prim_group1 if t in selected_prim_list])
+        context["selected_prim_group2"] = ", ".join([t for t in prim_group2 if t in selected_prim_list])
+        context["selected_prim_group3"] = ", ".join([t for t in prim_group3 if t in selected_prim_list])
+        context["selected_prim_group4"] = ", ".join([t for t in prim_group4 if t in selected_prim_list])
+
+        # Render the document
+        doc.render(context)
+        docx_io = BytesIO()
+        doc.save(docx_io)
+        docx_io.seek(0)
+        
+        # Get the patient name for the filename
+        patient_name = patient_record.get('name', 'Patient')
+        
+        # Use docx2pdf for conversion
+        from docx2pdf import convert
+        from tempfile import NamedTemporaryFile, mkdtemp
+        import shutil
+        import pythoncom  # Import pythoncom for COM initialization
+        
+        try:
+            # Initialize COM for the current thread (fixes CoInitialize error)
+            pythoncom.CoInitialize()
+            
+            # Create a temp directory to work in
+            temp_dir = mkdtemp()
+            docx_path = os.path.join(temp_dir, f"{patient_name}.docx")
+            pdf_path = os.path.join(temp_dir, f"{patient_name}.pdf")
+            
+            # Save DOCX to a file
+            with open(docx_path, 'wb') as f:
+                f.write(docx_io.getvalue())
+            
+            # Convert to PDF using docx2pdf
+            logging.info(f"Converting document to PDF for patient {patient_id}")
+            convert(docx_path, pdf_path)
+            
+            if os.path.exists(pdf_path):
+                with open(pdf_path, 'rb') as pdf_file:
+                    pdf_data = pdf_file.read()
+                
+                # Clean up temp directory
+                shutil.rmtree(temp_dir, ignore_errors=True)
+                
+                # Uninitialize COM
+                pythoncom.CoUninitialize()
+                
+                # Return the PDF with proper mime type
+                response = send_file(
+                    BytesIO(pdf_data),
+                    mimetype="application/pdf",
+                    as_attachment=True,
+                    download_name=f"{patient_name}.pdf"
+                )
+                # Add headers to prevent caching issues
+                response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+                response.headers["Pragma"] = "no-cache"
+                response.headers["Expires"] = "0"
+                return response
+            else:
+                logging.error("PDF file was not created successfully")
+                # Uninitialize COM
+                pythoncom.CoUninitialize()
+                
+                # If PDF conversion failed, return DOCX as fallback
+                shutil.rmtree(temp_dir, ignore_errors=True)
+                docx_io.seek(0)
+                return send_file(
+                    docx_io,
+                    mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    as_attachment=True,
+                    download_name=f"{patient_name}.docx"
+                )
+                
+        except Exception as pdf_error:
+            logging.error(f"PDF conversion error: {str(pdf_error)}")
+            # Try to uninitialize COM in case of exception
+            try:
+                pythoncom.CoUninitialize()
+            except:
+                pass
+                
+            # Clean up any temp files
+            if 'temp_dir' in locals():
+                shutil.rmtree(temp_dir, ignore_errors=True)
+            
+            # Return the DOCX as a fallback
+            docx_io.seek(0)
+            return send_file(
+                docx_io,
+                mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                as_attachment=True,
+                download_name=f"{patient_name}.docx"
+            )
+                
+    except Exception as e:
+        logging.error(f"Error generating PDF report: {str(e)}")
+        return jsonify({"error": "Failed to generate report.", "details": str(e)}), 500
+    finally:
+        db.close()
+
 @app.route('/api/submit_patient', methods=['POST'])
 def submit_patient():
     db = None  # Initialize db to avoid UnboundLocalError in except block
