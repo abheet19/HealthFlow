@@ -226,6 +226,7 @@ def generate_report():
         doc = DocxTemplate(template_path)
         context = {}
 
+        # Standard processing for general data
         for key, value in patient_record.items():
             if key == "photo" and value:
                 if isinstance(value, bytes):
@@ -233,13 +234,14 @@ def generate_report():
                 else:
                     img_str = value.split(",")[1] if value.startswith("data:image") else value
                     img_bytes = base64.b64decode(img_str)
+                
                 image = Image.open(BytesIO(img_bytes)).convert("RGB")
                 cropped_stream = crop_image_circle(image, 144)
                 context[key] = InlineImage(doc, cropped_stream, width=Inches(1.5))
             else:
                 context[key] = str(value) if value is not None else ""
 
-        # NEW: Compute remaining teeth for each subgroup
+        # Compute remaining and selected teeth for each subgroup
         perm_group1 = ["18", "17", "16", "15", "14", "13", "12", "11"]
         perm_group2 = ["21", "22", "23", "24", "25", "26", "27", "28"]
         perm_group3 = ["48", "47", "46", "45", "44", "43", "42", "41"]
@@ -250,35 +252,49 @@ def generate_report():
         prim_group3 = ["85", "84", "83", "82", "81"]
         prim_group4 = ["71", "72", "73", "74", "75"]
 
+        # Get dental data from the patient record
         selected_perm = patient_record.get("tooth_perm", "")
-        selected_perm_list = [x.strip() for x in selected_perm.split(",") if x.strip()] if selected_perm else []
         selected_prim = patient_record.get("tooth_prim", "")
-        selected_prim_list = [x.strip() for x in selected_prim.split(",") if x.strip()] if selected_prim else []
 
-        rem_perm_group1 = [t for t in perm_group1 if t not in selected_perm_list]
-        rem_perm_group2 = [t for t in perm_group2 if t not in selected_perm_list]
-        rem_perm_group3 = [t for t in perm_group3 if t not in selected_perm_list]
-        rem_perm_group4 = [t for t in perm_group4 if t not in selected_perm_list]
+        # Process the comma-separated lists
+        selected_perm_list = selected_perm.split(",") if selected_perm else []
+        selected_prim_list = selected_prim.split(",") if selected_prim else []
+        
+        # Clean up any extra spaces in teeth numbers
+        selected_perm_list = [tooth.strip() for tooth in selected_perm_list]
+        selected_prim_list = [tooth.strip() for tooth in selected_prim_list]
 
-        rem_prim_group1 = [t for t in prim_group1 if t not in selected_prim_list]
-        rem_prim_group2 = [t for t in prim_group2 if t not in selected_prim_list]
-        rem_prim_group3 = [t for t in prim_group3 if t not in selected_prim_list]
-        rem_prim_group4 = [t for t in prim_group4 if t not in selected_prim_list]
+        # Keep the original variables for remaining teeth
+        context["remaining_perm_group1"] = ", ".join([t for t in perm_group1 if t not in selected_perm_list])
+        context["remaining_perm_group2"] = ", ".join([t for t in perm_group2 if t not in selected_perm_list])
+        context["remaining_perm_group3"] = ", ".join([t for t in perm_group3 if t not in selected_perm_list])
+        context["remaining_perm_group4"] = ", ".join([t for t in perm_group4 if t not in selected_perm_list])
+        context["remaining_prim_group1"] = ", ".join([t for t in prim_group1 if t not in selected_prim_list])
+        context["remaining_prim_group2"] = ", ".join([t for t in prim_group2 if t not in selected_prim_list])
+        context["remaining_prim_group3"] = ", ".join([t for t in prim_group3 if t not in selected_prim_list])
+        context["remaining_prim_group4"] = ", ".join([t for t in prim_group4 if t not in selected_prim_list])
 
-        context["remaining_perm_group1"] = ", ".join(rem_perm_group1)
-        context["remaining_perm_group2"] = ", ".join(rem_perm_group2)
-        context["remaining_perm_group3"] = ", ".join(rem_perm_group3)
-        context["remaining_perm_group4"] = ", ".join(rem_perm_group4)
-        context["remaining_prim_group1"] = ", ".join(rem_prim_group1)
-        context["remaining_prim_group2"] = ", ".join(rem_prim_group2)
-        context["remaining_prim_group3"] = ", ".join(rem_prim_group3)
-        context["remaining_prim_group4"] = ", ".join(rem_prim_group4)
+        # Add selected teeth variables (using the original format for naming consistency)
+        context["selected_perm_group1"] = ", ".join([t for t in perm_group1 if t in selected_perm_list])
+        context["selected_perm_group2"] = ", ".join([t for t in perm_group2 if t in selected_perm_list])
+        context["selected_perm_group3"] = ", ".join([t for t in perm_group3 if t in selected_perm_list])
+        context["selected_perm_group4"] = ", ".join([t for t in perm_group4 if t in selected_perm_list])
+        context["selected_prim_group1"] = ", ".join([t for t in prim_group1 if t in selected_prim_list])
+        context["selected_prim_group2"] = ", ".join([t for t in prim_group2 if t in selected_prim_list])
+        context["selected_prim_group3"] = ", ".join([t for t in prim_group3 if t in selected_prim_list])
+        context["selected_prim_group4"] = ", ".join([t for t in prim_group4 if t in selected_prim_list])
 
-        # Debug: log context keys for remaining teeth
-        print("Remaining Permanent Groups:", context["remaining_perm_group1"], context["remaining_perm_group2"],
-              context["remaining_perm_group3"], context["remaining_perm_group4"])
-        print("Remaining Primary Groups:", context["remaining_prim_group1"], context["remaining_prim_group2"],
-              context["remaining_prim_group3"], context["remaining_prim_group4"])
+        # DETAILED DEBUG INFORMATION
+        logging.info(f"REPORT DATA FOR PATIENT {patient_id}:")
+        logging.info(f"Original tooth_perm value: '{selected_perm}'")
+        logging.info(f"Original tooth_prim value: '{selected_prim}'")
+        logging.info(f"Selected perm list (parsed): {selected_perm_list}")
+        logging.info(f"Selected prim list (parsed): {selected_prim_list}")
+        
+        # Log all context keys related to teeth
+        for key, value in context.items():
+            if "perm_group" in key or "prim_group" in key:
+                logging.info(f"CONTEXT: {key} = '{value}'")
 
         doc.render(context)
         doc_io = BytesIO()
