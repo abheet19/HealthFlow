@@ -132,7 +132,6 @@ const ITDashboard: React.FC = () => {
         return deptData && (deptData as any).isSubmitted === true;
       }
     );
-    console.log('Departments completed:', completed); // Debug log
     setCompletedDepts(completed);
   }, [patientData]); // This will run whenever any department updates their data
 
@@ -188,7 +187,6 @@ const ITDashboard: React.FC = () => {
       }
       
       const data = await response.json();
-      console.log('Generate ID response:', data); // Debug log
       
       if (data.success && data.patientId) {
         updatePatientId(data.patientId);
@@ -198,7 +196,6 @@ const ITDashboard: React.FC = () => {
         throw new Error('No patient ID in response');
       }
     } catch (error) {
-      console.error('Error generating patient ID:', error);
       showToast('Failed to generate patient ID. Please try again.', 'error');
     }
   };
@@ -389,7 +386,6 @@ const ITDashboard: React.FC = () => {
   // Add event listener for global reset
   useEffect(() => {
     const handleGlobalReset = () => {
-      console.log('IT Dashboard received global reset signal');
       resetForm();
     };
     

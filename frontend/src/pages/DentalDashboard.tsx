@@ -247,10 +247,9 @@ const DentalDashboard: React.FC = () => {
     }
   }, [patientData.patientId]);
 
-  // Add reset event listener
+  // Add event listener for global reset
   useEffect(() => {
     const handleGlobalReset = () => {
-      console.log('Dental Dashboard received global reset signal');
       resetForm(); // Reset all form fields
     };
     

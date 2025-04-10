@@ -161,7 +161,6 @@ const GeneralDashboard: React.FC = () => {
   // Add reset event listener
   useEffect(() => {
     const handleGlobalReset = () => {
-      console.log('General Dashboard received global reset signal');
       resetForm(); // Reset all form fields
     };
     

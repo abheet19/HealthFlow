@@ -80,12 +80,11 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
     setSocket(newSocket);
 
     newSocket.on('connect', () => {
-      console.log('Connected to WebSocket server');
+      // Connected to WebSocket server
     });
 
     // Listen for new patient IDs
     newSocket.on('newPatientId', (data: string | { patientId: string }) => {
-      console.log('Received new patient ID:', data);
       const newId = typeof data === 'string' ? data : data.patientId;
       
       setPatientData(prev => ({
@@ -97,7 +96,6 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
 
     // Enhanced departmentUpdate listener with special handling for tooth data
     newSocket.on('departmentUpdate', (updatedData: PatientData) => {
-      console.log('Received department update:', updatedData);
       setPatientData(prev => {
         const result: PatientDataUpdate = { ...prev, timestamp: Date.now() };
         
@@ -141,15 +139,12 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
               });
               
               result[deptKey] = mergedDentalData as any;
-              console.log(`Updated dental tooth data:`, mergedDentalData);
             } else {
               // Standard merge for other departments or dental fields
               result[deptKey] = {
                 ...(typeof prevDeptData === 'object' ? prevDeptData as Record<string, any> : {}),
                 ...(typeof updatedDeptData === 'object' ? updatedDeptData : {})
               } as any;
-              
-              console.log(`Updated ${dept} data:`, result[deptKey]);
             }
           }
         });
@@ -160,7 +155,6 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
 
     // Listen specifically for photo updates
     newSocket.on('photoUpdate', (photoData: { photo: string, photoFileName: string }) => {
-      console.log('Received photo update');
       setPatientData(prev => {
         // Only update if we have IT data already or create a new IT object
         const currentIT = prev.it || {};
@@ -178,7 +172,6 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
 
     // Listen for photo deletion events
     newSocket.on('photoDelete', () => {
-      console.log('Received photo deletion event');
       setPatientData(prev => {
         // Only update if we have IT data
         if (!prev.it) return prev;
@@ -198,7 +191,6 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
 
     // Add new listener for reset event
     newSocket.on('resetPatientData', () => {
-      console.log('Received reset signal');
       setPatientData({});
       localStorage.removeItem('patientData');
       
@@ -208,7 +200,7 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
     });
 
     newSocket.on('connect_error', (error: Error) => {
-      console.error('WebSocket connection error:', error);
+      // Connection error handling silently
     });
 
     return () => {
@@ -218,12 +210,8 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
 
   // Enhanced updateDepartment with special handling for dental data
   const updateDepartment = (dept: keyof PatientData, data: Record<string, any>) => {
-    console.log('Updating department:', dept, data); // Debug log
-    
     // Special handling for dental department to ensure teeth data is properly handled
     if (dept === 'dental' && (data.tooth_cavity_permanent !== undefined || data.tooth_cavity_primary !== undefined)) {
-      console.log('Processing dental teeth data update', data);
-      
       // Get current dental data or empty object
       const currentDental = (patientData[dept] || {}) as DentalData;
       
@@ -258,7 +246,6 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
       
       // Broadcast dental update to all clients
       if (socket?.connected) {
-        console.log('Broadcasting dental data update'); 
         socket.emit('departmentUpdate', { [dept]: updatedDentalData });
       }
     } else {
@@ -280,8 +267,6 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
       
       // Broadcast department update to all clients
       if (socket?.connected) {
-        console.log('Broadcasting department update'); // Debug log
-        
         // If this update contains a photo property, handle it separately
         if (dept === 'it' && data.photo !== undefined) {
           // Send the photo update
@@ -363,10 +348,7 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
       }
       
       if (socket?.connected) {
-        console.log('Emitting department reset for:', department);
         socket.emit('departmentUpdate', { [department]: undefined });
-      } else {
-        console.warn('Socket not connected when trying to reset department:', department);
       }
     } else {
       // Full reset - clear everything
@@ -378,17 +360,13 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
       if (fileInput) fileInput.value = '';
       
       if (socket?.connected) {
-        console.log('Emitting full reset to all connected clients');
         socket.emit('resetPatientData');
         
         // Force dispatch the event locally to ensure it happens
-        console.log('Dispatching patientDataReset event locally');
         const resetEvent = new CustomEvent('patientDataReset');
         window.dispatchEvent(resetEvent);
       } else {
-        console.warn('Socket not connected when trying to perform full reset');
         // Still dispatch the event locally even if socket is disconnected
-        console.log('Dispatching patientDataReset event locally despite socket disconnect');
         const resetEvent = new CustomEvent('patientDataReset');
         window.dispatchEvent(resetEvent);
       }

@@ -22,8 +22,6 @@ export const API_BASE_URL =
   getEnvVariable('VITE_API_URL') || 
   'https://doctor-report-backend-720901500415.asia-south1.run.app';
 
-console.log('API_BASE_URL:', API_BASE_URL);
-
 // Helper function to construct API endpoints
 export const getApiUrl = (endpoint: string) => {
   // Make sure endpoint starts with a slash if it doesn't already
@@ -35,5 +33,3 @@ export const getApiUrl = (endpoint: string) => {
 export const SOCKET_URL = 
   getEnvVariable('VITE_SOCKET_URL') || 
   API_BASE_URL;
-
-console.log('SOCKET_URL:', SOCKET_URL);
