@@ -320,18 +320,10 @@ const GeneralDashboard: React.FC = () => {
   const handleSubmit = () => {
     // Validate all required fields
     if (!bmi ||
-        !bloodPressure ||
-        !anemia ||
-        !cyanosis ||
-        !jaundice ||
-        !clubbing ||
-        !lymphNodes ||
-        !oedema ||
-        !skin ||
-        !heartRate ||
-        !respRate ||
-        !icterus ||
-        !pallorMuc) {
+        !bp ||
+        !pulse ||
+        !hip ||
+        !waist) {
       showToast("Please fill all required fields.", "error");
       return;
     }
@@ -339,19 +331,10 @@ const GeneralDashboard: React.FC = () => {
     // Create data object with all field values
     const data = {
       bmi: bmi,
-      blood_pressure: bloodPressure,
-      anemia: anemia,
-      cyanosis: cyanosis,
-      jaundice: jaundice,
-      clubbing: clubbing,
-      lymph_nodes: lymphNodes,
-      oedema: oedema,
-      skin: skin,
-      heart_rate: heartRate,
-      respiratory_rate: respRate,
-      icterus: icterus,
-      pallor_mucous_membrane: pallorMuc,
-      general_remarks: generalRemarks,
+      bp: bp,
+      pulse: pulse,
+      hip: hip,
+      waist: waist,
       isSubmitted: true // Add isSubmitted flag to mark this department as complete
     };
     

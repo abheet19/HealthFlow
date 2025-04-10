@@ -15,7 +15,7 @@ from sqlalchemy import text
 import base64
 from docx.shared import Inches
 from docxtpl import DocxTemplate, InlineImage
-from PIL import Image, ImageDraw, ImageOps  # new import for image processing
+from PIL import Image, ImageDraw, ImageOps, ExifTags  # added ExifTags for rotation handling
 
 app = Flask(__name__)
 CORS(app)
@@ -87,17 +87,60 @@ def validate_fields(data, required_fields):
 
 # Add this helper function below your imports:
 def crop_image_circle(image: Image.Image, size: int) -> BytesIO:
+    """
+    Process an image by applying EXIF orientation correction, resizing, and creating a circular crop.
+    
+    Args:
+        image: The PIL Image object to process
+        size: The desired size (width/height) of the output image
+        
+    Returns:
+        A BytesIO object containing the processed image
+    """
+    # Handle EXIF orientation
+    try:
+        # Find the orientation tag
+        for orientation in ExifTags.TAGS.keys():
+            if ExifTags.TAGS[orientation] == 'Orientation':
+                break
+                
+        # Check if image has EXIF data
+        if hasattr(image, '_getexif') and image._getexif() is not None:
+            exif = dict(image._getexif().items())
+            if orientation in exif:
+                # Rotate the image according to EXIF orientation
+                if exif[orientation] == 2:
+                    image = image.transpose(Image.FLIP_LEFT_RIGHT)
+                elif exif[orientation] == 3:
+                    image = image.rotate(180, expand=True)
+                elif exif[orientation] == 4:
+                    image = image.transpose(Image.FLIP_TOP_BOTTOM)
+                elif exif[orientation] == 5:
+                    image = image.transpose(Image.FLIP_LEFT_RIGHT).rotate(90, expand=True)
+                elif exif[orientation] == 6:
+                    image = image.rotate(270, expand=True)
+                elif exif[orientation] == 7:
+                    image = image.transpose(Image.FLIP_LEFT_RIGHT).rotate(270, expand=True)
+                elif exif[orientation] == 8:
+                    image = image.rotate(90, expand=True)
+    except (AttributeError, KeyError, IndexError):
+        # No orientation data or not in expected format, continue with unmodified image
+        pass
+        
     # Resize the image to desired square size
     image = image.resize((size, size))
+    
     # Create a circular mask
     bigsize = (size * 3, size * 3)
     mask = Image.new('L', bigsize, 0)
     draw = ImageDraw.Draw(mask)
     draw.ellipse((0, 0) + bigsize, fill=255)
     mask = mask.resize((size, size), Image.Resampling.LANCZOS)
+    
     # Apply mask to image and use white background for transparency removal if needed
     output = Image.new('RGBA', (size, size), (255, 255, 255, 0))
     output.paste(image, (0, 0), mask)
+    
     # Save to BytesIO in PNG format (preserves circular crop)
     output_stream = BytesIO()
     output.save(output_stream, format="PNG")
@@ -236,6 +279,8 @@ def generate_report():
                     img_bytes = base64.b64decode(img_str)
                 
                 image = Image.open(BytesIO(img_bytes)).convert("RGB")
+                
+                # Process image to properly handle orientation and create a circular crop
                 cropped_stream = crop_image_circle(image, 144)
                 context[key] = InlineImage(doc, cropped_stream, width=Inches(1.5))
             else:
@@ -274,7 +319,7 @@ def generate_report():
         context["remaining_prim_group3"] = ", ".join([t for t in prim_group3 if t not in selected_prim_list])
         context["remaining_prim_group4"] = ", ".join([t for t in prim_group4 if t not in selected_prim_list])
 
-        # Add selected teeth variables (using the original format for naming consistency)
+        # Add selected teeth variables without red color formatting
         context["selected_perm_group1"] = ", ".join([t for t in perm_group1 if t in selected_perm_list])
         context["selected_perm_group2"] = ", ".join([t for t in perm_group2 if t in selected_perm_list])
         context["selected_perm_group3"] = ", ".join([t for t in perm_group3 if t in selected_perm_list])
