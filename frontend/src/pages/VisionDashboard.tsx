@@ -60,7 +60,6 @@ const VisionDashboard: React.FC = () => {
   // Add reset event listener
   useEffect(() => {
     const handleGlobalReset = () => {
-      console.log('Vision Dashboard received global reset signal');
       resetForm(); // Reset all form fields
     };
     

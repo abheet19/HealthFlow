@@ -7,10 +7,6 @@ export default defineConfig(({ command, mode }) => {
   // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
   const env = loadEnv(mode, process.cwd(), '')
   
-  console.log('Build mode:', mode)
-  console.log('API URL from env:', env.VITE_API_URL || 'Not defined')
-  console.log('Socket URL from env:', env.VITE_SOCKET_URL || 'Not defined')
-  
   return {
     // vite config
     plugins: [react()],

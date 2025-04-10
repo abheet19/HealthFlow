@@ -85,7 +85,6 @@ const ENTDashboard: React.FC = () => {
   // Add reset event listener
   useEffect(() => {
     const handleGlobalReset = () => {
-      console.log('ENT Dashboard received global reset signal');
       resetForm(); // Reset all form fields
     };
     
