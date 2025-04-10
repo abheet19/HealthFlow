@@ -198,6 +198,12 @@ If you encounter issues connecting to the backend after deployment, ensure:
 
 5. **Environment Variables**: Confirm that all necessary environment variables are correctly set in Cloud Run service configuration
 
+6. **Mobile Camera Photos**: If photos from mobile cameras aren't synchronizing:
+   - Ensure the Socket.IO server allows large message sizes
+   - Check WebSocket connection stability on mobile networks
+   - Verify mobile browser permissions for camera access
+   - Try adjusting the compression quality in the frontend code if images are too large
+
 ### CI/CD with GitHub Actions
 To automate deployments, set up a GitHub Actions workflow:
 

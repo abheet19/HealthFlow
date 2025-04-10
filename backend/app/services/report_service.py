@@ -53,14 +53,11 @@ class ReportService:
         try:
             doc_io, patient_name = ReportService.generate_word_report(db, patient_record, template_path)
             
-            from docx2pdf import convert
             from tempfile import mkdtemp
             import shutil
-            import pythoncom
+            import subprocess
             
             try:
-                pythoncom.CoInitialize()
-                
                 temp_dir = mkdtemp()
                 docx_path = os.path.join(temp_dir, f"{patient_name}.docx")
                 pdf_path = os.path.join(temp_dir, f"{patient_name}.pdf")
@@ -68,7 +65,13 @@ class ReportService:
                 with open(docx_path, 'wb') as f:
                     f.write(doc_io.getvalue())
                 
-                convert(docx_path, pdf_path)
+                # Use unoconv for cross-platform conversion
+                try:
+                    subprocess.run(['unoconv', '-f', 'pdf', '-o', pdf_path, docx_path], check=True)
+                except subprocess.CalledProcessError as e:
+                    logging.error(f"PDF conversion failed: {str(e)}")
+                    doc_io.seek(0)
+                    return doc_io, patient_name
                 
                 if os.path.exists(pdf_path):
                     with open(pdf_path, 'rb') as pdf_file:
@@ -76,23 +79,17 @@ class ReportService:
                     
                     # Clean up temp files immediately
                     shutil.rmtree(temp_dir, ignore_errors=True)
-                    pythoncom.CoUninitialize()
                     
                     # Return the PDF data directly, no caching
                     return BytesIO(pdf_data), patient_name
                 else:
-                    pythoncom.CoUninitialize()
                     shutil.rmtree(temp_dir, ignore_errors=True)
                     doc_io.seek(0)
                     return doc_io, patient_name
                     
             except Exception as pdf_error:
                 logging.error(f"PDF conversion error: {str(pdf_error)}")
-                try:
-                    pythoncom.CoUninitialize()
-                except:
-                    pass
-                    
+                
                 if 'temp_dir' in locals():
                     shutil.rmtree(temp_dir, ignore_errors=True)
                 

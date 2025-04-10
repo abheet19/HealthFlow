@@ -139,35 +139,108 @@ const ITDashboard: React.FC = () => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setPhoto(file);
+      
+      // Create a new FileReader instance
       const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        const base64Data = result.split(",")[1]; // strip data URL prefix
-        setPhotoBase64(base64Data);
-        
-        // Preserve ALL existing IT data when saving photo
-        const updatedItData = {
-          ...(patientData.it || {}), // Use empty object as fallback
-          // Make sure we keep all form values when adding a photo
-          name: name || patientData.it?.name || '',
-          div: div || patientData.it?.div || '',
-          rollNo: rollNo || patientData.it?.rollNo || '',
-          adminNo: adminNo || patientData.it?.adminNo || '',
-          fatherName: fatherName || patientData.it?.fatherName || '',
-          motherName: motherName || patientData.it?.motherName || '',
-          mobile: mobile || patientData.it?.mobile || '',
-          dob: dob || patientData.it?.dob || '',
-          gender: gender || patientData.it?.gender || '',
-          bloodGroup: bloodGroup || patientData.it?.bloodGroup || '',
-          medicalOfficer: medicalOfficer || patientData.it?.medicalOfficer || '',
-          // Add the new photo data
-          photo: base64Data,
-          photoFileName: file.name
-        };
-        
-        // Update context with complete data
-        updateDepartment("it", updatedItData);
+      
+      reader.onload = () => {
+        try {
+          // Get the result as a string
+          const result = reader.result as string;
+          
+          // Process the image - resize and compress if needed
+          const img = new Image();
+          img.onload = () => {
+            try {
+              // Create a canvas to resize the image if it's too large
+              const canvas = document.createElement('canvas');
+              let width = img.width;
+              let height = img.height;
+              
+              // Limit dimensions to reasonable size for faster transmission
+              const MAX_SIZE = 1024;
+              if (width > height && width > MAX_SIZE) {
+                height = Math.round((height * MAX_SIZE) / width);
+                width = MAX_SIZE;
+              } else if (height > MAX_SIZE) {
+                width = Math.round((width * MAX_SIZE) / height);
+                height = MAX_SIZE;
+              }
+              
+              canvas.width = width;
+              canvas.height = height;
+              
+              // Draw and compress the image
+              const ctx = canvas.getContext('2d');
+              if (!ctx) {
+                throw new Error('Could not get canvas context');
+              }
+              
+              ctx.drawImage(img, 0, 0, width, height);
+              
+              // Convert to base64 with compression (0.8 quality - good balance)
+              const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
+              
+              // Extract just the base64 data (remove data URL prefix)
+              const base64Data = compressedBase64.split(',')[1];
+              
+              console.log('Photo processed successfully. Size:', base64Data.length);
+              setPhotoBase64(base64Data);
+              
+              // Update the IT data with the photo
+              const updatedItData = {
+                ...(patientData.it || {}),
+                name: name || patientData.it?.name || '',
+                div: div || patientData.it?.div || '',
+                rollNo: rollNo || patientData.it?.rollNo || '',
+                adminNo: adminNo || patientData.it?.adminNo || '',
+                fatherName: fatherName || patientData.it?.fatherName || '',
+                motherName: motherName || patientData.it?.motherName || '',
+                mobile: mobile || patientData.it?.mobile || '',
+                dob: dob || patientData.it?.dob || '',
+                gender: gender || patientData.it?.gender || '',
+                bloodGroup: bloodGroup || patientData.it?.bloodGroup || '',
+                medicalOfficer: medicalOfficer || patientData.it?.medicalOfficer || '',
+                photo: base64Data,
+                photoFileName: file.name || `camera_photo_${new Date().getTime()}.jpg`
+              };
+              
+              // Show the preview
+              setShowPhotoPreview(true);
+              
+              // Update patient context, which should trigger socket update
+              updateDepartment('it', updatedItData);
+              
+              console.log('Photo update sent to server via socket');
+            } catch (error) {
+              console.error('Error processing image on canvas:', error);
+              showToast('Error processing the photo', 'error');
+            }
+          };
+          
+          // Set the image source to start loading
+          img.src = result;
+        } catch (error) {
+          console.error('Error in FileReader onload handler:', error);
+          showToast('Error processing the photo', 'error');
+        }
       };
+      
+      reader.onerror = () => {
+        console.error('FileReader error:', reader.error);
+        showToast('Error reading the photo file', 'error');
+        
+        // Clear photo states to prevent partial/bad data
+        setPhoto(null);
+        setPhotoBase64("");
+        setShowPhotoPreview(false);
+        
+        // Reset the file input
+        const fileInput = document.getElementById('patient-photo-upload') as HTMLInputElement;
+        if (fileInput) fileInput.value = '';
+      };
+      
+      // Start reading the file
       reader.readAsDataURL(file);
     }
   };
@@ -213,6 +286,12 @@ const ITDashboard: React.FC = () => {
     setBloodGroup("");
     setMedicalOfficer("");
     setPhoto(null);
+    setPhotoBase64(""); // Ensure base64 data is cleared
+    setShowPhotoPreview(false); // Ensure photo preview is hidden
+    
+    // Reset the file input to allow selecting the same file again
+    const fileInput = document.getElementById('patient-photo-upload') as HTMLInputElement;
+    if (fileInput) fileInput.value = '';
   };
 
   const validateITData = () => {
@@ -243,7 +322,7 @@ const ITDashboard: React.FC = () => {
       showToast(`Please fill in all required IT fields: ${emptyFields.join(', ')}`, 'error');
       return false;
     }
-    
+
     return true;
   };
 
@@ -252,7 +331,7 @@ const ITDashboard: React.FC = () => {
       showToast("Please generate a Patient ID first.", "error");
       return;
     }
-
+    
     if (!validateITData()) {
       showToast("Please fill all required IT fields.", "error");
       return;
@@ -268,16 +347,16 @@ const ITDashboard: React.FC = () => {
 
     const combinedData = {
       patientId: patientData.patientId!,
-      it: { 
-        name, 
-        div, 
-        rollNo, 
-        adminNo, 
-        fatherName, 
-        motherName, 
-        mobile, 
-        dob, 
-        gender, 
+      it: {
+        name,
+        div,
+        rollNo,
+        adminNo,
+        fatherName,
+        motherName,
+        mobile,
+        dob,
+        gender,
         bloodGroup,
         medicalOfficer,
         photo: photoBase64  // include base64 photo string in IT data
@@ -310,7 +389,7 @@ const ITDashboard: React.FC = () => {
 
   const handleClearPatientId = () => {
     resetPatientData();  // This will now clear everything including form data
-    resetForm();
+    resetForm(); // This now properly clears photo preview and data
     showToast("Patient data has been reset", "info");
   };
 
@@ -327,8 +406,8 @@ const ITDashboard: React.FC = () => {
         <h2 className="text-xl font-bold mb-4">Status & Summary</h2>
         <div className="grid grid-cols-2 gap-4 mb-6">
           {['ENT', 'Vision', 'General', 'Dental'].map(dept => (
-            <div 
-              key={dept} 
+            <div
+              key={dept}
               className={`p-4 rounded-lg border shadow-sm ${
                 completedDepts.includes(dept.toLowerCase()) 
                   ? 'bg-green-100 border-green-500' 
@@ -344,7 +423,6 @@ const ITDashboard: React.FC = () => {
             </div>
           ))}
         </div>
-
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <h3 className="text-lg font-semibold mb-4">Patient Information</h3>
           <div className="grid grid-cols-2 gap-4 text-sm">
@@ -363,7 +441,6 @@ const ITDashboard: React.FC = () => {
             </div>
           </div>
         </div>
-
         {departments.map(dept => dept.data && (
           <div key={dept.name} className="bg-white rounded-lg shadow-md p-6 mb-6">
             <h3 className="text-lg font-semibold mb-4">{dept.name} Department Summary</h3>
@@ -388,14 +465,12 @@ const ITDashboard: React.FC = () => {
     const handleGlobalReset = () => {
       resetForm();
     };
-    
     window.addEventListener('patientDataReset', handleGlobalReset);
-    
     return () => {
       window.removeEventListener('patientDataReset', handleGlobalReset);
     };
   }, []);
-  
+
   // Original effect to update form when patientData changes
   useEffect(() => {
     if (patientData.it) {
@@ -435,7 +510,6 @@ const ITDashboard: React.FC = () => {
     <div className="p-4 flex flex-col items-center bg-gray-50 min-h-screen">
       <div className="bg-white shadow-lg rounded-lg p-6 w-full max-w-4xl">
         <h1 className="text-3xl font-bold mb-6 text-gray-800">IT Dashboard</h1>
-
         <div className="border-b pb-4 mb-6">
           <h2 className="text-xl font-semibold mb-4 text-gray-700">
             Basic Information
@@ -475,7 +549,6 @@ const ITDashboard: React.FC = () => {
             />
           </div>
         </div>
-
         <div className="border-b pb-4 mb-6">
           <h2 className="text-xl font-semibold mb-4 text-gray-700">
             Family & Contact Details
@@ -507,7 +580,6 @@ const ITDashboard: React.FC = () => {
             />
           </div>
         </div>
-
         <div className="border-b pb-4 mb-6">
           <h2 className="text-xl font-semibold mb-4 text-gray-700">
             Additional Details
@@ -598,7 +670,6 @@ const ITDashboard: React.FC = () => {
                     {photo ? 'Photo Uploaded' : 'Upload Photo'}
                   </span>
                 </label>
-                
                 {photo && (
                   <button 
                     onClick={(e) => {
@@ -627,7 +698,6 @@ const ITDashboard: React.FC = () => {
                   </button>
                 )}
               </div>
-              
               {photo && (
                 <div className="mt-1 flex items-center text-xs">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1 text-green-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -644,7 +714,6 @@ const ITDashboard: React.FC = () => {
                   </button>
                 </div>
               )}
-              
               {/* Photo preview section */}
               {showPhotoPreview && photoBase64 && (
                 <div 
@@ -672,7 +741,6 @@ const ITDashboard: React.FC = () => {
             </div>
           </div>
         </div>
-
         <div className="mb-6">
           {patientData.patientId ? (
             <div className="border p-3 rounded-lg bg-gray-50 shadow-sm">
@@ -702,7 +770,6 @@ const ITDashboard: React.FC = () => {
             </Button>
           )}
         </div>
-
         <div className="flex justify-center mt-6">
           <Button
             variant="contained"
@@ -713,7 +780,6 @@ const ITDashboard: React.FC = () => {
             Submit
           </Button>
         </div>
-        
         {renderDataSummary()}
       </div>
     </div>

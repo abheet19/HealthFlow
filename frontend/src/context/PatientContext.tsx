@@ -155,10 +155,14 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
 
     // Listen specifically for photo updates
     newSocket.on('photoUpdate', (photoData: { photo: string, photoFileName: string }) => {
+      console.log('Received photo update via socket:', photoData.photoFileName);
+      
       setPatientData(prev => {
         // Only update if we have IT data already or create a new IT object
         const currentIT = prev.it || {};
-        return {
+        
+        // Create a new patient data object with updated photo
+        const updatedData = {
           ...prev,
           it: {
             ...currentIT,
@@ -167,6 +171,12 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
           },
           timestamp: Date.now()
         };
+        
+        // Save to localStorage for persistence
+        localStorage.setItem('patientData', JSON.stringify(updatedData));
+        
+        console.log('Photo updated in patient context');
+        return updatedData;
       });
     });
 
@@ -269,10 +279,12 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
       if (socket?.connected) {
         // If this update contains a photo property, handle it separately
         if (dept === 'it' && data.photo !== undefined) {
+          console.log('Sending photo update to server via socket');
+          
           // Send the photo update
           socket.emit('photoUpdate', { 
             photo: data.photo, 
-            photoFileName: data.photoFileName || 'photo.jpg' 
+            photoFileName: data.photoFileName || `photo_${new Date().getTime()}.jpg` 
           });
           
           // ALSO send the other updated fields (excluding photo) to keep fields in sync
