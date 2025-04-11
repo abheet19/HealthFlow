@@ -38,5 +38,7 @@ RUN sed -i 's/\r$//' /app/entrypoint.sh && \
 # Set environment variable to optimize Python performance
 ENV PYTHONUNBUFFERED=1
 
-EXPOSE 5000
+# Expose both ports (5000 for local, 8080 for Cloud Run)
+EXPOSE 5000 8080
+
 CMD ["/bin/sh", "/app/entrypoint.sh"]

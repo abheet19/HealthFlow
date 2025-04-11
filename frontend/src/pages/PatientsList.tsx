@@ -15,15 +15,14 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { useToast } from "../context/ToastContext"; // added import
+import { useToast } from "../context/ToastContext";
 import { getApiUrl } from "../config/api"; // Import the API URL helper
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload'; // Import download icon
-import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'; // Import PDF icon
 
 const placeholderImage = "https://via.placeholder.com/150"; // default placeholder
 
 const PatientsList: React.FC = () => {
-  const { showToast, hideToast } = useToast(); // added toast hook
+  const { showToast } = useToast(); // Removed hideToast as it's no longer needed
   const [patients, setPatients] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
@@ -63,56 +62,37 @@ const PatientsList: React.FC = () => {
     patient.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  // Modified download report handler:
+  // Simplified download report handler (DOCX only):
   const handleDownloadReport = async (
     patientId: string,
-    patientName: string,
-    format: 'docx' | 'pdf' = 'docx'
+    patientName: string
   ) => {
     try {
-      // For PDF, show a persistent toast that won't disappear until process completes
-      if (format === 'pdf') {
-        showToast("PDF generation in progress...", "info", true);
-      }
-      
-      const endpoint = format === 'pdf' 
-        ? getApiUrl(`/api/generate_pdf_report?patientId=${patientId}`)
-        : getApiUrl(`/api/generate_report?patientId=${patientId}`);
+      const endpoint = getApiUrl(`/api/generate_report?patientId=${patientId}`);
         
       const res = await fetch(endpoint);
       
-      if (!res.ok) throw new Error(`Failed to download ${format.toUpperCase()} report`);
+      if (!res.ok) throw new Error(`Failed to download DOCX report`);
       
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${patientName}'s Report.${format}`;
+      a.download = `${patientName}'s Report.docx`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
       
-      // For PDF, hide the persistent toast first
-      if (format === 'pdf') {
-        hideToast();
-      }
-      
       // Show success toast
-      showToast(`${format.toUpperCase()} report downloaded successfully`, "success");
+      showToast(`DOCX report downloaded successfully`, "success");
     } catch (error) {
       console.error(error);
-      
-      // For PDF, hide the persistent toast first
-      if (format === 'pdf') {
-        hideToast();
-      }
-      
-      showToast(`Failed to download ${format.toUpperCase()} report`, "error");
+      showToast(`Failed to download DOCX report`, "error");
     }
   };
 
-  // Updated button styling with increased width
+  // Button styling with increased width
   const downloadButtonStyle = {
     display: 'flex',
     alignItems: 'center',
@@ -122,7 +102,8 @@ const PatientsList: React.FC = () => {
     fontSize: '0.875rem',
     fontWeight: 'medium',
     padding: '0.5rem 0.75rem',
-    marginRight: '0.5rem',
+    marginLeft: 'auto', // Add auto left margin
+    marginRight: 'auto', // Add auto right margin
     marginBottom: isMobile ? '0.5rem' : '0',
     boxShadow: 'rgba(0, 0, 0, 0.1) 0px 1px 3px 0px, rgba(0, 0, 0, 0.06) 0px 1px 2px 0px',
     width: isMobile ? '100%' : '120px', // Increased width
@@ -242,40 +223,19 @@ const PatientsList: React.FC = () => {
                     )}
                     <TableCell align="center">{patient.mobile}</TableCell>
                     <TableCell align="center">
-                      <div style={{ 
-                        display: 'flex', 
-                        justifyContent: 'center',
-                        flexDirection: isMobile ? 'column' : 'row' // Stack buttons vertically on mobile
-                      }}>
-                        {/* Word Document Button */}
-                        <button
-                          onClick={() => handleDownloadReport(patient.patientId, patient.name, 'docx')}
-                          style={{
-                            ...downloadButtonStyle,
-                            backgroundColor: '#1976d2',
-                            color: 'white',
-                          }}
-                          title="Download Word Document"
-                        >
-                          <CloudDownloadIcon style={{ fontSize: '1rem', marginRight: '0.5rem' }} />
-                          <span style={{ whiteSpace: 'nowrap' }}>Word Doc</span>
-                        </button>
-                        
-                        {/* PDF Button */}
-                        <button
-                          onClick={() => handleDownloadReport(patient.patientId, patient.name, 'pdf')}
-                          style={{
-                            ...downloadButtonStyle,
-                            backgroundColor: '#dc3545',
-                            color: 'white',
-                            marginRight: '0'
-                          }}
-                          title="Download PDF"
-                        >
-                          <PictureAsPdfIcon style={{ fontSize: '1rem', marginRight: '0.5rem' }} />
-                          <span style={{ whiteSpace: 'nowrap' }}>PDF Doc</span>
-                        </button>
-                      </div>
+                      {/* Only Word Document Button */}
+                      <button
+                        onClick={() => handleDownloadReport(patient.patientId, patient.name)}
+                        style={{
+                          ...downloadButtonStyle,
+                          backgroundColor: '#1976d2',
+                          color: 'white',
+                        }}
+                        title="Download Word Document"
+                      >
+                        <CloudDownloadIcon style={{ fontSize: '1rem', marginRight: '0.5rem' }} />
+                        <span style={{ whiteSpace: 'nowrap' }}>Word Doc</span>
+                      </button>
                     </TableCell>
                   </TableRow>
                 ))}

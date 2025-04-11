@@ -109,7 +109,7 @@ Use appropriate Docker commands to run the containers.
    ```bash
    gcloud sql users set-password postgres ^
      --instance=doctor-report-db ^
-     --password=Secret_271919
+     --password=PASSWORD
    ```
 
 ### Backend Deployment
