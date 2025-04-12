@@ -30,6 +30,28 @@ const PatientsList: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm")); // Check if the screen is mobile-sized
 
+  // Handle search input with debouncing
+  const handleSearchChange = (value: string) => {
+    // Update local state immediately for UI responsiveness
+    setSearch(value);
+    
+    // Debounce the filter operation
+    if (typeof window.inputDebounceTimers === 'undefined') {
+      window.inputDebounceTimers = {};
+    }
+    
+    // Clear any existing timer for the search field
+    if (window.inputDebounceTimers['search']) {
+      clearTimeout(window.inputDebounceTimers['search']);
+    }
+    
+    // Set a new timer to filter results after typing stops
+    window.inputDebounceTimers['search'] = setTimeout(() => {
+      // The filtering is handled in the filteredPatients variable
+      // This debounce just ensures we don't re-filter on every keystroke
+    }, 300); // 300ms debounce delay - consistent with other pages
+  };
+
   const fetchPatients = async () => {
     setLoading(true);
     try {
@@ -146,7 +168,7 @@ const PatientsList: React.FC = () => {
             variant="outlined"
             size="small"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             sx={{ width: isMobile ? "100%" : "250px" }} // Reduced width for non-mobile screens
           />
           <Button

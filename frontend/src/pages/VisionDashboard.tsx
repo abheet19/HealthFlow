@@ -139,8 +139,31 @@ const VisionDashboard: React.FC = () => {
   };
 
   const handleInputChange = (field: string, value: string) => {
-    // Update only the specific field that changed
-    updateDepartment('vision', { [field]: value });
+    // Debounce the context updates to prevent flickering
+    if (typeof window.inputDebounceTimers === 'undefined') {
+      window.inputDebounceTimers = {};
+    }
+    
+    // Clear any existing timer for this field
+    if (window.inputDebounceTimers[field]) {
+      clearTimeout(window.inputDebounceTimers[field]);
+    }
+    
+    // Set a new timer to update context after typing stops
+    window.inputDebounceTimers[field] = setTimeout(() => {
+      // Update only the specific field that changed
+      updateDepartment('vision', { [field]: value });
+    }, 300); // 300ms debounce delay - adjust if needed
+  
+    // Also update the local state to ensure immediate UI feedback
+    switch(field) {
+      case 're_vision': setReVision(value); break;
+      case 'le_vision': setLeVision(value); break;
+      case 're_color_blindness': setReColor(value); break;
+      case 'le_color_blindness': setLeColor(value); break;
+      case 're_squint': setReSquint(value); break;
+      case 'le_squint': setLeSquint(value); break;
+    }
   };
 
   return (

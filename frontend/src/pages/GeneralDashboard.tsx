@@ -201,14 +201,27 @@ const GeneralDashboard: React.FC = () => {
 
   // Modify the handleInputChange function to prevent updates when values haven't changed
   const handleInputChange = (field: string, value: string) => {
-    // Only update if the value has actually changed
-    if (patientData.general && patientData.general[field] !== value) {
-      // Update only the specific field that changed while preserving all general data
-      updateDepartment('general', { 
-        ...patientData.general, // Include ALL existing general data
-        [field]: value 
-      });
+    // Debounce the context updates to prevent flickering
+    if (typeof window.inputDebounceTimers === 'undefined') {
+      window.inputDebounceTimers = {};
     }
+    
+    // Clear any existing timer for this field
+    if (window.inputDebounceTimers[field]) {
+      clearTimeout(window.inputDebounceTimers[field]);
+    }
+    
+    // Set a new timer to update context after typing stops
+    window.inputDebounceTimers[field] = setTimeout(() => {
+      // Only update if the value has actually changed
+      if (patientData.general && patientData.general[field] !== value) {
+        // Update only the specific field that changed while preserving all general data
+        updateDepartment('general', { 
+          ...patientData.general, // Include ALL existing general data
+          [field]: value 
+        });
+      }
+    }, 300); // 300ms debounce delay - adjust if needed
   };
 
   const dropdown = (
