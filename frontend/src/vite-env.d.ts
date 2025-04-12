@@ -9,3 +9,8 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }
+
+// Add custom window property for input debounce timers
+interface Window {
+  inputDebounceTimers: Record<string, ReturnType<typeof setTimeout>>;
+}

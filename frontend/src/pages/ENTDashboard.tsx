@@ -176,8 +176,21 @@ const ENTDashboard: React.FC = () => {
   };
 
   const handleInputChange = (field: string, value: string) => {
-    // Update only the specific field that changed
-    updateDepartment('ent', { [field]: value });
+    // Debounce the context updates to prevent flickering
+    if (typeof window.inputDebounceTimers === 'undefined') {
+      window.inputDebounceTimers = {};
+    }
+    
+    // Clear any existing timer for this field
+    if (window.inputDebounceTimers[field]) {
+      clearTimeout(window.inputDebounceTimers[field]);
+    }
+    
+    // Set a new timer to update context after typing stops
+    window.inputDebounceTimers[field] = setTimeout(() => {
+      // Update only the specific field that changed
+      updateDepartment('ent', { [field]: value });
+    }, 300); // 300ms debounce delay - adjust if needed
   };
 
   const handleSubmit = () => {

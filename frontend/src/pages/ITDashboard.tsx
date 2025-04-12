@@ -92,21 +92,17 @@ const ITDashboard: React.FC = () => {
   }, [patientData.it]);
 
   const handleInputChange = (field: string, value: string) => {
-    // Create a copy of the current IT data to ensure we don't lose any fields
-    const updatedItData = {
-      ...(patientData.it || {}), // Use empty object as fallback if it doesn't exist
-      [field]: value,
-    };
-    
-    // Make sure photo data is preserved
-    if (photoBase64) {
-      updatedItData.photo = photoBase64;
+    // Debounce the context updates to prevent flickering
+    if (typeof window.inputDebounceTimers === 'undefined') {
+      window.inputDebounceTimers = {};
     }
     
-    // Update context with the complete data
-    updateDepartment('it', updatedItData);
+    // Clear any existing timer for this field
+    if (window.inputDebounceTimers[field]) {
+      clearTimeout(window.inputDebounceTimers[field]);
+    }
     
-    // Also update local state
+    // Update local state immediately for smooth UI feedback
     switch(field) {
       case 'name': setName(value); break;
       case 'div': setDiv(value); break;
@@ -121,6 +117,23 @@ const ITDashboard: React.FC = () => {
       case 'medicalOfficer': setMedicalOfficer(value); break;
       // Photo is handled separately in handlePhotoChange
     }
+    
+    // Set a new timer to update context after typing stops
+    window.inputDebounceTimers[field] = setTimeout(() => {
+      // Create a copy of the current IT data to ensure we don't lose any fields
+      const updatedItData = {
+        ...(patientData.it || {}), // Use empty object as fallback if it doesn't exist
+        [field]: value,
+      };
+      
+      // Make sure photo data is preserved
+      if (photoBase64) {
+        updatedItData.photo = photoBase64;
+      }
+      
+      // Update context with the complete data
+      updateDepartment('it', updatedItData);
+    }, 300); // 300ms debounce delay - adjust if needed
   };
 
   // Update completed departments whenever patientData changes
