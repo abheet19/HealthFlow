@@ -1,14 +1,28 @@
-# Doctor Report Automation
+**[➡️ Live Demo Link]([https://your-live-project-url.com](https://doctor-report-frontend-720901500415.asia-south1.run.app/))**
 
-## Overview
-This project automates a manual health checkup process by managing five departmental dashboards and generating a complete medical report. The departments include:
-- IT (captures photo and general details)
-- ENT
-- Vision
-- General
-- Dental
+### The Problem It Solves
+In many clinics, health checkup data is collected manually across different departments (ENT, Vision, Dental, etc.), leading to slow processing, data entry errors, and delays in generating the final patient report. This manual workflow is inefficient and prone to inconsistencies.
 
-Each dashboard (accessed via individual URLs) manages its own department’s fields. A full submission from all departments is required before generating the final report.
+---
+
+### Key Features
+- **Real-Time Data Sync:** Implemented a WebSocket connection via Socket.IO for instantaneous data synchronization and live updates across all departmental dashboards.
+- **Automated Report Generation:** Automatically creates a complete, formatted medical report in `.docx` format once all departmental data is submitted.
+- **Dynamic Departmental Dashboards:** Five unique, responsive front-end dashboards for each medical department, built with React and TypeScript.
+- **Cloud-Native Deployment:** Fully containerized with Docker and deployed to Google Cloud Run, integrated with a managed Cloud SQL instance.
+- **Automated CI/CD Pipeline:** A complete CI/CD pipeline using GitHub Actions automatically builds and deploys the application on every push to the main branch.
+
+---
+
+### Tech Stack
+
+| Category              | Technologies                                                                          |
+| --------------------- | ------------------------------------------------------------------------------------- |
+| **Frontend** | React, TypeScript, Vite, Material-UI, Tailwind CSS, Socket.IO Client                    |
+| **Backend** | Python, Flask, SQLAlchemy, Socket.IO, Psycopg2, python-docx                             |
+| **Database** | PostgreSQL (managed via Google Cloud SQL)                                             |
+| **Cloud & DevOps** | Google Cloud Run, Google Container Registry, Docker, CI/CD with GitHub Actions          |
+
 
 ## Requirements
 Before running this project, ensure you have:
