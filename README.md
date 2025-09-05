@@ -1,4 +1,4 @@
-**[➡️ Live Demo Link]([https://your-live-project-url.com](https://doctor-report-frontend-720901500415.asia-south1.run.app/))**
+**[➡️ Live Demo Link](https://your-live-project-url.com](https://doctor-report-frontend-720901500415.asia-south1.run.app/)**
 
 ### The Problem It Solves
 In many clinics, health checkup data is collected manually across different departments (ENT, Vision, Dental, etc.), leading to slow processing, data entry errors, and delays in generating the final patient report. This manual workflow is inefficient and prone to inconsistencies.
