@@ -5,6 +5,11 @@ In many clinics, health checkup data is collected manually across different depa
 
 ---
 
+### Project Screenshot
+![VitalSync Dashboard](https://private-user-images.githubusercontent.com/60404707/486260339-cfe8bbaf-5951-4d72-af55-c3d525f32e99.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NTcxMDA5NjAsIm5iZiI6MTc1NzEwMDY2MCwicGF0aCI6Ii82MDQwNDcwNy80ODYyNjAzMzktY2ZlOGJiYWYtNTk1MS00ZDcyLWFmNTUtYzNkNTI1ZjMyZTk5LnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNTA5MDUlMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjUwOTA1VDE5MzEwMFomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTVkNGY1ZTA4YzUyYjllYzQ1YmIwMjIyNjc1Y2Q0Yjk1MzdhNzQ0Y2IxMGJiNDMxYmJjZGQyOTRiODNhNzYwZjMmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0In0.tup3y4QdPQyQm8Ulpgw4W5jxWZXTYkDdzrcSOmpbuUg)
+
+---
+
 ### Key Features
 - **Real-Time Data Sync:** Implemented a WebSocket connection via Socket.IO for instantaneous data synchronization and live updates across all departmental dashboards.
 - **Automated Report Generation:** Automatically creates a complete, formatted medical report in `.docx` format once all departmental data is submitted.
