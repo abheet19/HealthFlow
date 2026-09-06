@@ -1,248 +1,136 @@
-**[➡️ Live Demo Link](https://doctor-report-frontend-720901500415.asia-south1.run.app/)**
+<div align="center">
 
-### The Problem It Solves
-In many clinics, health checkup data is collected manually across different departments (ENT, Vision, Dental, etc.), leading to slow processing, data entry errors, and delays in generating the final patient report. This manual workflow is inefficient and prone to inconsistencies.
+<br>
+
+# 🩺 &nbsp;H E A L T H F L O W
+
+### **One patient, five departments, one report.**
+
+A clinic health-checkup workflow — IT intake, ENT, Vision, General and Dental — collected on<br>
+five live dashboards and stitched into a single formatted `.docx` report.
+
+<br>
+
+![React](https://img.shields.io/badge/React-18-3ECF8E?style=for-the-badge&logo=react&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-1E9A66?style=for-the-badge&logo=typescript&logoColor=white)
+![Flask](https://img.shields.io/badge/Flask-Python-5EE6A8?style=for-the-badge&logo=flask&logoColor=0A0D0B)
+![Postgres](https://img.shields.io/badge/PostgreSQL-database-3ECF8E?style=for-the-badge&logo=postgresql&logoColor=white)
+![Status](https://img.shields.io/badge/status-personal_project-8a94a6?style=for-the-badge)
+
+<br>
+
+<sub>A personal project by <b><a href="https://github.com/abheet19">Abheet</a></b>.</sub>
+
+</div>
+
+> [!NOTE]
+> **No live deployment right now.** Running HealthFlow needs a Postgres instance and a backend
+> host account, neither of which is provisioned at the moment — see [Running it locally](#-running-it-locally)
+> instead of a demo link.
 
 ---
 
-### Project Screenshot
-![HealthFlow Dashboard](https://private-user-images.githubusercontent.com/60404707/486456344-1a213aca-ea08-4e4b-9355-5160a00caf05.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NTcxODc0MDMsIm5iZiI6MTc1NzE4NzEwMywicGF0aCI6Ii82MDQwNDcwNy80ODY0NTYzNDQtMWEyMTNhY2EtZWEwOC00ZTRiLTkzNTUtNTE2MGEwMGNhZjA1LnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNTA5MDYlMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjUwOTA2VDE5MzE0M1omWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWYzYTE5MzFlMzJmNDIyNWYyMjczNzRkMDVjZDE1ZGZjOTAzNDE2MDJlNzM0YjA3ODYzNjc2ZjE5MDUwMTZhODQmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0In0.tf-GuBh5_CSww-tNeTj5q3BswiqorJ_14fNlxr8Dkww)
+## What this does
+
+A clinic checkup normally means five departments filling out paper forms for the same patient and
+someone reconciling all of it by hand afterwards. HealthFlow puts each department on its own
+dashboard — IT registers the patient and takes their photo, ENT/Vision/General/Dental each fill in
+their own exam fields — all reading and writing the same in-flight patient record over a WebSocket,
+so every tab stays in sync as data comes in. Once every department has submitted, IT's final submit
+bundles all five sections into one call, the backend stores it in Postgres, and a formatted `.docx`
+report is generated from a template and made available for download from the patients list.
 
 ---
 
-### Key Features
-- **Real-Time Data Sync:** Implemented a WebSocket connection via Socket.IO for instantaneous data synchronization and live updates across all departmental dashboards.
-- **Automated Report Generation:** Automatically creates a complete, formatted medical report in `.docx` format once all departmental data is submitted.
-- **Dynamic Departmental Dashboards:** Five unique, responsive front-end dashboards for each medical department, built with React and TypeScript.
-- **Cloud-Native Deployment:** Fully containerized with Docker and deployed to Google Cloud Run, integrated with a managed Cloud SQL instance.
-- **Automated CI/CD Pipeline:** A complete CI/CD pipeline using GitHub Actions automatically builds and deploys the application on every push to the main branch.
+## 🛠 Tech stack
+
+| Layer | Technology |
+|---|---|
+| **Frontend** | React 18, TypeScript, Vite, Tailwind CSS, MUI (Material UI), Socket.IO client |
+| **Backend** | Python, Flask, Flask-SocketIO, SQLAlchemy, python-docx |
+| **Database** | PostgreSQL |
+| **Containerization** | Docker, docker-compose (frontend + backend + Postgres) |
 
 ---
 
-### Tech Stack
+## 🎨 Design
 
-| Category              | Technologies                                                                          |
-| --------------------- | ------------------------------------------------------------------------------------- |
-| **Frontend** | React, TypeScript, Vite, Material-UI, Tailwind CSS, Socket.IO Client                    |
-| **Backend** | Python, Flask, SQLAlchemy, Socket.IO, Psycopg2, python-docx                             |
-| **Database** | PostgreSQL (managed via Google Cloud SQL)                                             |
-| **Cloud & DevOps** | Google Cloud Run, Google Container Registry, Docker, CI/CD with GitHub Actions          |
+Dark glass throughout, with its own accent family rather than a generic dashboard blue: a
+**clinical emerald/mint gradient** (`#5EE6A8 → #3ECF8E → #1E9A66`) over a near-black ground
+(`#0A0D0B`), with soft mint-tinted glass panels and `#E6F5EE` body text. One green hue carried
+across three depths — light highlight, mid accent, deep forest edge — rather than a second hue
+bolted on, so the five dashboards read as one clinical instrument instead of five separate forms.
 
+A shared `DashboardShell` component carries that look consistently across all five department
+pages: the same glass card, the same "waiting for a patient ID" empty state, the same patient
+header, so a style change only has to happen in one place.
 
-## Requirements
-Before running this project, ensure you have:
-- Python 3.8+ installed
-- Node.js (v14 or later)
-- PostgreSQL database
-- Docker (optional, for containerization)
-- Git for source control
+---
 
-### Backend Dependencies
-- Flask
-- Flask-CORS
-- Flask-SocketIO
-- SQLAlchemy
-- Psycopg2
-- DocxTemplate, python-docx
-- Pillow
-- Dotenv
+## 🖼 Screenshots
 
-### Frontend Dependencies
-- React (with Vite, TypeScript)
-- Material UI
-- Tailwind CSS
-- Socket.IO client
+_Placeholders below — the frontend can't fully render without the backend and Postgres running, so
+these need to be captured locally with `docker-compose up` (or `npm run dev` + a local backend) and
+saved over these paths:_
 
-## How to Run Locally
+| Screen | Path |
+|---|---|
+| IT dashboard (patient intake + photo) | `docs/screenshots/it-dashboard.png` |
+| A department exam form (e.g. Dental) | `docs/screenshots/dental-dashboard.png` |
+| Patients list + report download | `docs/screenshots/patients-list.png` |
 
-### Backend
-1. Navigate to the backend directory:
-   ```
-   cd c:\code\Freelance\Doctor_Report_Automation\backend
-   ```
-2. Install Python dependencies:
-   ```
-   pip install -r requirements.txt
-   ```
-3. Set up your PostgreSQL database and update the environment variables in a `.env` file with:
-   - `POSTGRES_USER`
-   - `POSTGRES_PASSWORD`
-   - `POSTGRES_HOST`
-   - `POSTGRES_PORT`
-   - `POSTGRES_DB`
-4. Initialize the database:
-   ```
-   python init_db.py
-   ```
-5. Run the Flask application:
-   ```
-   python app.py
-   ```
+---
 
-### Frontend
-1. Navigate to the frontend directory:
-   ```
-   cd c:\code\Freelance\Doctor_Report_Automation\frontend
-   ```
-2. Install Node.js dependencies:
-   ```
-   npm install
-   ```
-3. Start the development server:
-   ```
-   npm run dev
-   ```
+## Key features
 
-## Dockerization
-Both backend and frontend are Dockerized.
+- **Real-time sync across dashboards** — a Socket.IO connection keeps every department's view of a
+  patient record current as other departments submit data.
+- **Five department dashboards** — IT, ENT, Vision, General and Dental, each with its own required
+  fields and validation, sharing one patient context.
+- **Automated `.docx` report generation** — once a patient's record is complete, a formatted Word
+  report is generated from a template and downloadable from the patients list.
+- **Consistent feedback UX** — loading states while data is fetched, empty-state messaging when a
+  department has no patients yet, and success/error toasts surfaced consistently across all five
+  dashboards.
 
-To build the images:
+---
+
+## 🚀 Running it locally
+
+**With Docker (recommended — brings up Postgres too):**
+
+```bash
+git clone https://github.com/abheet19/HealthFlow.git
+cd HealthFlow
+docker-compose up --build
 ```
-docker build -t my-backend-image ./backend
-docker build -t my-frontend-image ./frontend
+
+**Without Docker:**
+
+```bash
+# Backend
+cd backend
+pip install -r requirements.txt
+# .env with POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_HOST / POSTGRES_PORT / POSTGRES_DB
+python init_db.py
+python app.py
+
+# Frontend, in a second terminal
+cd frontend
+npm ci
+npm run dev
 ```
-Use appropriate Docker commands to run the containers.
 
-## Deployment Guide
+---
 
-### Prerequisites
-1. **Google Cloud Account**: Set up a Google Cloud account with billing enabled
-2. **Google Cloud CLI**: Install the Google Cloud CLI (`gcloud`)
-3. **Docker**: Have Docker installed locally
-4. **Cloud SQL**: A PostgreSQL instance on Cloud SQL
-5. **Service Account**: Create a service account with appropriate permissions
+## Project layout
 
-### Database Setup
-1. Create a PostgreSQL instance on Cloud SQL
-   ```bash
-   gcloud sql instances create doctor-report-db ^
-     --database-version=POSTGRES_13 ^
-     --tier=db-f1-micro ^
-     --region=asia-south1
-   ```
-2. Create a database
-   ```bash
-   gcloud sql databases create doctor_reports --instance=doctor-report-db
-   ```
-3. Set a password for the postgres user
-   ```bash
-   gcloud sql users set-password postgres ^
-     --instance=doctor-report-db ^
-     --password=PASSWORD
-   ```
+```
+HealthFlow/
+├── backend/     Flask API, Socket.IO server, docx report generation
+├── frontend/    React + TypeScript + Vite + Tailwind + MUI
+└── docker-compose.yml
+```
 
-### Backend Deployment
-1. **Navigate to the backend directory**
-   ```bash
-   cd backend
-   ```
-
-2. **Build the Docker image**
-   ```bash
-   docker build -t gcr.io/doctor-report-app/doctor-report-backend .
-   ```
-
-3. **Push the image to Google Container Registry**
-   ```bash
-   docker push gcr.io/doctor-report-app/doctor-report-backend
-   ```
-
-4. **Deploy to Cloud Run with Cloud SQL connection**
-   ```bash
-   gcloud run deploy doctor-report-backend ^
-     --image gcr.io/doctor-report-app/doctor-report-backend ^
-     --platform managed ^
-     --region asia-south1 ^
-     --allow-unauthenticated ^
-     --add-cloudsql-instances REDACTED_INSTANCE ^
-     --set-env-vars="CLOUD_RUN=true,INSTANCE_CONNECTION_NAME=REDACTED_INSTANCE,POSTGRES_USER=postgres,POSTGRES_PASSWORD=REDACTED_PASSWORD,POSTGRES_DB=doctor_reports"
-   ```
-
-5. **Initialize the database (one-time setup)**
-   ```bash
-   gcloud run deploy doctor-report-backend ^
-     --image gcr.io/doctor-report-app/doctor-report-backend ^
-     --platform managed ^
-     --region asia-south1 ^
-     --allow-unauthenticated ^
-     --add-cloudsql-instances REDACTED_INSTANCE ^
-     --set-env-vars="CLOUD_RUN=true,INITIALIZE_DB=true,INSTANCE_CONNECTION_NAME=REDACTED_INSTANCE,POSTGRES_USER=postgres,POSTGRES_PASSWORD=REDACTED_PASSWORD,POSTGRES_DB=doctor_reports"
-   ```
-
-### Frontend Deployment
-1. **Create environment files for frontend**
-   
-   Create `.env.production` with your Cloud Run backend URL:
-   ```
-   VITE_API_URL=https://doctor-report-backend-YOUR_PROJECT_NUMBER.asia-south1.run.app
-   VITE_SOCKET_URL=wss://doctor-report-backend-YOUR_PROJECT_NUMBER.asia-south1.run.app
-   ```
-
-2. **Navigate to the frontend directory**
-   ```bash
-   cd frontend
-   ```
-
-3. **Build the Docker image**
-   ```bash
-   docker build -t gcr.io/doctor-report-app/doctor-report-frontend .
-   ```
-
-4. **Push the image to Google Container Registry**
-   ```bash
-   docker push gcr.io/doctor-report-app/doctor-report-frontend
-   ```
-
-5. **Deploy to Cloud Run**
-   ```bash
-   gcloud run deploy doctor-report-frontend ^
-     --image gcr.io/doctor-report-app/doctor-report-frontend ^
-     --platform managed ^
-     --region asia-south1 ^
-     --allow-unauthenticated
-   ```
-
-### Troubleshooting
-If you encounter issues connecting to the backend after deployment, ensure:
-
-1. **API URLs**: Verify that the frontend is using the correct backend URL:
-   - Check that all API calls use the `getApiUrl()` helper function from `src/config/api.ts`
-   - Confirm that no hardcoded URLs like `http://localhost:5000` are present
-
-2. **CORS Issues**: Ensure backend has proper CORS configuration for your frontend domain
-
-3. **Cloud SQL Connection**: Verify the Cloud SQL Auth Proxy connection string format in `app.py`
-
-4. **Socket.IO Connection**: Check that the WebSocket connection is properly configured with the correct URL and transports
-
-5. **Environment Variables**: Confirm that all necessary environment variables are correctly set in Cloud Run service configuration
-
-6. **Mobile Camera Photos**: If photos from mobile cameras aren't synchronizing:
-   - Ensure the Socket.IO server allows large message sizes
-   - Check WebSocket connection stability on mobile networks
-   - Verify mobile browser permissions for camera access
-   - Try adjusting the compression quality in the frontend code if images are too large
-
-### CI/CD with GitHub Actions
-To automate deployments, set up a GitHub Actions workflow:
-
-1. Create a service account with appropriate permissions
-2. Configure secrets in GitHub repository:
-   - `GCP_PROJECT_ID`: Your Google Cloud project ID
-   - `GCP_SA_KEY`: Base64-encoded service account JSON key
-   - `DATABASE_URL`: Your database connection string
-
-3. Set up the workflow file `.github/workflows/deploy.yml` to build and deploy your containers
-
-## CI/CD
-The GitHub Actions workflow in `.github/workflows/deploy.yml` builds and deploys Docker images to Google Cloud Run whenever code is pushed to the main branch.
-
-## Security & Monitoring
-- HTTPS is enforced on deployed endpoints.
-- CORS configuration restricts API access.
-- Input validation and sanitization are implemented (including photo cropping).
-- API calls are logged using Flask middleware.
-- Secrets are managed via environment variables and (optionally) Google Cloud Secret Manager.
-
-## Additional Documentation
-For further details on the project structure, API endpoints, and deployment, please refer to the inline comments in the source code and the documentation in the respective directories.
+<sub>Further backend details (endpoints, environment variables, deployment) live in
+<code>backend/</code>'s own comments and configuration.</sub>
