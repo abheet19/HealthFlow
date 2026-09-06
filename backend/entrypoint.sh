@@ -4,12 +4,16 @@ if [ "$CLOUD_RUN" = "true" ]; then
   echo "Running in Cloud Run environment"
   # No need to wait for PostgreSQL when using Cloud SQL Auth Proxy
   # Cloud Run will automatically handle the connection
+elif [ -n "$DATABASE_URL" ]; then
+  # Managed Postgres (e.g. Fly.io attach) already gave us a full connection
+  # string via DATABASE_URL - no local container to wait for.
+  echo "Running with externally provided DATABASE_URL"
 else
   # Local development with docker-compose
   echo "Running in local development environment"
   # Set explicit database credentials
   export POSTGRES_USER=postgres
-  export POSTGRES_PASSWORD=postgres 
+  export POSTGRES_PASSWORD=postgres
   export POSTGRES_DB=doctor_reports
   export POSTGRES_HOST=db
   export POSTGRES_PORT=5432

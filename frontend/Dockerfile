@@ -13,6 +13,12 @@ COPY . .
 # Explicitly set NODE_ENV to production to ensure .env.production is used
 ENV NODE_ENV=production
 
+# Backend base URL, baked in at build time (Vite inlines env vars into the bundle).
+ARG VITE_API_URL
+ARG VITE_SOCKET_URL
+ENV VITE_API_URL=${VITE_API_URL}
+ENV VITE_SOCKET_URL=${VITE_SOCKET_URL}
+
 # Create production build with production environment variables
 RUN npm run build
 

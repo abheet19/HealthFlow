@@ -1,0 +1,21 @@
+app = "healthflow-abheet19"
+primary_region = "sin"
+
+[build]
+  dockerfile = "Dockerfile"
+
+  [build.args]
+    VITE_API_URL = "https://healthflow-api-abheet19.fly.dev"
+    VITE_SOCKET_URL = "https://healthflow-api-abheet19.fly.dev"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

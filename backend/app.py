@@ -17,11 +17,30 @@ logging.basicConfig(level=logging.WARNING)
 
 # Initialize Flask app
 app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": ["https://doctor-report-frontend-685296458444.asia-south2.run.app", "https://doctor-report-frontend-720901500415.asia-south1.run.app"]}})
-socketio = SocketIO(app, cors_allowed_origins=["https://doctor-report-frontend-685296458444.asia-south2.run.app", "https://doctor-report-frontend-720901500415.asia-south1.run.app"], async_mode="threading")
+
+# Allowed frontend origins for CORS / Socket.IO. Configurable via env (comma-separated)
+# so this doesn't have to be hardcoded per deployment target; keeps the old Cloud Run
+# origins as a fallback and adds the current Fly.io frontend by default.
+_default_origins = (
+    "https://doctor-report-frontend-685296458444.asia-south2.run.app,"
+    "https://doctor-report-frontend-720901500415.asia-south1.run.app,"
+    "https://healthflow-abheet19.fly.dev"
+)
+CORS_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get("CORS_ORIGINS", _default_origins).split(",")
+    if origin.strip()
+]
+
+CORS(app, resources={r"/api/*": {"origins": CORS_ORIGINS}})
+socketio = SocketIO(app, cors_allowed_origins=CORS_ORIGINS, async_mode="threading")
 
 # Register blueprints
 app.register_blueprint(api_routes)
+
+@app.route('/health')
+def health():
+    return {"status": "ok"}, 200
 
 # WebSocket event handlers
 @socketio.on('newPatientId')

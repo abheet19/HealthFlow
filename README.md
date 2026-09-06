@@ -24,9 +24,9 @@ five live dashboards and stitched into a single formatted `.docx` report.
 </div>
 
 > [!NOTE]
-> **No live deployment right now.** Running HealthFlow needs a Postgres instance and a backend
-> host account, neither of which is provisioned at the moment — see [Running it locally](#-running-it-locally)
-> instead of a demo link.
+> **Live at [healthflow-abheet19.fly.dev](https://healthflow-abheet19.fly.dev).** Frontend, backend
+> and Postgres are all deployed on Fly.io — see [Running it locally](#-running-it-locally) if you'd
+> rather run it yourself.
 
 ---
 

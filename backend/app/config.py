@@ -9,6 +9,15 @@ load_dotenv()
 
 # Create database URL from environment variables
 def get_database_url():
+    # Fly Postgres attach (and similar managed setups) inject a single DATABASE_URL.
+    # Prefer it when present rather than requiring the individual POSTGRES_* vars.
+    database_url = os.environ.get("DATABASE_URL")
+    if database_url:
+        # SQLAlchemy's psycopg2 dialect wants the postgresql:// scheme.
+        if database_url.startswith("postgres://"):
+            database_url = database_url.replace("postgres://", "postgresql://", 1)
+        return database_url
+
     postgres_user = os.environ.get("POSTGRES_USER")
     postgres_password = os.environ.get("POSTGRES_PASSWORD")
     postgres_db = os.environ.get("POSTGRES_DB")
