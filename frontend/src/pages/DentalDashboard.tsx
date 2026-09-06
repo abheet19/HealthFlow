@@ -1,17 +1,13 @@
 import * as React from "react";
 import { useState, useContext, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
-import {
-  Button,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  TextField,
-} from "@mui/material";
+import { TextField } from "@mui/material";
 import { PatientContext } from "../context/PatientContext";
 import { useToast } from "../context/ToastContext";
-import { getApiUrl } from "../config/api";  // Import the API URL helper
+import { getApiUrl } from "../config/api";
+import DashboardShell from "../components/DashboardShell";
+import LabeledSelect from "../components/LabeledSelect";
+import SubmitButton from "../components/SubmitButton";
 
 // Define Timer type to fix NodeJS.Timeout error
 type TimerType = ReturnType<typeof setTimeout>;
@@ -28,20 +24,20 @@ const ToothSelector: React.FC<{
     // Create a proper copy of the selected array to avoid reference issues
     let newSelected;
     if (selected.includes(num)) {
-      // Remove if present 
+      // Remove if present
       newSelected = selected.filter((item) => item !== num);
     } else {
       // Add if not present
       newSelected = [...selected, num];
     }
-    
+
     // Call onChange with the new array
     onChange(newSelected);
   };
-  
+
   return (
     <div className="flex flex-col space-y-1">
-      <span className="font-medium text-sm">{label}:</span>
+      <span className="font-medium text-sm text-text">{label}:</span>
       <div className="grid grid-cols-8 gap-1 sm:grid-cols-8 md:grid-cols-8">
         {options.map((num) => (
           <button
@@ -52,10 +48,10 @@ const ToothSelector: React.FC<{
               e.stopPropagation(); // Stop event propagation
               toggleSelection(num);
             }}
-            className={`border rounded px-1 py-1 text-center text-xs ${
+            className={`border rounded px-1 py-1 text-center text-xs transition-colors ${
               selected.includes(num)
-                ? "bg-blue-500 text-white"
-                : "bg-gray-200 text-black"
+                ? "bg-accent-gradient text-on-accent border-transparent"
+                : "bg-white/5 border-glass-border text-text-dim hover:bg-white/10"
             }`}
           >
             {num}
@@ -67,11 +63,9 @@ const ToothSelector: React.FC<{
 };
 
 const DentalDashboard: React.FC = () => {
-  const { updateDepartment, patientData, updatePatientId, resetPatientData } = useContext(PatientContext);
+  const { updateDepartment, patientData, updatePatientId } = useContext(PatientContext);
   const { showToast } = useToast();
-  const [manualPatientId, setManualPatientId] = useState("");
-  const [dentalData, setDentalData] = useState<Record<string, string>>({});
-  const [caries, setCaries] = useState("");
+  const [saving, setSaving] = useState(false);
   // Add polling interval for data synchronization
   const pollingIntervalRef = useRef<TimerType | null>(null);
   const lastSyncTimestamp = useRef<number>(Date.now());
@@ -131,60 +125,16 @@ const DentalDashboard: React.FC = () => {
   const [rootStump, setRootStump] = useState("");
   const [missingTeeth, setMissingTeeth] = useState("");
 
-  // Add effect for real-time data sync for cross-device synchronization
-  useEffect(() => {
-    // Setup polling for data synchronization if we have a patient ID
-    if (patientData.patientId) {
-      // Clear any existing interval
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-      }
-      
-      // Function to fetch latest patient data
-      const fetchLatestData = async () => {
-        try {
-          const res = await fetch(getApiUrl(`/api/get_patient_data?patient_id=${patientData.patientId}&timestamp=${lastSyncTimestamp.current}`));
-          const data = await res.json();
-          
-          // If the data has been updated since our last sync
-          if (data.updated) {
-            // Update the lastSyncTimestamp
-            lastSyncTimestamp.current = Date.now();
-            
-            // Update the local state with the latest data from the backend
-            if (data.dental) {
-              // Only update if there's actual data to prevent unnecessary state changes
-              loadPatientData(data.dental);
-            }
-          }
-        } catch (error) {
-          console.error("Error syncing patient data:", error);
-        }
-      };
-      
-      // Start polling for updates every 5 seconds
-      pollingIntervalRef.current = setInterval(fetchLatestData, 5000);
-    }
-    
-    // Clean up the interval on unmount
-    return () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-        pollingIntervalRef.current = null;
-      }
-    };
-  }, [patientData.patientId]);
-
   // Helper function to load patient data into state
   const loadPatientData = (dentalData: any) => {
     if (dentalData) {
       setExtraOral(dentalData.dental_extra_oral || "");
       setDentalRemarks(dentalData.dental_remarks || "");
-      
+
       // Process permanent teeth
       const permanent = dentalData.tooth_cavity_permanent || "";
       const permanentTeeth = permanent.split(",").filter((s: string): boolean => s !== "");
-      
+
       // Separate permanent teeth into their respective groups
       setToothCavityPermanentGroup1(
         permanentTeeth.filter((tooth: string) => ["18", "17", "16", "15", "14", "13", "12", "11"].includes(tooth))
@@ -198,11 +148,11 @@ const DentalDashboard: React.FC = () => {
       setToothCavityPermanentGroup4(
         permanentTeeth.filter((tooth: string) => ["31", "32", "33", "34", "35", "36", "37", "38"].includes(tooth))
       );
-      
+
       // Process primary teeth
       const primary = dentalData.tooth_cavity_primary || "";
       const primaryTeeth = primary.split(",").filter((s: string): boolean => s !== "");
-      
+
       // Separate primary teeth into their respective groups
       setToothCavityPrimaryGroup1(
         primaryTeeth.filter((tooth: string) => ["55", "54", "53", "52", "51"].includes(tooth))
@@ -216,7 +166,7 @@ const DentalDashboard: React.FC = () => {
       setToothCavityPrimaryGroup4(
         primaryTeeth.filter((tooth: string) => ["71", "72", "73", "74", "75"].includes(tooth))
       );
-      
+
       // Set dropdown values
       setPlaque(dentalData.plaque || "");
       setGumInflammation(dentalData.gum_inflammation || "");
@@ -232,6 +182,50 @@ const DentalDashboard: React.FC = () => {
       setMissingTeeth(dentalData.missing_teeth || "");
     }
   };
+
+  // Add effect for real-time data sync for cross-device synchronization
+  useEffect(() => {
+    // Setup polling for data synchronization if we have a patient ID
+    if (patientData.patientId) {
+      // Clear any existing interval
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+
+      // Function to fetch latest patient data
+      const fetchLatestData = async () => {
+        try {
+          const res = await fetch(getApiUrl(`/api/get_patient_data?patient_id=${patientData.patientId}&timestamp=${lastSyncTimestamp.current}`));
+          const data = await res.json();
+
+          // If the data has been updated since our last sync
+          if (data.updated) {
+            // Update the lastSyncTimestamp
+            lastSyncTimestamp.current = Date.now();
+
+            // Update the local state with the latest data from the backend
+            if (data.dental) {
+              // Only update if there's actual data to prevent unnecessary state changes
+              loadPatientData(data.dental);
+            }
+          }
+        } catch (error) {
+          console.error("Error syncing patient data:", error);
+        }
+      };
+
+      // Start polling for updates every 5 seconds
+      pollingIntervalRef.current = setInterval(fetchLatestData, 5000);
+    }
+
+    // Clean up the interval on unmount
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+  }, [patientData.patientId]);
 
   // Persist Dental form data across tab switches
   useEffect(() => {
@@ -252,9 +246,9 @@ const DentalDashboard: React.FC = () => {
     const handleGlobalReset = () => {
       resetForm(); // Reset all form fields
     };
-    
+
     window.addEventListener('patientDataReset', handleGlobalReset);
-    
+
     return () => {
       window.removeEventListener('patientDataReset', handleGlobalReset);
     };
@@ -280,7 +274,7 @@ const DentalDashboard: React.FC = () => {
     const prg2 = updatedData?.primaryGroup2 || toothCavityPrimaryGroup2;
     const prg3 = updatedData?.primaryGroup3 || toothCavityPrimaryGroup3;
     const prg4 = updatedData?.primaryGroup4 || toothCavityPrimaryGroup4;
-    
+
     // Combine all permanent teeth groups
     const allPermanentTeeth = [
       ...pg1,
@@ -288,7 +282,7 @@ const DentalDashboard: React.FC = () => {
       ...pg3,
       ...pg4,
     ].join(",");
-    
+
     // Combine all primary teeth groups
     const allPrimaryTeeth = [
       ...prg1,
@@ -296,68 +290,32 @@ const DentalDashboard: React.FC = () => {
       ...prg3,
       ...prg4,
     ].join(",");
-    
+
     // Update both teeth types in the context at once to ensure consistency
     updateDepartment("dental", {
       tooth_cavity_permanent: allPermanentTeeth,
       tooth_cavity_primary: allPrimaryTeeth
     });
-    
+
     // Update the timestamp of the last sync to prevent immediate overwriting
     lastSyncTimestamp.current = Date.now();
   };
 
-  const dropdown = (
-    label: string,
-    value: string,
-    setValue: (v: string) => void,
-    options: string[]
-  ) => (
-    <FormControl variant="outlined" size="small" className="w-full sm:w-64">
-      <InputLabel>{label}</InputLabel>
-      <Select
-        label={label}
-        value={value}
-        onChange={(e) => {
-          const newValue = e.target.value as string;
-          setValue(newValue);
-          
-          // Update the field in the context
-          const fieldNameMap: Record<string, string> = {
-            "Extra-Oral": "dental_extra_oral",
-            "Plaque": "plaque",
-            "Gum Inflammation": "gum_inflammation",
-            "Stains": "stains",
-            "Tooth Discoloration": "tooth_discoloration",
-            "Tarter": "tarter",
-            "Bad Breath": "bad_breath",
-            "Gum Bleeding": "gum_bleeding",
-            "Soft Tissue": "soft_tissue",
-            "Fluorosis": "fluorosis",
-            "Malocclusion": "malocclusion",
-            "Root Stump": "root_stump",
-            "Missing Teeth": "missing_teeth"
-          };
-          
-          // Find the field name to use in the database
-          const fieldName = fieldNameMap[label] || label.toLowerCase().replace(/\s+/g, '_');
-          handleInputChange(fieldName, newValue);
-          
-          // Reset dental remarks when Extra-Oral changes to No Abnormality
-          if (label === "Extra-Oral" && newValue !== "Abnormality") {
-            setDentalRemarks("");
-            handleInputChange("dental_remarks", "");
-          }
-        }}
-      >
-        {options.map((opt) => (
-          <MenuItem key={opt} value={opt}>
-            {opt}
-          </MenuItem>
-        ))}
-      </Select>
-    </FormControl>
-  );
+  const FIELD_NAME_MAP: Record<string, string> = {
+    "Extra-Oral": "dental_extra_oral",
+    "Plaque": "plaque",
+    "Gum Inflammation": "gum_inflammation",
+    "Stains": "stains",
+    "Tooth Discoloration": "tooth_discoloration",
+    "Tarter": "tarter",
+    "Bad Breath": "bad_breath",
+    "Gum Bleeding": "gum_bleeding",
+    "Soft Tissue": "soft_tissue",
+    "Fluorosis": "fluorosis",
+    "Malocclusion": "malocclusion",
+    "Root Stump": "root_stump",
+    "Missing Teeth": "missing_teeth",
+  };
 
   const resetForm = () => {
     setExtraOral("");
@@ -389,20 +347,32 @@ const DentalDashboard: React.FC = () => {
     if (typeof window.inputDebounceTimers === 'undefined') {
       window.inputDebounceTimers = {};
     }
-    
+
     // Clear any existing timer for this field
     if (window.inputDebounceTimers[field]) {
       clearTimeout(window.inputDebounceTimers[field]);
     }
-    
+
     // Set a new timer to update context after typing stops
     window.inputDebounceTimers[field] = setTimeout(() => {
       // Update only the specific field that changed
       updateDepartment('dental', { [field]: value });
-      
+
       // Update the timestamp of the last sync to prevent immediate overwriting
       lastSyncTimestamp.current = Date.now();
     }, 300); // 300ms debounce delay - adjust if needed
+  };
+
+  const handleDropdownChange = (label: string, setValue: (v: string) => void) => (value: string) => {
+    setValue(value);
+    const fieldName = FIELD_NAME_MAP[label] || label.toLowerCase().replace(/\s+/g, '_');
+    handleInputChange(fieldName, value);
+
+    // Reset dental remarks when Extra-Oral changes to No Abnormality
+    if (label === "Extra-Oral" && value !== "Abnormality") {
+      setDentalRemarks("");
+      handleInputChange("dental_remarks", "");
+    }
   };
 
   const handleSubmit = async () => {
@@ -421,343 +391,220 @@ const DentalDashboard: React.FC = () => {
       !rootStump ||
       !missingTeeth
     ) {
-      // Replace alert with toast notification
       showToast("Please fill all required fields.", "error");
       return;
     }
-    
+
     // Validate that dental remarks are provided when Extra-Oral has abnormality
     if (extraOral === "Abnormality" && !dentalRemarks) {
       showToast("Please provide Dental Remarks for the Extra-Oral Abnormality.", "error");
       return;
     }
-    
+
     // Validate Soft Tissue abnormality (no description field available, but we still check for consistency)
     if (softTissue === "Abnormality" && !dentalRemarks) {
       showToast("Please provide Dental Remarks for the Soft Tissue Abnormality.", "error");
       return;
     }
 
-    const data = {
-      dental_extra_oral: extraOral,
-      dental_remarks: dentalRemarks,
-      tooth_cavity_permanent: [
-        ...toothCavityPermanentGroup1,
-        ...toothCavityPermanentGroup2,
-        ...toothCavityPermanentGroup3,
-        ...toothCavityPermanentGroup4,
-      ].join(","),
-      tooth_cavity_primary: [
-        ...toothCavityPrimaryGroup1,
-        ...toothCavityPrimaryGroup2,
-        ...toothCavityPrimaryGroup3,
-        ...toothCavityPrimaryGroup4,
-      ].join(","),
-      plaque,
-      gum_inflammation: gumInflammation,
-      stains,
-      tooth_discoloration: toothDiscoloration,
-      tarter,
-      bad_breath: badBreath,
-      gum_bleeding: gumBleeding,
-      soft_tissue: softTissue,
-      fluorosis,
-      malocclusion,
-      root_stump: rootStump,
-      missing_teeth: missingTeeth,
-      isSubmitted: true // Set the submitted flag to true
-    };
-
-    updateDepartment("dental", data);
-    // Replace alert with toast notification
-    showToast("Dental data saved successfully.", "success");
-    resetForm();
-    resetPatientData("dental");
-  };
-
-  const handleFinalSubmit = async () => {
-    if (
-      !extraOral ||
-      !plaque ||
-      !gumInflammation ||
-      !stains ||
-      !toothDiscoloration ||
-      !tarter ||
-      !badBreath ||
-      !gumBleeding ||
-      !softTissue ||
-      !fluorosis ||
-      !malocclusion ||
-      !rootStump ||
-      !missingTeeth
-    ) {
-      showToast("Please fill all required fields.", "error");
-      return;
-    }
+    setSaving(true);
     try {
-      const res = await fetch(getApiUrl("/api/submit_dental"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          dental_extra_oral: extraOral,
-          dental_remarks: dentalRemarks,
-          tooth_cavity_permanent: [
-            ...toothCavityPermanentGroup1,
-            ...toothCavityPermanentGroup2,
-            ...toothCavityPermanentGroup3,
-            ...toothCavityPermanentGroup4,
-          ].join(","),
-          tooth_cavity_primary: [
-            ...toothCavityPrimaryGroup1,
-            ...toothCavityPrimaryGroup2,
-            ...toothCavityPrimaryGroup3,
-            ...toothCavityPrimaryGroup4,
-          ].join(","),
-          plaque,
-          gum_inflammation: gumInflammation,
-          stains,
-          tooth_discoloration: toothDiscoloration,
-          tarter,
-          bad_breath: badBreath,
-          gum_bleeding: gumBleeding,
-          soft_tissue: softTissue,
-          fluorosis,
-          malocclusion,
-          root_stump: rootStump,
-          missing_teeth: missingTeeth,
-        }),
-      });
-      const result = await res.json();
-      if (result.message === "Dental info submitted successfully.") {
-        showToast("Dental data submitted successfully.", "success");
-      } else {
-        showToast(result.message, "error");
-      }
-    } catch (error) {
-      showToast("Error submitting Dental data.", "error");
+      const data = {
+        dental_extra_oral: extraOral,
+        dental_remarks: dentalRemarks,
+        tooth_cavity_permanent: [
+          ...toothCavityPermanentGroup1,
+          ...toothCavityPermanentGroup2,
+          ...toothCavityPermanentGroup3,
+          ...toothCavityPermanentGroup4,
+        ].join(","),
+        tooth_cavity_primary: [
+          ...toothCavityPrimaryGroup1,
+          ...toothCavityPrimaryGroup2,
+          ...toothCavityPrimaryGroup3,
+          ...toothCavityPrimaryGroup4,
+        ].join(","),
+        plaque,
+        gum_inflammation: gumInflammation,
+        stains,
+        tooth_discoloration: toothDiscoloration,
+        tarter,
+        bad_breath: badBreath,
+        gum_bleeding: gumBleeding,
+        soft_tissue: softTissue,
+        fluorosis,
+        malocclusion,
+        root_stump: rootStump,
+        missing_teeth: missingTeeth,
+        isSubmitted: true // Set the submitted flag to true
+      };
+
+      updateDepartment("dental", data);
+      showToast("Dental data saved successfully.", "success");
+      resetForm();
+    } catch {
+      showToast("Error saving Dental data.", "error");
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <div className="p-4 flex flex-col items-center bg-bg min-h-screen font-body">
-      <div className="bg-glass backdrop-blur-xl border border-glass-border shadow-lg rounded-2xl p-6 w-full max-w-4xl">
-        {patientData.patientId ? (
-          <>
-            <div className="mb-4 text-text-dim">
-              <p>Patient ID: {patientData.patientId}</p>
-              {patientData.it?.name && (
-                <p>Patient Name: <span className="font-bold">{patientData.it.name}</span></p>
-              )}
-            </div>
-            <h1 className="text-3xl font-display font-bold mb-6 text-text">
-              Dental Examination Report
-            </h1>
-            <div className="border-b border-glass-border pb-4 mb-6">
-              <h2 className="text-xl font-display font-semibold mb-4 text-text">
-                Extra Oral Examination
-              </h2>
-              <div className="flex flex-wrap gap-4">
-                {dropdown("Extra-Oral", extraOral, setExtraOral, [
-                  "No Abnormality",
-                  "Abnormality",
-                ])}
-                <div className="w-full sm:w-64 relative">
-                  <TextField
-                    label="Dental Remarks"
-                    variant="outlined"
-                    size="small"
-                    fullWidth
-                    value={dentalRemarks}
-                    onChange={(e) => {
-                      setDentalRemarks(e.target.value);
-                      handleInputChange("dental_remarks", e.target.value);
-                    }}
-                  />
-                  <button 
-                    type="button" 
-                    className="absolute right-1 top-1/2 transform -translate-y-1/2 px-2 py-1 text-xs border border-glass-border rounded hover:bg-white/10 text-text-dim"
-                    onClick={() => {
-                      const newValue = dentalRemarks === "NA" ? "" : "NA";
-                      setDentalRemarks(newValue);
-                      handleInputChange("dental_remarks", newValue);
-                    }}
-                  >
-                    NA
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="border-b border-glass-border pb-4 mb-6">
-              <h2 className="text-xl font-display font-semibold mb-4 text-text">
-                Intra Oral Examination
-              </h2>
-              <div className="flex flex-col gap-4">
-                <div>
-                  <h3 className="text-lg font-medium mb-2 text-text-dim">
-                    Tooth Cavity (Permanent Teeth)
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <ToothSelector
-                      label="Permanent Group 1"
-                      options={["18", "17", "16", "15", "14", "13", "12", "11"]}
-                      selected={toothCavityPermanentGroup1}
-                      onChange={(selected) => {
-                        setToothCavityPermanentGroup1(selected);
-                        // Update teeth data immediately with the new selection
-                        updateTeethData({ permanentGroup1: selected });
-                      }}
-                    />
-                    <ToothSelector
-                      label="Permanent Group 2"
-                      options={["21", "22", "23", "24", "25", "26", "27", "28"]}
-                      selected={toothCavityPermanentGroup2}
-                      onChange={(selected) => {
-                        setToothCavityPermanentGroup2(selected);
-                        // Update teeth data immediately with the new selection
-                        updateTeethData({ permanentGroup2: selected });
-                      }}
-                    />
-                    <ToothSelector
-                      label="Permanent Group 3"
-                      options={["48", "47", "46", "45", "44", "43", "42", "41"]}
-                      selected={toothCavityPermanentGroup3}
-                      onChange={(selected) => {
-                        setToothCavityPermanentGroup3(selected);
-                        // Update teeth data immediately with the new selection
-                        updateTeethData({ permanentGroup3: selected });
-                      }}
-                    />
-                    <ToothSelector
-                      label="Permanent Group 4"
-                      options={["31", "32", "33", "34", "35", "36", "37", "38"]}
-                      selected={toothCavityPermanentGroup4}
-                      onChange={(selected) => {
-                        setToothCavityPermanentGroup4(selected);
-                        // Update teeth data immediately with the new selection
-                        updateTeethData({ permanentGroup4: selected });
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-medium mb-2 text-text-dim">
-                    Tooth Cavity (Primary Teeth)
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <ToothSelector
-                      label="Primary Group 1"
-                      options={["55", "54", "53", "52", "51"]}
-                      selected={toothCavityPrimaryGroup1}
-                      onChange={(selected) => {
-                        setToothCavityPrimaryGroup1(selected);
-                        // Update teeth data immediately with the new selection
-                        updateTeethData({ primaryGroup1: selected });
-                      }}
-                    />
-                    <ToothSelector
-                      label="Primary Group 2"
-                      options={["61", "62", "63", "64", "65"]}
-                      selected={toothCavityPrimaryGroup2}
-                      onChange={(selected) => {
-                        setToothCavityPrimaryGroup2(selected);
-                        // Update teeth data immediately with the new selection
-                        updateTeethData({ primaryGroup2: selected });
-                      }}
-                    />
-                    <ToothSelector
-                      label="Primary Group 3"
-                      options={["85", "84", "83", "82", "81"]}
-                      selected={toothCavityPrimaryGroup3}
-                      onChange={(selected) => {
-                        setToothCavityPrimaryGroup3(selected);
-                        // Update teeth data immediately with the new selection
-                        updateTeethData({ primaryGroup3: selected });
-                      }}
-                    />
-                    <ToothSelector
-                      label="Primary Group 4"
-                      options={["71", "72", "73", "74", "75"]}
-                      selected={toothCavityPrimaryGroup4}
-                      onChange={(selected) => {
-                        setToothCavityPrimaryGroup4(selected);
-                        // Update teeth data immediately with the new selection
-                        updateTeethData({ primaryGroup4: selected });
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Restored Dropdowns */}
-                <div className="flex flex-wrap gap-2">
-                  {dropdown("Plaque", plaque, setPlaque, ["Present", "Absent"])}
-                  {dropdown(
-                    "Gum Inflammation",
-                    gumInflammation,
-                    setGumInflammation,
-                    ["Present", "Absent"]
-                  )}
-                  {dropdown("Stains", stains, setStains, ["Present", "Absent"])}
-                  {dropdown(
-                    "Tooth Discoloration",
-                    toothDiscoloration,
-                    setToothDiscoloration,
-                    ["Present", "Absent"]
-                  )}
-                  {dropdown("Tarter", tarter, setTarter, ["Present", "Absent"])}
-                  {dropdown("Bad Breath", badBreath, setBadBreath, [
-                    "Present",
-                    "Absent",
-                  ])}
-                  {dropdown("Gum Bleeding", gumBleeding, setGumBleeding, [
-                    "Present",
-                    "Absent",
-                  ])}
-                  {dropdown("Soft Tissue", softTissue, setSoftTissue, [
-                    "No Abnormality",
-                    "Abnormality",
-                  ])}
-                  {dropdown("Fluorosis", fluorosis, setFluorosis, [
-                    "Present",
-                    "Absent",
-                  ])}
-                  {dropdown("Malocclusion", malocclusion, setMalocclusion, [
-                    "Present",
-                    "Absent",
-                  ])}
-                  {dropdown("Root Stump", rootStump, setRootStump, [
-                    "Present",
-                    "Absent",
-                  ])}
-                  {dropdown("Missing Teeth", missingTeeth, setMissingTeeth, [
-                    "Present",
-                    "Absent",
-                  ])}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-center mt-6">
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleSubmit}
-                className="w-full sm:w-64 bg-accent-gradient hover:brightness-110 text-[#061018] font-semibold shadow-lg shadow-accent-2/30"
-              >
-                Save
-              </Button>
-            </div>
-          </>
-        ) : (
-          <div className="text-center p-8">
-            <h2 className="text-xl text-text-dim">
-              Waiting for patient ID from IT Department...
-            </h2>
+    <DashboardShell title="Dental Examination Report">
+      <div className="border-b border-glass-border pb-4 mb-6">
+        <h2 className="text-xl font-display font-semibold mb-4 text-text">
+          Extra Oral Examination
+        </h2>
+        <div className="flex flex-wrap gap-4">
+          <LabeledSelect
+            label="Extra-Oral"
+            value={extraOral}
+            onChange={handleDropdownChange("Extra-Oral", setExtraOral)}
+            options={["No Abnormality", "Abnormality"]}
+          />
+          <div className="w-full sm:w-64 relative">
+            <TextField
+              label="Dental Remarks"
+              variant="outlined"
+              size="small"
+              fullWidth
+              value={dentalRemarks}
+              onChange={(e) => {
+                setDentalRemarks(e.target.value);
+                handleInputChange("dental_remarks", e.target.value);
+              }}
+            />
+            <button
+              type="button"
+              className="absolute right-1 top-1/2 transform -translate-y-1/2 px-2 py-1 text-xs border border-glass-border rounded hover:bg-white/10 text-text-dim"
+              onClick={() => {
+                const newValue = dentalRemarks === "NA" ? "" : "NA";
+                setDentalRemarks(newValue);
+                handleInputChange("dental_remarks", newValue);
+              }}
+            >
+              NA
+            </button>
           </div>
-        )}
+        </div>
       </div>
-    </div>
+
+      <div className="border-b border-glass-border pb-4 mb-6">
+        <h2 className="text-xl font-display font-semibold mb-4 text-text">
+          Intra Oral Examination
+        </h2>
+        <div className="flex flex-col gap-4">
+          <div>
+            <h3 className="text-lg font-medium mb-2 text-text-dim">
+              Tooth Cavity (Permanent Teeth)
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <ToothSelector
+                label="Permanent Group 1"
+                options={["18", "17", "16", "15", "14", "13", "12", "11"]}
+                selected={toothCavityPermanentGroup1}
+                onChange={(selected) => {
+                  setToothCavityPermanentGroup1(selected);
+                  updateTeethData({ permanentGroup1: selected });
+                }}
+              />
+              <ToothSelector
+                label="Permanent Group 2"
+                options={["21", "22", "23", "24", "25", "26", "27", "28"]}
+                selected={toothCavityPermanentGroup2}
+                onChange={(selected) => {
+                  setToothCavityPermanentGroup2(selected);
+                  updateTeethData({ permanentGroup2: selected });
+                }}
+              />
+              <ToothSelector
+                label="Permanent Group 3"
+                options={["48", "47", "46", "45", "44", "43", "42", "41"]}
+                selected={toothCavityPermanentGroup3}
+                onChange={(selected) => {
+                  setToothCavityPermanentGroup3(selected);
+                  updateTeethData({ permanentGroup3: selected });
+                }}
+              />
+              <ToothSelector
+                label="Permanent Group 4"
+                options={["31", "32", "33", "34", "35", "36", "37", "38"]}
+                selected={toothCavityPermanentGroup4}
+                onChange={(selected) => {
+                  setToothCavityPermanentGroup4(selected);
+                  updateTeethData({ permanentGroup4: selected });
+                }}
+              />
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-lg font-medium mb-2 text-text-dim">
+              Tooth Cavity (Primary Teeth)
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <ToothSelector
+                label="Primary Group 1"
+                options={["55", "54", "53", "52", "51"]}
+                selected={toothCavityPrimaryGroup1}
+                onChange={(selected) => {
+                  setToothCavityPrimaryGroup1(selected);
+                  updateTeethData({ primaryGroup1: selected });
+                }}
+              />
+              <ToothSelector
+                label="Primary Group 2"
+                options={["61", "62", "63", "64", "65"]}
+                selected={toothCavityPrimaryGroup2}
+                onChange={(selected) => {
+                  setToothCavityPrimaryGroup2(selected);
+                  updateTeethData({ primaryGroup2: selected });
+                }}
+              />
+              <ToothSelector
+                label="Primary Group 3"
+                options={["85", "84", "83", "82", "81"]}
+                selected={toothCavityPrimaryGroup3}
+                onChange={(selected) => {
+                  setToothCavityPrimaryGroup3(selected);
+                  updateTeethData({ primaryGroup3: selected });
+                }}
+              />
+              <ToothSelector
+                label="Primary Group 4"
+                options={["71", "72", "73", "74", "75"]}
+                selected={toothCavityPrimaryGroup4}
+                onChange={(selected) => {
+                  setToothCavityPrimaryGroup4(selected);
+                  updateTeethData({ primaryGroup4: selected });
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <LabeledSelect label="Plaque" value={plaque} onChange={handleDropdownChange("Plaque", setPlaque)} options={["Present", "Absent"]} />
+            <LabeledSelect label="Gum Inflammation" value={gumInflammation} onChange={handleDropdownChange("Gum Inflammation", setGumInflammation)} options={["Present", "Absent"]} />
+            <LabeledSelect label="Stains" value={stains} onChange={handleDropdownChange("Stains", setStains)} options={["Present", "Absent"]} />
+            <LabeledSelect label="Tooth Discoloration" value={toothDiscoloration} onChange={handleDropdownChange("Tooth Discoloration", setToothDiscoloration)} options={["Present", "Absent"]} />
+            <LabeledSelect label="Tarter" value={tarter} onChange={handleDropdownChange("Tarter", setTarter)} options={["Present", "Absent"]} />
+            <LabeledSelect label="Bad Breath" value={badBreath} onChange={handleDropdownChange("Bad Breath", setBadBreath)} options={["Present", "Absent"]} />
+            <LabeledSelect label="Gum Bleeding" value={gumBleeding} onChange={handleDropdownChange("Gum Bleeding", setGumBleeding)} options={["Present", "Absent"]} />
+            <LabeledSelect label="Soft Tissue" value={softTissue} onChange={handleDropdownChange("Soft Tissue", setSoftTissue)} options={["No Abnormality", "Abnormality"]} />
+            <LabeledSelect label="Fluorosis" value={fluorosis} onChange={handleDropdownChange("Fluorosis", setFluorosis)} options={["Present", "Absent"]} />
+            <LabeledSelect label="Malocclusion" value={malocclusion} onChange={handleDropdownChange("Malocclusion", setMalocclusion)} options={["Present", "Absent"]} />
+            <LabeledSelect label="Root Stump" value={rootStump} onChange={handleDropdownChange("Root Stump", setRootStump)} options={["Present", "Absent"]} />
+            <LabeledSelect label="Missing Teeth" value={missingTeeth} onChange={handleDropdownChange("Missing Teeth", setMissingTeeth)} options={["Present", "Absent"]} />
+          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-center mt-6">
+        <SubmitButton onClick={handleSubmit} loading={saving}>
+          Save
+        </SubmitButton>
+      </div>
+    </DashboardShell>
   );
 };
 

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Button,
   TextField,
@@ -12,6 +12,7 @@ import {
   TableRow,
   TableContainer,
   Box,
+  Skeleton,
   useMediaQuery,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -20,6 +21,7 @@ import { getApiUrl } from "../config/api"; // Import the API URL helper
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload'; // Import download icon
 
 const placeholderImage = "https://via.placeholder.com/150"; // default placeholder
+const SKELETON_ROWS = 4;
 
 const PatientsList: React.FC = () => {
   const { showToast } = useToast(); // Removed hideToast as it's no longer needed
@@ -52,7 +54,7 @@ const PatientsList: React.FC = () => {
     }, 300); // 300ms debounce delay - consistent with other pages
   };
 
-  const fetchPatients = async () => {
+  const fetchPatients = useCallback(async (opts: { silent?: boolean } = {}) => {
     setLoading(true);
     try {
       // Use the API helper instead of hardcoded URL
@@ -62,7 +64,10 @@ const PatientsList: React.FC = () => {
       }
       const data = await res.json();
       setPatients(data.patients || []);
-      showToast("Patients list refreshed successfully", "success"); // show toast on refresh success
+      // Only toast on an explicit user-triggered refresh, not the initial load
+      if (!opts.silent) {
+        showToast("Patients list refreshed successfully", "success");
+      }
     } catch (error) {
       console.error("Error fetching patients:", error);
       showToast(
@@ -74,11 +79,12 @@ const PatientsList: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
-    fetchPatients();
-  }, []);
+    fetchPatients({ silent: true });
+  }, [fetchPatients]);
 
   const filteredPatients = patients.filter((patient) =>
     patient.name.toLowerCase().includes(search.toLowerCase())
@@ -149,7 +155,7 @@ const PatientsList: React.FC = () => {
           className="font-display"
           sx={{
             textAlign: "center",
-            color: "#e8eaf0",
+            color: "#E6F5EE",
             fontWeight: "bold",
             mb: 2,
           }}
@@ -175,8 +181,8 @@ const PatientsList: React.FC = () => {
           />
           <Button
             variant="contained"
-            className="!bg-accent-gradient !text-[#061018] !font-semibold !shadow-lg !shadow-accent-2/30"
-            onClick={fetchPatients}
+            className="!bg-accent-gradient !text-on-accent !font-semibold !shadow-lg !shadow-accent-2/30"
+            onClick={() => fetchPatients()}
             disabled={loading}
             sx={{
               whiteSpace: "nowrap",
@@ -195,37 +201,59 @@ const PatientsList: React.FC = () => {
           >
             <Table size="small">
               <TableHead>
-                <TableRow sx={{ backgroundImage: "linear-gradient(135deg, #3178C6, #61dafb)" }}>
-                  <TableCell align="center" sx={{ color: "#061018", fontWeight: "bold" }}>
+                <TableRow sx={{ backgroundImage: "linear-gradient(135deg, #5EE6A8, #3ECF8E 55%, #1E9A66)" }}>
+                  <TableCell align="center" sx={{ color: "#04140D", fontWeight: "bold" }}>
                     Photo
                   </TableCell>
-                  <TableCell align="center" sx={{ color: "#061018", fontWeight: "bold" }}>Name</TableCell>
-                  <TableCell align="center" sx={{ color: "#061018", fontWeight: "bold" }}>Division</TableCell>
+                  <TableCell align="center" sx={{ color: "#04140D", fontWeight: "bold" }}>Name</TableCell>
+                  <TableCell align="center" sx={{ color: "#04140D", fontWeight: "bold" }}>Division</TableCell>
                   {!isMobile && (
-                    <TableCell align="center" sx={{ color: "#061018", fontWeight: "bold" }}>Roll No</TableCell>
+                    <TableCell align="center" sx={{ color: "#04140D", fontWeight: "bold" }}>Roll No</TableCell>
                   )}
                   <TableCell
                     align="center"
-                    sx={{ color: "#061018", fontWeight: "bold" }}
+                    sx={{ color: "#04140D", fontWeight: "bold" }}
                   >
                     Mobile
                   </TableCell>
                   <TableCell
                     align="center"
-                    sx={{ color: "#061018", fontWeight: "bold" }}
+                    sx={{ color: "#04140D", fontWeight: "bold" }}
                   >
                     Actions
                   </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredPatients.map((patient, index) => (
+                {loading && patients.length === 0 &&
+                  Array.from({ length: SKELETON_ROWS }).map((_, i) => (
+                    <TableRow key={`skeleton-${i}`}>
+                      <TableCell align="center">
+                        <Skeleton
+                          variant="circular"
+                          width={isMobile ? 30 : 40}
+                          height={isMobile ? 30 : 40}
+                          sx={{ mx: "auto", bgcolor: "rgba(94,230,168,0.12)" }}
+                        />
+                      </TableCell>
+                      <TableCell align="center"><Skeleton sx={{ bgcolor: "rgba(94,230,168,0.12)" }} /></TableCell>
+                      <TableCell align="center"><Skeleton sx={{ bgcolor: "rgba(94,230,168,0.12)" }} /></TableCell>
+                      {!isMobile && (
+                        <TableCell align="center"><Skeleton sx={{ bgcolor: "rgba(94,230,168,0.12)" }} /></TableCell>
+                      )}
+                      <TableCell align="center"><Skeleton sx={{ bgcolor: "rgba(94,230,168,0.12)" }} /></TableCell>
+                      <TableCell align="center">
+                        <Skeleton variant="rounded" width={120} height={32} sx={{ mx: "auto", bgcolor: "rgba(94,230,168,0.12)" }} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                {!loading && filteredPatients.map((patient, index) => (
                   <TableRow
                     key={patient.patientId}
                     sx={{
                       backgroundColor: index % 2 === 0 ? "rgba(255,255,255,0.03)" : "transparent",
                       transition: "background-color 0.3s",
-                      "&:hover": { backgroundColor: "rgba(97,218,251,0.08)" },
+                      "&:hover": { backgroundColor: "rgba(94,230,168,0.08)" },
                     }}
                   >
                     <TableCell align="center">
@@ -253,8 +281,8 @@ const PatientsList: React.FC = () => {
                         onClick={() => handleDownloadReport(patient.patientId, patient.name)}
                         style={{
                           ...downloadButtonStyle,
-                          backgroundImage: 'linear-gradient(135deg, #3178C6, #61dafb)',
-                          color: '#061018',
+                          backgroundImage: 'linear-gradient(135deg, #5EE6A8, #3ECF8E 55%, #1E9A66)',
+                          color: '#04140D',
                         }}
                         title="Download Word Document"
                       >
@@ -264,10 +292,12 @@ const PatientsList: React.FC = () => {
                     </TableCell>
                   </TableRow>
                 ))}
-                {filteredPatients.length === 0 && !loading && (
+                {!loading && filteredPatients.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={8} align="center">
-                      No patients found
+                    <TableCell colSpan={8} align="center" sx={{ py: 5, color: "#93AFA3" }}>
+                      {patients.length === 0
+                        ? "No patients registered yet - submissions from the IT dashboard will show up here."
+                        : `No patients match "${search}".`}
                     </TableCell>
                   </TableRow>
                 )}

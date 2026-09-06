@@ -1,22 +1,15 @@
 import * as React from "react";
 import { useState, useContext, useEffect } from "react";
-import {
-  Button,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-} from "@mui/material";
+import { TextField } from "@mui/material";
 import { PatientContext } from "../context/PatientContext";
 import { useLocation } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
-import { getApiUrl } from "../config/api";  // Import the API URL helper
+import DashboardShell from "../components/DashboardShell";
+import LabeledSelect from "../components/LabeledSelect";
+import SubmitButton from "../components/SubmitButton";
 
 const GeneralDashboard: React.FC = () => {
   const { showToast } = useToast();
-  // Add generalData state variable
-  const [generalData, setGeneralData] = useState<Record<string, string>>({});
   // Body Measurements
   const [height, setHeight] = useState("");
   const [weight, setWeight] = useState("");
@@ -53,9 +46,9 @@ const GeneralDashboard: React.FC = () => {
   // Past History
   const [pastMedical, setPastMedical] = useState("");
   const [pastSurgical, setPastSurgical] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const { updateDepartment, patientData, updatePatientId, resetPatientData } = useContext(PatientContext);
-  const [manualPatientId, setManualPatientId] = useState("");
+  const { updateDepartment, patientData, updatePatientId } = useContext(PatientContext);
   const location = useLocation();
 
   // Read patientId from URL and update context
@@ -109,33 +102,31 @@ const GeneralDashboard: React.FC = () => {
     }
   }, [patientData.patientId]);
 
-  // Modify the useEffect for BMI calculation to prevent infinite loops
+  // Modify the useEffect for BMI calculation to prevent infinite loops.
+  // Intentionally depends only on height/weight - reading bmi or
+  // patientData.general back in here would re-trigger this effect on its
+  // own write and loop.
   useEffect(() => {
     if (height && weight) {
       try {
         // Convert height from cm to meters
         const heightInMeters = parseFloat(height) / 100;
         const weightInKg = parseFloat(weight);
-        
+
         if (heightInMeters > 0 && weightInKg > 0) {
           // BMI formula: weight (kg) / (height (m))²
           const calculatedBMI = (weightInKg / (heightInMeters * heightInMeters)).toFixed(2);
-          
+
           // Only update BMI if it has actually changed
           if (calculatedBMI !== bmi) {
             setBmi(calculatedBMI);
-            
-            // Use a local variable to avoid reading from patientData.general which could cause infinite loops
-            const updatedData = {
-              height: height,
-              weight: weight,
-              bmi: calculatedBMI
-            };
-            
+
             // Only update in context - don't read back from context in this effect
-            updateDepartment('general', { 
+            updateDepartment('general', {
               ...patientData.general,
-              ...updatedData
+              height,
+              weight,
+              bmi: calculatedBMI
             });
           }
         }
@@ -146,26 +137,30 @@ const GeneralDashboard: React.FC = () => {
       // Reset BMI when either height or weight is cleared, but only if BMI is not already empty
       if (bmi !== "") {
         setBmi("");
-        
+
         // Only update the necessary fields without reading back from context
-        updateDepartment('general', { 
+        updateDepartment('general', {
           ...patientData.general,
-          height: height,
-          weight: weight,
-          bmi: "" 
+          height,
+          weight,
+          bmi: ""
         });
       }
     }
-  }, [height, weight]); // Intentionally not including bmi or patientData.general in dependencies
+    // Deliberately excludes bmi/patientData.general/updateDepartment: this
+    // effect *writes* bmi and patientData.general, so depending on them
+    // would re-trigger it on its own write and loop (see comment above).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [height, weight]);
 
   // Add reset event listener
   useEffect(() => {
     const handleGlobalReset = () => {
       resetForm(); // Reset all form fields
     };
-    
+
     window.addEventListener('patientDataReset', handleGlobalReset);
-    
+
     return () => {
       window.removeEventListener('patientDataReset', handleGlobalReset);
     };
@@ -174,9 +169,9 @@ const GeneralDashboard: React.FC = () => {
   // Function to determine BMI category
   const getBMICategory = (bmiValue: string): string => {
     if (!bmiValue) return "";
-    
+
     const bmiNum = parseFloat(bmiValue);
-    
+
     if (bmiNum < 18.5) return "Underweight";
     if (bmiNum < 25) return "Normal weight";
     if (bmiNum < 30) return "Overweight";
@@ -188,9 +183,9 @@ const GeneralDashboard: React.FC = () => {
   // Function to get the color scheme for BMI category badge
   const getBMICategoryStyle = (bmiValue: string): { bg: string, text: string } => {
     if (!bmiValue) return { bg: "bg-gray-100", text: "text-gray-800" };
-    
+
     const bmiNum = parseFloat(bmiValue);
-    
+
     if (bmiNum < 18.5) return { bg: "bg-blue-100", text: "text-blue-800" }; // Underweight - blue
     if (bmiNum < 25) return { bg: "bg-green-100", text: "text-green-800" }; // Normal weight - green
     if (bmiNum < 30) return { bg: "bg-yellow-100", text: "text-yellow-800" }; // Overweight - yellow
@@ -205,97 +200,24 @@ const GeneralDashboard: React.FC = () => {
     if (typeof window.inputDebounceTimers === 'undefined') {
       window.inputDebounceTimers = {};
     }
-    
+
     // Clear any existing timer for this field
     if (window.inputDebounceTimers[field]) {
       clearTimeout(window.inputDebounceTimers[field]);
     }
-    
+
     // Set a new timer to update context after typing stops
     window.inputDebounceTimers[field] = setTimeout(() => {
       // Only update if the value has actually changed
       if (patientData.general && patientData.general[field] !== value) {
         // Update only the specific field that changed while preserving all general data
-        updateDepartment('general', { 
+        updateDepartment('general', {
           ...patientData.general, // Include ALL existing general data
-          [field]: value 
+          [field]: value
         });
       }
     }, 300); // 300ms debounce delay - adjust if needed
   };
-
-  const dropdown = (
-    label: string,
-    value: string,
-    setValue: (v: string) => void,
-    options: string[]
-  ) => (
-    <FormControl variant="outlined" size="small" className="w-full sm:w-64">
-      <InputLabel>{label}</InputLabel>
-      <Select
-        label={label}
-        value={value}
-        onChange={(e) => {
-          const newValue = e.target.value as string;
-          setValue(newValue);
-          
-          // Reset description fields when changing from Abnormality to No Abnormality
-          if (label === "Nails" && newValue !== "Abnormality") {
-            setNailsDesc("");
-            handleInputChange('nails_desc', "");
-          }
-          if (label === "Hair" && newValue !== "Abnormality") {
-            setHairDesc("");
-            handleInputChange('hair_desc', "");
-          }
-          if (label === "Skin" && newValue !== "Abnormality") {
-            setSkinDesc("");
-            handleInputChange('skin_desc', "");
-          }
-          if (label === "Allergy" && newValue !== "YES") {
-            setAllergyDesc("");
-            handleInputChange('allergy_desc', "");
-          }
-          if (label === "Speech" && newValue !== "Abnormal") {
-            setCnsSpeechDesc("");
-            handleInputChange('cns_speech_desc', "");
-          }
-          
-          // Map field name based on label to match backend field names
-          let fieldName = '';
-          switch (label) {
-            case "Nails": fieldName = 'nails'; break;
-            case "Hair": fieldName = 'hair'; break;
-            case "Skin": fieldName = 'skin'; break;
-            case "Anemia/Figure": fieldName = 'anemia_figure'; break;
-            case "Allergy": fieldName = 'allergy'; break;
-            case "Abdomen Soft": fieldName = 'abdomen_soft'; break;
-            case "Abdomen Hard": fieldName = 'abdomen_hard'; break;
-            case "Abdomen Distended": fieldName = 'abdomen_distended'; break;
-            case "Bowel Sound": fieldName = 'abdomen_bowel_sound'; break;
-            case "Conscious": fieldName = 'cns_conscious'; break;
-            case "Oriented": fieldName = 'cns_oriented'; break;
-            case "Playful": fieldName = 'cns_playful'; break;
-            case "Active": fieldName = 'cns_active'; break;
-            case "Alert": fieldName = 'cns_alert'; break;
-            case "Speech": fieldName = 'cns_speech'; break;
-            case "Medical": fieldName = 'past_medical'; break;
-            case "Surgical": fieldName = 'past_surgical'; break;
-            default: fieldName = label.toLowerCase();
-          }
-          
-          // Update in real-time
-          handleInputChange(fieldName, newValue);
-        }}
-      >
-        {options.map((opt) => (
-          <MenuItem key={opt} value={opt}>
-            {opt}
-          </MenuItem>
-        ))}
-      </Select>
-    </FormControl>
-  );
 
   const resetForm = () => {
     setHeight("");
@@ -331,388 +253,474 @@ const GeneralDashboard: React.FC = () => {
 
   const handleSubmit = () => {
     // Validate all required fields
-    if (!bmi ||
-        !bp ||
-        !pulse ||
-        !hip ||
-        !waist) {
+    if (!bmi || !bp || !pulse || !hip || !waist) {
       showToast("Please fill all required fields.", "error");
       return;
     }
-    
-    // Create data object with all field values
-    const data = {
-      bmi: bmi,
-      bp: bp,
-      pulse: pulse,
-      hip: hip,
-      waist: waist,
-      isSubmitted: true // Add isSubmitted flag to mark this department as complete
-    };
-    
-    // Update patient data in context
-    updateDepartment("general", data);
-    showToast("General examination data saved successfully.", "success");
-    resetForm();
-  };
 
-  const handleFinalSubmit = async () => {
+    setSaving(true);
     try {
-      const res = await fetch(getApiUrl("/api/submit_general"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ /* General data */ })
-      });
-      const result = await res.json();
-      if (result.message === "General info submitted successfully.") {
-        showToast("General data submitted successfully.", "success");
-      } else {
-        showToast(result.message, "error");
-      }
-    } catch (error) {
-      showToast("Error submitting General data.", "error");
+      // Create data object with all field values
+      const data = {
+        bmi,
+        bp,
+        pulse,
+        hip,
+        waist,
+        isSubmitted: true // Add isSubmitted flag to mark this department as complete
+      };
+
+      // Update patient data in context
+      updateDepartment("general", data);
+      showToast("General examination data saved successfully.", "success");
+      resetForm();
+    } catch {
+      showToast("Error saving General data.", "error");
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <div className="p-4 flex flex-col items-center bg-bg min-h-screen font-body">
-      <div className="bg-glass backdrop-blur-xl border border-glass-border shadow-lg rounded-2xl p-6 w-full max-w-4xl">
-        {patientData.patientId ? (
-          <>
-            <div className="mb-4 text-text-dim">
-              <p>Patient ID: {patientData.patientId}</p>
-              {patientData.it?.name && (
-                <p>Patient Name: <span className="font-bold">{patientData.it.name}</span></p>
-              )}
-            </div>
-            <h1 className="text-3xl font-display font-bold mb-6 text-text">
-              General Examination Report
-            </h1>
-            <div className="border-b border-glass-border pb-4 mb-6">
-              <h2 className="text-xl font-display font-semibold mb-4 text-text">
-                Body Measurements
-              </h2>
-              <div className="flex flex-wrap gap-4">
-                <TextField
-                  label="Height (cm)"
-                  variant="outlined"
-                  size="small"
-                  className="w-full sm:w-64"
-                  value={height}
-                  onChange={(e) => {
-                    setHeight(e.target.value);
-                    handleInputChange('height', e.target.value);
-                  }}
-                  placeholder="Enter height in cm"
-                />
-                <TextField
-                  label="Weight (kg)"
-                  variant="outlined"
-                  size="small"
-                  className="w-full sm:w-64"
-                  value={weight}
-                  onChange={(e) => {
-                    setWeight(e.target.value);
-                    handleInputChange('weight', e.target.value);
-                  }}
-                  placeholder="Enter weight in kg"
-                />
-                <div className="w-full sm:w-64 relative">
-                  <TextField
-                    label="BMI"
-                    variant="outlined"
-                    size="small"
-                    fullWidth
-                    value={bmi}
-                    InputProps={{
-                      readOnly: true,
-                      endAdornment: bmi ? (
-                        <span className={`px-3 py-0.5 rounded ml-1 min-w-[120px] text-center font-medium text-xs ${getBMICategoryStyle(bmi).bg} ${getBMICategoryStyle(bmi).text}`}>
-                          {getBMICategory(bmi)}
-                        </span>
-                      ) : null,
-                    }}
-                    helperText="Automatically calculated"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="border-b border-glass-border pb-4 mb-6">
-              <h2 className="text-xl font-display font-semibold mb-4 text-text">
-                General Cleanliness
-              </h2>
-              <div className="flex flex-wrap items-center gap-4 mb-2">
-                {dropdown("Nails", nails, setNails, [
-                  "No Abnormality",
-                  "Abnormality",
-                ])}
-                {nails === "Abnormality" && (
-                  <TextField
-                    label="Nails Abnormality Description"
-                    variant="outlined"
-                    size="small"
-                    className="flex-1 min-w-[300px]"
-                    value={nailsDesc}
-                    onChange={(e) => {
-                      setNailsDesc(e.target.value);
-                      handleInputChange('nails_desc', e.target.value);
-                    }}
-                  />
-                )}
-              </div>
-              <div className="flex flex-wrap items-center gap-4 mb-2">
-                {dropdown("Hair", hair, setHair, ["No Abnormality", "Abnormality"])}
-                {hair === "Abnormality" && (
-                  <TextField
-                    label="Hair Abnormality Description"
-                    variant="outlined"
-                    size="small"
-                    className="flex-1 min-w-[300px]"
-                    value={hairDesc}
-                    onChange={(e) => {
-                      setHairDesc(e.target.value);
-                      handleInputChange('hair_desc', e.target.value);
-                    }}
-                  />
-                )}
-              </div>
-              <div className="flex flex-wrap items-center gap-4">
-                {dropdown("Skin", skin, setSkin, ["No Abnormality", "Abnormality"])}
-                {skin === "Abnormality" && (
-                  <TextField
-                    label="Skin Abnormality Description"
-                    variant="outlined"
-                    size="small"
-                    className="flex-1 min-w-[300px]"
-                    value={skinDesc}
-                    onChange={(e) => {
-                      setSkinDesc(e.target.value);
-                      handleInputChange('skin_desc', e.target.value);
-                    }}
-                  />
-                )}
-              </div>
-            </div>
-
-            <div className="border-b border-glass-border pb-4 mb-4">
-              <h2 className="text-xl font-semibold mb-2">Figure, Allergy & Abdomen</h2>
-              <div className="flex flex-wrap items-center gap-4 mb-2">
-                {dropdown("Anemia/Figure", anemiaFigure, setAnemiaFigure, [
-                  "No",
-                  "Yes",
-                ])}
-                {dropdown("Abdomen Soft", abdomenSoft, setAbdomenSoft, [
-                  "Yes",
-                  "No",
-                ])}
-                {dropdown("Abdomen Hard", abdomenHard, setAbdomenHard, [
-                  "Yes",
-                  "No",
-                ])}
-                {dropdown(
-                  "Abdomen Distended",
-                  abdomenDistended,
-                  setAbdomenDistended,
-                  ["Yes", "No"]
-                )}
-                {dropdown("Bowel Sound", abdomenBowel, setAbdomenBowel, [
-                  "Present",
-                  "Absent",
-                ])}
-              </div>
-              <div className="flex flex-wrap items-center gap-4">
-                {dropdown("Allergy", allergy, setAllergy, ["No", "YES"])}
-                {allergy === "YES" && (
-                  <TextField
-                    label="Allergy Description"
-                    variant="outlined"
-                    size="small"
-                    className="flex-1 min-w-[300px]"
-                    value={allergyDesc}
-                    onChange={(e) => {
-                      setAllergyDesc(e.target.value);
-                      handleInputChange('allergy_desc', e.target.value);
-                    }}
-                  />
-                )}
-              </div>
-            </div>
-
-            <div className="border-b border-glass-border pb-4 mb-4">
-              <h2 className="text-xl font-semibold mb-2">Central Nervous System</h2>
-              <div className="flex flex-wrap items-center gap-4 mb-2">
-                {dropdown("Conscious", cnsConscious, setCnsConscious, [
-                  "Yes",
-                  "No",
-                ])}
-                {dropdown("Oriented", cnsOriented, setCnsOriented, [
-                  "Yes",
-                  "No",
-                ])}
-                {dropdown("Playful", cnsPlayful, setCnsPlayful, ["Yes", "No"])}
-                {dropdown("Active", cnsActive, setCnsActive, ["Yes", "No"])}
-                {dropdown("Alert", cnsAlert, setCnsAlert, ["Yes", "No"])}
-              </div>
-              <div className="flex flex-wrap items-center gap-4">
-                {dropdown("Speech", cnsSpeech, setCnsSpeech, [
-                  "Normal",
-                  "Abnormal",
-                ])}
-                {cnsSpeech === "Abnormal" && (
-                  <TextField
-                    label="Speech Abnormality Description"
-                    variant="outlined"
-                    size="small"
-                    className="flex-1 min-w-[300px]"
-                    value={cnsSpeechDesc}
-                    onChange={(e) => {
-                      setCnsSpeechDesc(e.target.value);
-                      handleInputChange('cns_speech_desc', e.target.value);
-                    }}
-                  />
-                )}
-              </div>
-            </div>
-
-            <div className="border-b border-glass-border pb-4 mb-4">
-              <h2 className="text-xl font-semibold mb-2">Past History</h2>
-              <div className="flex flex-wrap gap-2">
-                {dropdown("Medical", pastMedical, setPastMedical, ["Yes", "No", "Not Known"])}
-                {dropdown("Surgical", pastSurgical, setPastSurgical, ["Yes", "No", "Not Known"])}
-              </div>
-            </div>
-
-            <h1 className="text-2xl font-bold mb-4">Vitals Examination Report</h1>
-
-            <div className="border-b border-glass-border pb-4 mb-4">
-              <h2 className="text-xl font-semibold mb-2">Vital Signs</h2>
-              <div className="flex flex-wrap gap-4">
-                <div className="w-full sm:w-64 relative">
-                  <TextField
-                    label="BP"
-                    variant="outlined"
-                    size="small"
-                    fullWidth
-                    value={bp}
-                    onChange={(e) => {
-                      setBp(e.target.value);
-                      handleInputChange('bp', e.target.value);
-                    }}
-                  />
-                  <button 
-                    type="button" 
-                    className="absolute right-1 top-1/2 transform -translate-y-1/2 px-2 py-1 text-xs border border-glass-border rounded hover:bg-white/10 text-text-dim"
-                    onClick={() => {
-                      const newValue = bp === "NA" ? "" : "NA";
-                      setBp(newValue);
-                      handleInputChange('bp', newValue);
-                    }}
-                  >
-                    NA
-                  </button>
-                </div>
-                <div className="w-full sm:w-64 relative">
-                  <TextField
-                    label="Pulse"
-                    variant="outlined"
-                    size="small"
-                    fullWidth
-                    value={pulse}
-                    onChange={(e) => {
-                      setPulse(e.target.value);
-                      handleInputChange('pulse', e.target.value);
-                    }}
-                  />
-                  <button 
-                    type="button" 
-                    className="absolute right-1 top-1/2 transform -translate-y-1/2 px-2 py-1 text-xs border border-glass-border rounded hover:bg-white/10 text-text-dim"
-                    onClick={() => {
-                      const newValue = pulse === "NA" ? "" : "NA";
-                      setPulse(newValue);
-                      handleInputChange('pulse', newValue);
-                    }}
-                  >
-                    NA
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="border-b border-glass-border pb-4 mb-4">
-              <h2 className="text-xl font-semibold mb-2">Circumferences</h2>
-              <div className="flex flex-wrap gap-4">
-                <div className="w-full sm:w-64 relative">
-                  <TextField
-                    label="Hip"
-                    variant="outlined"
-                    size="small"
-                    fullWidth
-                    value={hip}
-                    onChange={(e) => {
-                      setHip(e.target.value);
-                      handleInputChange('hip', e.target.value);
-                    }}
-                  />
-                  <button 
-                    type="button" 
-                    className="absolute right-1 top-1/2 transform -translate-y-1/2 px-2 py-1 text-xs border border-glass-border rounded hover:bg-white/10 text-text-dim"
-                    onClick={() => {
-                      const newValue = hip === "NA" ? "" : "NA";
-                      setHip(newValue);
-                      handleInputChange('hip', newValue);
-                    }}
-                  >
-                    NA
-                  </button>
-                </div>
-                <div className="w-full sm:w-64 relative">
-                  <TextField
-                    label="Waist"
-                    variant="outlined"
-                    size="small"
-                    fullWidth
-                    value={waist}
-                    onChange={(e) => {
-                      setWaist(e.target.value);
-                      handleInputChange('waist', e.target.value);
-                    }}
-                  />
-                  <button 
-                    type="button" 
-                    className="absolute right-1 top-1/2 transform -translate-y-1/2 px-2 py-1 text-xs border border-glass-border rounded hover:bg-white/10 text-text-dim"
-                    onClick={() => {
-                      const newValue = waist === "NA" ? "" : "NA";
-                      setWaist(newValue);
-                      handleInputChange('waist', newValue);
-                    }}
-                  >
-                    NA
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-center mt-6">
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleSubmit}
-                className="w-full sm:w-64 bg-accent-gradient hover:brightness-110 text-[#061018] font-semibold shadow-lg shadow-accent-2/30"
-              >
-                Save
-              </Button>
-            </div>
-          </>
-        ) : (
-          <div className="text-center p-8">
-            <h2 className="text-xl text-text-dim">
-              Waiting for patient ID from IT Department...
-            </h2>
+    <DashboardShell title="General Examination Report">
+      <div className="border-b border-glass-border pb-4 mb-6">
+        <h2 className="text-xl font-display font-semibold mb-4 text-text">
+          Body Measurements
+        </h2>
+        <div className="flex flex-wrap gap-4">
+          <TextField
+            label="Height (cm)"
+            variant="outlined"
+            size="small"
+            className="w-full sm:w-64"
+            value={height}
+            onChange={(e) => {
+              setHeight(e.target.value);
+              handleInputChange('height', e.target.value);
+            }}
+            placeholder="Enter height in cm"
+          />
+          <TextField
+            label="Weight (kg)"
+            variant="outlined"
+            size="small"
+            className="w-full sm:w-64"
+            value={weight}
+            onChange={(e) => {
+              setWeight(e.target.value);
+              handleInputChange('weight', e.target.value);
+            }}
+            placeholder="Enter weight in kg"
+          />
+          <div className="w-full sm:w-64 relative">
+            <TextField
+              label="BMI"
+              variant="outlined"
+              size="small"
+              fullWidth
+              value={bmi}
+              InputProps={{
+                readOnly: true,
+                endAdornment: bmi ? (
+                  <span className={`px-3 py-0.5 rounded ml-1 min-w-[120px] text-center font-medium text-xs ${getBMICategoryStyle(bmi).bg} ${getBMICategoryStyle(bmi).text}`}>
+                    {getBMICategory(bmi)}
+                  </span>
+                ) : null,
+              }}
+              helperText="Automatically calculated"
+            />
           </div>
-        )}
+        </div>
       </div>
-    </div>
+
+      <div className="border-b border-glass-border pb-4 mb-6">
+        <h2 className="text-xl font-display font-semibold mb-4 text-text">
+          General Cleanliness
+        </h2>
+        <div className="flex flex-wrap items-center gap-4 mb-2">
+          <LabeledSelect
+            label="Nails"
+            value={nails}
+            onChange={(v) => {
+              setNails(v);
+              handleInputChange('nails', v);
+              if (v !== "Abnormality") {
+                setNailsDesc("");
+                handleInputChange('nails_desc', "");
+              }
+            }}
+            options={["No Abnormality", "Abnormality"]}
+          />
+          {nails === "Abnormality" && (
+            <TextField
+              label="Nails Abnormality Description"
+              variant="outlined"
+              size="small"
+              className="flex-1 min-w-[300px]"
+              value={nailsDesc}
+              onChange={(e) => {
+                setNailsDesc(e.target.value);
+                handleInputChange('nails_desc', e.target.value);
+              }}
+            />
+          )}
+        </div>
+        <div className="flex flex-wrap items-center gap-4 mb-2">
+          <LabeledSelect
+            label="Hair"
+            value={hair}
+            onChange={(v) => {
+              setHair(v);
+              handleInputChange('hair', v);
+              if (v !== "Abnormality") {
+                setHairDesc("");
+                handleInputChange('hair_desc', "");
+              }
+            }}
+            options={["No Abnormality", "Abnormality"]}
+          />
+          {hair === "Abnormality" && (
+            <TextField
+              label="Hair Abnormality Description"
+              variant="outlined"
+              size="small"
+              className="flex-1 min-w-[300px]"
+              value={hairDesc}
+              onChange={(e) => {
+                setHairDesc(e.target.value);
+                handleInputChange('hair_desc', e.target.value);
+              }}
+            />
+          )}
+        </div>
+        <div className="flex flex-wrap items-center gap-4">
+          <LabeledSelect
+            label="Skin"
+            value={skin}
+            onChange={(v) => {
+              setSkin(v);
+              handleInputChange('skin', v);
+              if (v !== "Abnormality") {
+                setSkinDesc("");
+                handleInputChange('skin_desc', "");
+              }
+            }}
+            options={["No Abnormality", "Abnormality"]}
+          />
+          {skin === "Abnormality" && (
+            <TextField
+              label="Skin Abnormality Description"
+              variant="outlined"
+              size="small"
+              className="flex-1 min-w-[300px]"
+              value={skinDesc}
+              onChange={(e) => {
+                setSkinDesc(e.target.value);
+                handleInputChange('skin_desc', e.target.value);
+              }}
+            />
+          )}
+        </div>
+      </div>
+
+      <div className="border-b border-glass-border pb-4 mb-4">
+        <h2 className="text-xl font-semibold mb-2 text-text">Figure, Allergy & Abdomen</h2>
+        <div className="flex flex-wrap items-center gap-4 mb-2">
+          <LabeledSelect
+            label="Anemia/Figure"
+            value={anemiaFigure}
+            onChange={(v) => {
+              setAnemiaFigure(v);
+              handleInputChange('anemia_figure', v);
+            }}
+            options={["No", "Yes"]}
+          />
+          <LabeledSelect
+            label="Abdomen Soft"
+            value={abdomenSoft}
+            onChange={(v) => {
+              setAbdomenSoft(v);
+              handleInputChange('abdomen_soft', v);
+            }}
+            options={["Yes", "No"]}
+          />
+          <LabeledSelect
+            label="Abdomen Hard"
+            value={abdomenHard}
+            onChange={(v) => {
+              setAbdomenHard(v);
+              handleInputChange('abdomen_hard', v);
+            }}
+            options={["Yes", "No"]}
+          />
+          <LabeledSelect
+            label="Abdomen Distended"
+            value={abdomenDistended}
+            onChange={(v) => {
+              setAbdomenDistended(v);
+              handleInputChange('abdomen_distended', v);
+            }}
+            options={["Yes", "No"]}
+          />
+          <LabeledSelect
+            label="Bowel Sound"
+            value={abdomenBowel}
+            onChange={(v) => {
+              setAbdomenBowel(v);
+              handleInputChange('abdomen_bowel_sound', v);
+            }}
+            options={["Present", "Absent"]}
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-4">
+          <LabeledSelect
+            label="Allergy"
+            value={allergy}
+            onChange={(v) => {
+              setAllergy(v);
+              handleInputChange('allergy', v);
+              if (v !== "YES") {
+                setAllergyDesc("");
+                handleInputChange('allergy_desc', "");
+              }
+            }}
+            options={["No", "YES"]}
+          />
+          {allergy === "YES" && (
+            <TextField
+              label="Allergy Description"
+              variant="outlined"
+              size="small"
+              className="flex-1 min-w-[300px]"
+              value={allergyDesc}
+              onChange={(e) => {
+                setAllergyDesc(e.target.value);
+                handleInputChange('allergy_desc', e.target.value);
+              }}
+            />
+          )}
+        </div>
+      </div>
+
+      <div className="border-b border-glass-border pb-4 mb-4">
+        <h2 className="text-xl font-semibold mb-2 text-text">Central Nervous System</h2>
+        <div className="flex flex-wrap items-center gap-4 mb-2">
+          <LabeledSelect
+            label="Conscious"
+            value={cnsConscious}
+            onChange={(v) => {
+              setCnsConscious(v);
+              handleInputChange('cns_conscious', v);
+            }}
+            options={["Yes", "No"]}
+          />
+          <LabeledSelect
+            label="Oriented"
+            value={cnsOriented}
+            onChange={(v) => {
+              setCnsOriented(v);
+              handleInputChange('cns_oriented', v);
+            }}
+            options={["Yes", "No"]}
+          />
+          <LabeledSelect
+            label="Playful"
+            value={cnsPlayful}
+            onChange={(v) => {
+              setCnsPlayful(v);
+              handleInputChange('cns_playful', v);
+            }}
+            options={["Yes", "No"]}
+          />
+          <LabeledSelect
+            label="Active"
+            value={cnsActive}
+            onChange={(v) => {
+              setCnsActive(v);
+              handleInputChange('cns_active', v);
+            }}
+            options={["Yes", "No"]}
+          />
+          <LabeledSelect
+            label="Alert"
+            value={cnsAlert}
+            onChange={(v) => {
+              setCnsAlert(v);
+              handleInputChange('cns_alert', v);
+            }}
+            options={["Yes", "No"]}
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-4">
+          <LabeledSelect
+            label="Speech"
+            value={cnsSpeech}
+            onChange={(v) => {
+              setCnsSpeech(v);
+              handleInputChange('cns_speech', v);
+              if (v !== "Abnormal") {
+                setCnsSpeechDesc("");
+                handleInputChange('cns_speech_desc', "");
+              }
+            }}
+            options={["Normal", "Abnormal"]}
+          />
+          {cnsSpeech === "Abnormal" && (
+            <TextField
+              label="Speech Abnormality Description"
+              variant="outlined"
+              size="small"
+              className="flex-1 min-w-[300px]"
+              value={cnsSpeechDesc}
+              onChange={(e) => {
+                setCnsSpeechDesc(e.target.value);
+                handleInputChange('cns_speech_desc', e.target.value);
+              }}
+            />
+          )}
+        </div>
+      </div>
+
+      <div className="border-b border-glass-border pb-4 mb-4">
+        <h2 className="text-xl font-semibold mb-2 text-text">Past History</h2>
+        <div className="flex flex-wrap gap-2">
+          <LabeledSelect
+            label="Medical"
+            value={pastMedical}
+            onChange={(v) => {
+              setPastMedical(v);
+              handleInputChange('past_medical', v);
+            }}
+            options={["Yes", "No", "Not Known"]}
+          />
+          <LabeledSelect
+            label="Surgical"
+            value={pastSurgical}
+            onChange={(v) => {
+              setPastSurgical(v);
+              handleInputChange('past_surgical', v);
+            }}
+            options={["Yes", "No", "Not Known"]}
+          />
+        </div>
+      </div>
+
+      <h1 className="text-2xl font-bold mb-4 text-text">Vitals Examination Report</h1>
+
+      <div className="border-b border-glass-border pb-4 mb-4">
+        <h2 className="text-xl font-semibold mb-2 text-text">Vital Signs</h2>
+        <div className="flex flex-wrap gap-4">
+          <div className="w-full sm:w-64 relative">
+            <TextField
+              label="BP"
+              variant="outlined"
+              size="small"
+              fullWidth
+              value={bp}
+              onChange={(e) => {
+                setBp(e.target.value);
+                handleInputChange('bp', e.target.value);
+              }}
+            />
+            <button
+              type="button"
+              className="absolute right-1 top-1/2 transform -translate-y-1/2 px-2 py-1 text-xs border border-glass-border rounded hover:bg-white/10 text-text-dim"
+              onClick={() => {
+                const newValue = bp === "NA" ? "" : "NA";
+                setBp(newValue);
+                handleInputChange('bp', newValue);
+              }}
+            >
+              NA
+            </button>
+          </div>
+          <div className="w-full sm:w-64 relative">
+            <TextField
+              label="Pulse"
+              variant="outlined"
+              size="small"
+              fullWidth
+              value={pulse}
+              onChange={(e) => {
+                setPulse(e.target.value);
+                handleInputChange('pulse', e.target.value);
+              }}
+            />
+            <button
+              type="button"
+              className="absolute right-1 top-1/2 transform -translate-y-1/2 px-2 py-1 text-xs border border-glass-border rounded hover:bg-white/10 text-text-dim"
+              onClick={() => {
+                const newValue = pulse === "NA" ? "" : "NA";
+                setPulse(newValue);
+                handleInputChange('pulse', newValue);
+              }}
+            >
+              NA
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="border-b border-glass-border pb-4 mb-4">
+        <h2 className="text-xl font-semibold mb-2 text-text">Circumferences</h2>
+        <div className="flex flex-wrap gap-4">
+          <div className="w-full sm:w-64 relative">
+            <TextField
+              label="Hip"
+              variant="outlined"
+              size="small"
+              fullWidth
+              value={hip}
+              onChange={(e) => {
+                setHip(e.target.value);
+                handleInputChange('hip', e.target.value);
+              }}
+            />
+            <button
+              type="button"
+              className="absolute right-1 top-1/2 transform -translate-y-1/2 px-2 py-1 text-xs border border-glass-border rounded hover:bg-white/10 text-text-dim"
+              onClick={() => {
+                const newValue = hip === "NA" ? "" : "NA";
+                setHip(newValue);
+                handleInputChange('hip', newValue);
+              }}
+            >
+              NA
+            </button>
+          </div>
+          <div className="w-full sm:w-64 relative">
+            <TextField
+              label="Waist"
+              variant="outlined"
+              size="small"
+              fullWidth
+              value={waist}
+              onChange={(e) => {
+                setWaist(e.target.value);
+                handleInputChange('waist', e.target.value);
+              }}
+            />
+            <button
+              type="button"
+              className="absolute right-1 top-1/2 transform -translate-y-1/2 px-2 py-1 text-xs border border-glass-border rounded hover:bg-white/10 text-text-dim"
+              onClick={() => {
+                const newValue = waist === "NA" ? "" : "NA";
+                setWaist(newValue);
+                handleInputChange('waist', newValue);
+              }}
+            >
+              NA
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-center mt-6">
+        <SubmitButton onClick={handleSubmit} loading={saving}>
+          Save
+        </SubmitButton>
+      </div>
+    </DashboardShell>
   );
 };
 

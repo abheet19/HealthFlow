@@ -1,22 +1,14 @@
 import * as React from "react";
 import { useState, useContext, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import {
-  Button,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  TextField,
-} from "@mui/material";
 import { PatientContext } from "../context/PatientContext";
 import { useToast } from "../context/ToastContext";
-import { getApiUrl } from "../config/api";  // Import the API URL helper
+import DashboardShell from "../components/DashboardShell";
+import LabeledSelect from "../components/LabeledSelect";
+import SubmitButton from "../components/SubmitButton";
 
 const ENTDashboard: React.FC = () => {
   const { showToast } = useToast();
-  // Add entData state variable
-  const [entData, setEntData] = useState<Record<string, string>>({});
   // Left Ear fields
   const [leftEarDeformity, setLeftEarDeformity] = useState("");
   const [leftEarWax, setLeftEarWax] = useState("");
@@ -38,9 +30,9 @@ const ENTDashboard: React.FC = () => {
   const [throatPain, setThroatPain] = useState("");
   const [neckNodes, setNeckNodes] = useState("");
   const [tonsils, setTonsils] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const { updateDepartment, patientData, updatePatientId, resetPatientData } = useContext(PatientContext);
-  const [manualPatientId, setManualPatientId] = useState("");
+  const { updateDepartment, patientData, updatePatientId } = useContext(PatientContext);
   const location = useLocation();
 
   // Read patientId from URL and update context
@@ -87,73 +79,13 @@ const ENTDashboard: React.FC = () => {
     const handleGlobalReset = () => {
       resetForm(); // Reset all form fields
     };
-    
+
     window.addEventListener('patientDataReset', handleGlobalReset);
-    
+
     return () => {
       window.removeEventListener('patientDataReset', handleGlobalReset);
     };
   }, []);
-
-  // Dropdown helper with custom options parameter; default is ["Yes", "No"]
-  const dropdown = (
-    label: string,
-    value: string,
-    setValue: (v: string) => void,
-    options: string[] = ["Yes", "No"]
-  ) => (
-    <FormControl variant="outlined" size="small" className="w-full sm:w-64">
-      <InputLabel>{label}</InputLabel>
-      <Select
-        label={label}
-        value={value}
-        onChange={(e) => {
-          const newValue = e.target.value as string;
-          setValue(newValue);
-          
-          // Map field name based on label to match backend field names
-          let fieldName = '';
-          switch (label) {
-            // Left Ear
-            case "Deformity": 
-              fieldName = setValue === setLeftEarDeformity ? 'left_ear_deformity' : 'right_ear_deformity'; 
-              break;
-            case "Wax": 
-              fieldName = setValue === setLeftEarWax ? 'left_ear_wax' : 'right_ear_wax'; 
-              break;
-            case "Tympanic Membrane": 
-              fieldName = setValue === setLeftEarTympanic ? 'left_ear_tympanic_membrane' : 'right_ear_tympanic_membrane'; 
-              break;
-            case "Discharge": 
-              fieldName = setValue === setLeftEarDischarge ? 'left_ear_discharge' : 'right_ear_discharge';
-              break;
-            case "Normal Hearing": 
-              fieldName = setValue === setLeftEarNormHearing ? 'left_ear_normal_hearing' : 'right_ear_normal_hearing';
-              break;
-            // Nose
-            case "Left Obstruction": fieldName = 'left_nose_obstruction'; break;
-            case "Left Discharge": fieldName = 'left_nose_discharge'; break;
-            case "Right Obstruction": fieldName = 'right_nose_obstruction'; break;
-            case "Right Discharge": fieldName = 'right_nose_discharge'; break;
-            // Throat & Neck
-            case "Throat Pain": fieldName = 'throat_pain'; break;
-            case "Neck Nodes": fieldName = 'neck_nodes'; break;
-            case "Tonsils": fieldName = 'tonsils'; break;
-            default: fieldName = label.toLowerCase().replace(' ', '_');
-          }
-          
-          // Update in real-time
-          handleInputChange(fieldName, newValue);
-        }}
-      >
-        {options.map((opt) => (
-          <MenuItem key={opt} value={opt}>
-            {opt}
-          </MenuItem>
-        ))}
-      </Select>
-    </FormControl>
-  );
 
   const resetForm = () => {
     setLeftEarDeformity("");
@@ -180,12 +112,12 @@ const ENTDashboard: React.FC = () => {
     if (typeof window.inputDebounceTimers === 'undefined') {
       window.inputDebounceTimers = {};
     }
-    
+
     // Clear any existing timer for this field
     if (window.inputDebounceTimers[field]) {
       clearTimeout(window.inputDebounceTimers[field]);
     }
-    
+
     // Set a new timer to update context after typing stops
     window.inputDebounceTimers[field] = setTimeout(() => {
       // Update only the specific field that changed
@@ -203,177 +135,232 @@ const ENTDashboard: React.FC = () => {
       showToast("Please fill all required fields.", "error");
       return;
     }
-    
-    // Create data object with all field values
-    const data = {
-      left_ear_deformity: leftEarDeformity,
-      left_ear_wax: leftEarWax,
-      left_ear_tympanic_membrane: leftEarTympanic,
-      left_ear_discharge: leftEarDischarge,
-      left_ear_normal_hearing: leftEarNormHearing,
-      right_ear_deformity: rightEarDeformity,
-      right_ear_wax: rightEarWax,
-      right_ear_tympanic_membrane: rightEarTympanic,
-      right_ear_discharge: rightEarDischarge,
-      right_ear_normal_hearing: rightEarNormHearing,
-      left_nose_obstruction: leftNoseObstruction, 
-      left_nose_discharge: leftNoseDischarge,
-      right_nose_obstruction: rightNoseObstruction,
-      right_nose_discharge: rightNoseDischarge,
-      throat_pain: throatPain,
-      neck_nodes: neckNodes,
-      tonsils: tonsils,
-      isSubmitted: true // Add isSubmitted flag to mark this department as complete
-    };
-    
-    // Update patient data in context
-    updateDepartment("ent", data);
-    // Show success notification
-    showToast("ENT data saved successfully.", "success");
-    resetForm();
-  };
 
-  const handleFinalSubmit = async () => {
-    // ...validate ENT data...
+    setSaving(true);
     try {
-      const res = await fetch(getApiUrl("/api/submit_ent"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ /* ENT data */ })
-      });
-      const result = await res.json();
-      if (result.message === "ENT info submitted successfully.") {
-        showToast("ENT data submitted successfully.", "success");
-        // ...other logic...
-      } else {
-        showToast(result.message, "error");
-      }
-    } catch (error) {
-      showToast("Error submitting ENT data.", "error");
+      // Create data object with all field values
+      const data = {
+        left_ear_deformity: leftEarDeformity,
+        left_ear_wax: leftEarWax,
+        left_ear_tympanic_membrane: leftEarTympanic,
+        left_ear_discharge: leftEarDischarge,
+        left_ear_normal_hearing: leftEarNormHearing,
+        right_ear_deformity: rightEarDeformity,
+        right_ear_wax: rightEarWax,
+        right_ear_tympanic_membrane: rightEarTympanic,
+        right_ear_discharge: rightEarDischarge,
+        right_ear_normal_hearing: rightEarNormHearing,
+        left_nose_obstruction: leftNoseObstruction,
+        left_nose_discharge: leftNoseDischarge,
+        right_nose_obstruction: rightNoseObstruction,
+        right_nose_discharge: rightNoseDischarge,
+        throat_pain: throatPain,
+        neck_nodes: neckNodes,
+        tonsils: tonsils,
+        isSubmitted: true // Add isSubmitted flag to mark this department as complete
+      };
+
+      // Update patient data in context
+      updateDepartment("ent", data);
+      // Show success notification
+      showToast("ENT data saved successfully.", "success");
+      resetForm();
+    } catch {
+      showToast("Error saving ENT data.", "error");
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <div className="p-4 flex flex-col items-center bg-bg min-h-screen font-body">
-      <div className="bg-glass backdrop-blur-xl border border-glass-border shadow-lg rounded-2xl p-6 w-full max-w-4xl">
-        {patientData.patientId ? (
-          <>
-            <div className="mb-4 text-text-dim">
-              <p>Patient ID: {patientData.patientId}</p>
-              {patientData.it?.name && (
-                <p>Patient Name: <span className="font-bold">{patientData.it.name}</span></p>
-              )}
-            </div>
-            <h1 className="text-3xl font-display font-bold mb-6 text-text">
-              ENT Examination Report
-            </h1>
-            <div className="border-b border-glass-border pb-4 mb-6">
-              <h2 className="text-xl font-display font-semibold mb-4 text-text">Left Ear</h2>
-              <div className="flex flex-wrap gap-2">
-                {dropdown("Deformity", leftEarDeformity, setLeftEarDeformity)}
-                {dropdown("Wax", leftEarWax, setLeftEarWax)}
-                {dropdown(
-                  "Tympanic Membrane",
-                  leftEarTympanic,
-                  setLeftEarTympanic,
-                  ["Seen", "Unseen"]
-                )}
-                {dropdown("Discharge", leftEarDischarge, setLeftEarDischarge)}
-                {dropdown(
-                  "Normal Hearing",
-                  leftEarNormHearing,
-                  setLeftEarNormHearing
-                )}
-              </div>
-            </div>
-
-            <div className="border-b border-glass-border pb-4 mb-6">
-              <h2 className="text-xl font-display font-semibold mb-4 text-text">
-                Right Ear
-              </h2>
-              <div className="flex flex-wrap gap-2">
-                {dropdown("Deformity", rightEarDeformity, setRightEarDeformity)}
-                {dropdown("Wax", rightEarWax, setRightEarWax)}
-                {dropdown(
-                  "Tympanic Membrane",
-                  rightEarTympanic,
-                  setRightEarTympanic,
-                  ["Seen", "Unseen"]
-                )}
-                {dropdown("Discharge", rightEarDischarge, setRightEarDischarge)}
-                {dropdown(
-                  "Normal Hearing",
-                  rightEarNormHearing,
-                  setRightEarNormHearing
-                )}
-              </div>
-            </div>
-
-            <div className="border-b border-glass-border pb-4 mb-6">
-              <h2 className="text-xl font-display font-semibold mb-4 text-text">Nose</h2>
-              <div className="flex flex-wrap gap-2">
-                {dropdown(
-                  "Left Obstruction",
-                  leftNoseObstruction,
-                  setLeftNoseObstruction
-                )}
-                {dropdown(
-                  "Left Discharge",
-                  leftNoseDischarge,
-                  setLeftNoseDischarge
-                )}
-                {dropdown(
-                  "Right Obstruction",
-                  rightNoseObstruction,
-                  setRightNoseObstruction
-                )}
-                {dropdown(
-                  "Right Discharge",
-                  rightNoseDischarge,
-                  setRightNoseDischarge
-                )}
-              </div>
-            </div>
-
-            <div className="border-b border-glass-border pb-4 mb-6">
-              <h2 className="text-xl font-display font-semibold mb-4 text-text">
-                Throat & Neck
-              </h2>
-              <div className="flex flex-wrap gap-2">
-                {dropdown("Throat Pain", throatPain, setThroatPain)}
-                {dropdown("Neck Nodes", neckNodes, setNeckNodes, [
-                  "Present",
-                  "Absent",
-                ])}
-                {dropdown("Tonsils", tonsils, setTonsils, [
-                  "Enlarged",
-                  "Not Enlarged",
-                ])}
-              </div>
-            </div>
-
-            <div className="flex justify-center mt-6">
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleSubmit}
-                className="w-full sm:w-64 bg-accent-gradient hover:brightness-110 text-[#061018] font-semibold shadow-lg shadow-accent-2/30"
-              >
-                Save
-              </Button>
-            </div>
-          </>
-        ) : (
-          <div className="text-center p-8">
-            <h2 className="text-xl text-text-dim">
-              {!patientData.patientId 
-                ? "Waiting for patient ID from IT Department..." 
-                : "Waiting for patient information from IT Department..."}
-            </h2>
-          </div>
-        )}
+    <DashboardShell title="ENT Examination Report">
+      <div className="border-b border-glass-border pb-4 mb-6">
+        <h2 className="text-xl font-display font-semibold mb-4 text-text">Left Ear</h2>
+        <div className="flex flex-wrap gap-2">
+          <LabeledSelect
+            label="Deformity"
+            value={leftEarDeformity}
+            onChange={(v) => {
+              setLeftEarDeformity(v);
+              handleInputChange('left_ear_deformity', v);
+            }}
+            options={["Yes", "No"]}
+          />
+          <LabeledSelect
+            label="Wax"
+            value={leftEarWax}
+            onChange={(v) => {
+              setLeftEarWax(v);
+              handleInputChange('left_ear_wax', v);
+            }}
+            options={["Yes", "No"]}
+          />
+          <LabeledSelect
+            label="Tympanic Membrane"
+            value={leftEarTympanic}
+            onChange={(v) => {
+              setLeftEarTympanic(v);
+              handleInputChange('left_ear_tympanic_membrane', v);
+            }}
+            options={["Seen", "Unseen"]}
+          />
+          <LabeledSelect
+            label="Discharge"
+            value={leftEarDischarge}
+            onChange={(v) => {
+              setLeftEarDischarge(v);
+              handleInputChange('left_ear_discharge', v);
+            }}
+            options={["Yes", "No"]}
+          />
+          <LabeledSelect
+            label="Normal Hearing"
+            value={leftEarNormHearing}
+            onChange={(v) => {
+              setLeftEarNormHearing(v);
+              handleInputChange('left_ear_normal_hearing', v);
+            }}
+            options={["Yes", "No"]}
+          />
+        </div>
       </div>
-    </div>
+
+      <div className="border-b border-glass-border pb-4 mb-6">
+        <h2 className="text-xl font-display font-semibold mb-4 text-text">
+          Right Ear
+        </h2>
+        <div className="flex flex-wrap gap-2">
+          <LabeledSelect
+            label="Deformity"
+            value={rightEarDeformity}
+            onChange={(v) => {
+              setRightEarDeformity(v);
+              handleInputChange('right_ear_deformity', v);
+            }}
+            options={["Yes", "No"]}
+          />
+          <LabeledSelect
+            label="Wax"
+            value={rightEarWax}
+            onChange={(v) => {
+              setRightEarWax(v);
+              handleInputChange('right_ear_wax', v);
+            }}
+            options={["Yes", "No"]}
+          />
+          <LabeledSelect
+            label="Tympanic Membrane"
+            value={rightEarTympanic}
+            onChange={(v) => {
+              setRightEarTympanic(v);
+              handleInputChange('right_ear_tympanic_membrane', v);
+            }}
+            options={["Seen", "Unseen"]}
+          />
+          <LabeledSelect
+            label="Discharge"
+            value={rightEarDischarge}
+            onChange={(v) => {
+              setRightEarDischarge(v);
+              handleInputChange('right_ear_discharge', v);
+            }}
+            options={["Yes", "No"]}
+          />
+          <LabeledSelect
+            label="Normal Hearing"
+            value={rightEarNormHearing}
+            onChange={(v) => {
+              setRightEarNormHearing(v);
+              handleInputChange('right_ear_normal_hearing', v);
+            }}
+            options={["Yes", "No"]}
+          />
+        </div>
+      </div>
+
+      <div className="border-b border-glass-border pb-4 mb-6">
+        <h2 className="text-xl font-display font-semibold mb-4 text-text">Nose</h2>
+        <div className="flex flex-wrap gap-2">
+          <LabeledSelect
+            label="Left Obstruction"
+            value={leftNoseObstruction}
+            onChange={(v) => {
+              setLeftNoseObstruction(v);
+              handleInputChange('left_nose_obstruction', v);
+            }}
+            options={["Yes", "No"]}
+          />
+          <LabeledSelect
+            label="Left Discharge"
+            value={leftNoseDischarge}
+            onChange={(v) => {
+              setLeftNoseDischarge(v);
+              handleInputChange('left_nose_discharge', v);
+            }}
+            options={["Yes", "No"]}
+          />
+          <LabeledSelect
+            label="Right Obstruction"
+            value={rightNoseObstruction}
+            onChange={(v) => {
+              setRightNoseObstruction(v);
+              handleInputChange('right_nose_obstruction', v);
+            }}
+            options={["Yes", "No"]}
+          />
+          <LabeledSelect
+            label="Right Discharge"
+            value={rightNoseDischarge}
+            onChange={(v) => {
+              setRightNoseDischarge(v);
+              handleInputChange('right_nose_discharge', v);
+            }}
+            options={["Yes", "No"]}
+          />
+        </div>
+      </div>
+
+      <div className="border-b border-glass-border pb-4 mb-6">
+        <h2 className="text-xl font-display font-semibold mb-4 text-text">
+          Throat & Neck
+        </h2>
+        <div className="flex flex-wrap gap-2">
+          <LabeledSelect
+            label="Throat Pain"
+            value={throatPain}
+            onChange={(v) => {
+              setThroatPain(v);
+              handleInputChange('throat_pain', v);
+            }}
+            options={["Yes", "No"]}
+          />
+          <LabeledSelect
+            label="Neck Nodes"
+            value={neckNodes}
+            onChange={(v) => {
+              setNeckNodes(v);
+              handleInputChange('neck_nodes', v);
+            }}
+            options={["Present", "Absent"]}
+          />
+          <LabeledSelect
+            label="Tonsils"
+            value={tonsils}
+            onChange={(v) => {
+              setTonsils(v);
+              handleInputChange('tonsils', v);
+            }}
+            options={["Enlarged", "Not Enlarged"]}
+          />
+        </div>
+      </div>
+
+      <div className="flex justify-center mt-6">
+        <SubmitButton onClick={handleSubmit} loading={saving}>
+          Save
+        </SubmitButton>
+      </div>
+    </DashboardShell>
   );
 };
 

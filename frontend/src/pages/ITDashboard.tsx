@@ -1,16 +1,12 @@
 import * as React from "react";
 import { useState, useContext, useEffect, useRef } from "react";
-import {
-  Button,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-} from "@mui/material";
+import { Button, TextField } from "@mui/material";
 import { PatientContext } from "../context/PatientContext";
 import { getApiUrl } from "../config/api"; // Import API helper
 import { useToast } from "../context/ToastContext";
+import DashboardShell from "../components/DashboardShell";
+import LabeledSelect from "../components/LabeledSelect";
+import SubmitButton from "../components/SubmitButton";
 
 interface PatientData {
   patientId?: string;
@@ -55,8 +51,11 @@ const ITDashboard: React.FC = () => {
   const [completedDepts, setCompletedDepts] = useState<string[]>([]);
   const [showPhotoPreview, setShowPhotoPreview] = useState<boolean>(false);
   const photoPreviewRef = useRef<HTMLDivElement>(null);
+  const [generatingId, setGeneratingId] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  // Load IT form state if stored data exists
+  // Load IT form state if stored data exists, and keep it synced whenever
+  // patientData.it changes (e.g. a photo update arriving from another device).
   useEffect(() => {
     if (patientData.it) {
       setName(patientData.it.name || "");
@@ -70,11 +69,11 @@ const ITDashboard: React.FC = () => {
       setGender(patientData.it.gender || "");
       setBloodGroup(patientData.it.bloodGroup || "");
       setMedicalOfficer(patientData.it.medicalOfficer || "");
-      
+
       // Photo state synchronization
       if (patientData.it.photo) {
         setPhotoBase64(patientData.it.photo);
-        
+
         // Create a placeholder File object so the UI shows the photo is selected
         const dummyFile = new File([""], patientData.it.photoFileName || "patient_photo.jpg", { type: "image/jpeg" });
         setPhoto(dummyFile);
@@ -83,7 +82,7 @@ const ITDashboard: React.FC = () => {
         setPhoto(null);
         setPhotoBase64("");
         setShowPhotoPreview(false);
-        
+
         // Reset the file input
         const fileInput = document.getElementById('patient-photo-upload') as HTMLInputElement;
         if (fileInput) fileInput.value = '';
@@ -96,12 +95,12 @@ const ITDashboard: React.FC = () => {
     if (typeof window.inputDebounceTimers === 'undefined') {
       window.inputDebounceTimers = {};
     }
-    
+
     // Clear any existing timer for this field
     if (window.inputDebounceTimers[field]) {
       clearTimeout(window.inputDebounceTimers[field]);
     }
-    
+
     // Update local state immediately for smooth UI feedback
     switch(field) {
       case 'name': setName(value); break;
@@ -117,7 +116,7 @@ const ITDashboard: React.FC = () => {
       case 'medicalOfficer': setMedicalOfficer(value); break;
       // Photo is handled separately in handlePhotoChange
     }
-    
+
     // Set a new timer to update context after typing stops
     window.inputDebounceTimers[field] = setTimeout(() => {
       // Create a copy of the current IT data to ensure we don't lose any fields
@@ -125,12 +124,12 @@ const ITDashboard: React.FC = () => {
         ...(patientData.it || {}), // Use empty object as fallback if it doesn't exist
         [field]: value,
       };
-      
+
       // Make sure photo data is preserved
       if (photoBase64) {
         updatedItData.photo = photoBase64;
       }
-      
+
       // Update context with the complete data
       updateDepartment('it', updatedItData);
     }, 300); // 300ms debounce delay - adjust if needed
@@ -152,15 +151,15 @@ const ITDashboard: React.FC = () => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setPhoto(file);
-      
+
       // Create a new FileReader instance
       const reader = new FileReader();
-      
+
       reader.onload = () => {
         try {
           // Get the result as a string
           const result = reader.result as string;
-          
+
           // Process the image - resize and compress if needed
           const img = new Image();
           img.onload = () => {
@@ -169,7 +168,7 @@ const ITDashboard: React.FC = () => {
               const canvas = document.createElement('canvas');
               let width = img.width;
               let height = img.height;
-              
+
               // Limit dimensions to reasonable size for faster transmission
               const MAX_SIZE = 1024;
               if (width > height && width > MAX_SIZE) {
@@ -179,27 +178,26 @@ const ITDashboard: React.FC = () => {
                 width = Math.round((width * MAX_SIZE) / height);
                 height = MAX_SIZE;
               }
-              
+
               canvas.width = width;
               canvas.height = height;
-              
+
               // Draw and compress the image
               const ctx = canvas.getContext('2d');
               if (!ctx) {
                 throw new Error('Could not get canvas context');
               }
-              
+
               ctx.drawImage(img, 0, 0, width, height);
-              
+
               // Convert to base64 with compression (0.8 quality - good balance)
               const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
-              
+
               // Extract just the base64 data (remove data URL prefix)
               const base64Data = compressedBase64.split(',')[1];
-              
-              console.log('Photo processed successfully. Size:', base64Data.length);
+
               setPhotoBase64(base64Data);
-              
+
               // Update the IT data with the photo
               const updatedItData = {
                 ...(patientData.it || {}),
@@ -217,20 +215,18 @@ const ITDashboard: React.FC = () => {
                 photo: base64Data,
                 photoFileName: file.name || `camera_photo_${new Date().getTime()}.jpg`
               };
-              
+
               // Show the preview
               setShowPhotoPreview(true);
-              
+
               // Update patient context, which should trigger socket update
               updateDepartment('it', updatedItData);
-              
-              console.log('Photo update sent to server via socket');
             } catch (error) {
               console.error('Error processing image on canvas:', error);
               showToast('Error processing the photo', 'error');
             }
           };
-          
+
           // Set the image source to start loading
           img.src = result;
         } catch (error) {
@@ -238,27 +234,28 @@ const ITDashboard: React.FC = () => {
           showToast('Error processing the photo', 'error');
         }
       };
-      
+
       reader.onerror = () => {
         console.error('FileReader error:', reader.error);
         showToast('Error reading the photo file', 'error');
-        
+
         // Clear photo states to prevent partial/bad data
         setPhoto(null);
         setPhotoBase64("");
         setShowPhotoPreview(false);
-        
+
         // Reset the file input
         const fileInput = document.getElementById('patient-photo-upload') as HTMLInputElement;
         if (fileInput) fileInput.value = '';
       };
-      
+
       // Start reading the file
       reader.readAsDataURL(file);
     }
   };
 
   const generatePatientId = async () => {
+    setGeneratingId(true);
     try {
       const response = await fetch(getApiUrl('api/generate_patient_id'), {
         method: 'POST',
@@ -267,13 +264,13 @@ const ITDashboard: React.FC = () => {
         },
         body: JSON.stringify({ date: dob }) // Send the DOB from the form
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
+
       if (data.success && data.patientId) {
         updatePatientId(data.patientId);
         showToast(`Patient ID generated: ${data.patientId}`, "success");
@@ -281,8 +278,10 @@ const ITDashboard: React.FC = () => {
       } else {
         throw new Error('No patient ID in response');
       }
-    } catch (error) {
+    } catch {
       showToast('Failed to generate patient ID. Please try again.', 'error');
+    } finally {
+      setGeneratingId(false);
     }
   };
 
@@ -301,7 +300,7 @@ const ITDashboard: React.FC = () => {
     setPhoto(null);
     setPhotoBase64(""); // Ensure base64 data is cleared
     setShowPhotoPreview(false); // Ensure photo preview is hidden
-    
+
     // Reset the file input to allow selecting the same file again
     const fileInput = document.getElementById('patient-photo-upload') as HTMLInputElement;
     if (fileInput) fileInput.value = '';
@@ -344,7 +343,7 @@ const ITDashboard: React.FC = () => {
       showToast("Please generate a Patient ID first.", "error");
       return;
     }
-    
+
     if (!validateITData()) {
       showToast("Please fill all required IT fields.", "error");
       return;
@@ -381,6 +380,7 @@ const ITDashboard: React.FC = () => {
       captured_date: new Date().toISOString()  // New field for current date capture
     };
 
+    setSubmitting(true);
     try {
       const res = await fetch(getApiUrl("api/submit_patient"), {
         method: "POST",
@@ -395,8 +395,10 @@ const ITDashboard: React.FC = () => {
       } else {
         showToast(result.message, "error");
       }
-    } catch (error) {
+    } catch {
       showToast("Error submitting patient data.", "error");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -484,332 +486,255 @@ const ITDashboard: React.FC = () => {
     };
   }, []);
 
-  // Original effect to update form when patientData changes
-  useEffect(() => {
-    if (patientData.it) {
-      setName(patientData.it.name || "");
-      setDiv(patientData.it.div || "");
-      setRollNo(patientData.it.rollNo || "");
-      setAdminNo(patientData.it.adminNo || "");
-      setFatherName(patientData.it.fatherName || "");
-      setMotherName(patientData.it.motherName || "");
-      setMobile(patientData.it.mobile || "");
-      setDob(patientData.it.dob || "");
-      setGender(patientData.it.gender || "");
-      setBloodGroup(patientData.it.bloodGroup || "");
-      setMedicalOfficer(patientData.it.medicalOfficer || "");
-      
-      // Photo state synchronization
-      if (patientData.it.photo) {
-        setPhotoBase64(patientData.it.photo);
-        
-        // Create a placeholder File object so the UI shows the photo is selected
-        const dummyFile = new File([""], patientData.it.photoFileName || "patient_photo.jpg", { type: "image/jpeg" });
-        setPhoto(dummyFile);
-      } else {
-        // If photo was deleted on another device
-        setPhoto(null);
-        setPhotoBase64("");
-        setShowPhotoPreview(false);
-        
-        // Reset the file input
-        const fileInput = document.getElementById('patient-photo-upload') as HTMLInputElement;
-        if (fileInput) fileInput.value = '';
-      }
-    }
-  }, [patientData.it]);
-
   return (
-    <div className="p-4 flex flex-col items-center bg-bg min-h-screen font-body">
-      <div className="bg-glass backdrop-blur-xl border border-glass-border shadow-lg rounded-2xl p-6 w-full max-w-4xl">
-        <h1 className="text-3xl font-display font-bold mb-6 text-text">IT Dashboard</h1>
-        <div className="border-b border-glass-border pb-4 mb-6">
-          <h2 className="text-xl font-display font-semibold mb-4 text-text">
-            Basic Information
-          </h2>
-          <div className="flex flex-wrap gap-4">
-            <TextField
-              label="Name"
-              variant="outlined"
-              size="small"
-              className="w-full sm:w-64"
-              value={name}
-              onChange={(e) => handleInputChange('name', e.target.value)}
-            />
-            <TextField
-              label="DIV"
-              variant="outlined"
-              size="small"
-              className="w-full sm:w-64"
-              value={div}
-              onChange={(e) => handleInputChange('div', e.target.value)}
-            />
-            <TextField
-              label="Roll No"
-              variant="outlined"
-              size="small"
-              className="w-full sm:w-64"
-              value={rollNo}
-              onChange={(e) => handleInputChange('rollNo', e.target.value)}
-            />
-            <TextField
-              label="Admin No"
-              variant="outlined"
-              size="small"
-              className="w-full sm:w-64"
-              value={adminNo}
-              onChange={(e) => handleInputChange('adminNo', e.target.value)}
-            />
-          </div>
+    <DashboardShell title="IT Dashboard" requirePatientId={false}>
+      <div className="border-b border-glass-border pb-4 mb-6">
+        <h2 className="text-xl font-display font-semibold mb-4 text-text">
+          Basic Information
+        </h2>
+        <div className="flex flex-wrap gap-4">
+          <TextField
+            label="Name"
+            variant="outlined"
+            size="small"
+            className="w-full sm:w-64"
+            value={name}
+            onChange={(e) => handleInputChange('name', e.target.value)}
+          />
+          <TextField
+            label="DIV"
+            variant="outlined"
+            size="small"
+            className="w-full sm:w-64"
+            value={div}
+            onChange={(e) => handleInputChange('div', e.target.value)}
+          />
+          <TextField
+            label="Roll No"
+            variant="outlined"
+            size="small"
+            className="w-full sm:w-64"
+            value={rollNo}
+            onChange={(e) => handleInputChange('rollNo', e.target.value)}
+          />
+          <TextField
+            label="Admin No"
+            variant="outlined"
+            size="small"
+            className="w-full sm:w-64"
+            value={adminNo}
+            onChange={(e) => handleInputChange('adminNo', e.target.value)}
+          />
         </div>
-        <div className="border-b border-glass-border pb-4 mb-6">
-          <h2 className="text-xl font-display font-semibold mb-4 text-text">
-            Family & Contact Details
-          </h2>
-          <div className="flex flex-wrap gap-4">
-            <TextField
-              label="Father's Name"
-              variant="outlined"
-              size="small"
-              className="w-full sm:w-64"
-              value={fatherName}
-              onChange={(e) => handleInputChange('fatherName', e.target.value)}
-            />
-            <TextField
-              label="Mother's Name"
-              variant="outlined"
-              size="small"
-              className="w-full sm:w-64"
-              value={motherName}
-              onChange={(e) => handleInputChange('motherName', e.target.value)}
-            />
-            <TextField
-              label="Mobile"
-              variant="outlined"
-              size="small"
-              className="w-full sm:w-64"
-              value={mobile}
-              onChange={(e) => handleInputChange('mobile', e.target.value)}
-            />
-          </div>
-        </div>
-        <div className="border-b border-glass-border pb-4 mb-6">
-          <h2 className="text-xl font-display font-semibold mb-4 text-text">
-            Additional Details
-          </h2>
-          <div className="flex flex-wrap gap-4">
-            <TextField
-              label="DOB"
-              type="date"
-              InputLabelProps={{ shrink: true }}
-              variant="outlined"
-              size="small"
-              className="w-full sm:w-64"
-              value={dob}
-              onChange={(e) => handleInputChange('dob', e.target.value)}
-            />
-            <FormControl
-              variant="outlined"
-              size="small"
-              className="w-full sm:w-64"
-            >
-              <InputLabel>Gender</InputLabel>
-              <Select
-                label="Gender"
-                value={gender}
-                onChange={(e) => handleInputChange('gender', e.target.value as string)}
-              >
-                <MenuItem value="Male">Male</MenuItem>
-                <MenuItem value="Female">Female</MenuItem>
-                <MenuItem value="Other">Other</MenuItem>
-              </Select>
-            </FormControl>
-            <FormControl
-              variant="outlined"
-              size="small"
-              className="w-full sm:w-64"
-            >
-              <InputLabel>Blood Group</InputLabel>
-              <Select
-                label="Blood Group"
-                value={bloodGroup}
-                onChange={(e) => handleInputChange('bloodGroup', e.target.value as string)}
-              >
-                <MenuItem value="A+">A+</MenuItem>
-                <MenuItem value="A-">A-</MenuItem>
-                <MenuItem value="B+">B+</MenuItem>
-                <MenuItem value="B-">B-</MenuItem>
-                <MenuItem value="O+">O+</MenuItem>
-                <MenuItem value="O-">O-</MenuItem>
-                <MenuItem value="AB+">AB+</MenuItem>
-                <MenuItem value="AB-">AB-</MenuItem>
-                <MenuItem value="NA">NA</MenuItem>
-              </Select>
-            </FormControl>
-            <TextField
-              label="Medical Officer"
-              variant="outlined"
-              size="small"
-              className="w-full sm:w-64"
-              value={medicalOfficer}
-              onChange={(e) => handleInputChange('medicalOfficer', e.target.value)}
-            />
-            <div className="w-full sm:w-64 flex flex-col">
-              <input
-                id="patient-photo-upload"
-                type="file"
-                accept="image/*"
-                required
-                capture="environment"
-                onChange={handlePhotoChange}
-                className="hidden" // Hide the native input
-              />
-              <div className="flex items-center">
-                <label 
-                  htmlFor="patient-photo-upload" 
-                  className={`flex items-center justify-center px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 text-sm ${
-                    photo 
-                    ? 'bg-green-50 border border-green-500 text-green-700 hover:bg-green-100 flex-grow' 
-                    : 'bg-blue-500 text-white hover:bg-blue-600 shadow-sm'
-                  }`}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 mr-1.5 ${photo ? 'text-green-600' : 'text-white'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    {photo ? 
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /> :
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                    }
-                  </svg>
-                  <span className="font-medium whitespace-nowrap">
-                    {photo ? 'Photo Uploaded' : 'Upload Photo'}
-                  </span>
-                </label>
-                {photo && (
-                  <button 
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setPhoto(null);
-                      setPhotoBase64("");
-                      setShowPhotoPreview(false);
-                      
-                      // Update context to remove the photo, which will trigger the broadcast
-                      updateDepartment("it", {
-                        ...patientData.it,
-                        photo: undefined,
-                        photoFileName: undefined
-                      });
-                      
-                      // Reset the file input
-                      const fileInput = document.getElementById('patient-photo-upload') as HTMLInputElement;
-                      if (fileInput) fileInput.value = '';
-                    }}
-                    className="ml-2 p-1.5 bg-white/10 hover:bg-white/20 text-text-dim rounded-full flex items-center justify-center transition-colors"
-                    title="Delete photo (will be removed from all devices)"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
-                )}
-              </div>
-              {photo && (
-                <div className="mt-1 flex items-center text-xs">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1 text-green-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span className="text-text-dim truncate max-w-[180px]">
-                    {photo.name}
-                  </span>
-                  <button 
-                    onClick={() => setShowPhotoPreview(prev => !prev)} 
-                    className="ml-2 text-accent hover:brightness-110 underline"
-                  >
-                    {showPhotoPreview ? 'Hide Preview' : 'Preview'}
-                  </button>
-                </div>
-              )}
-              {/* Photo preview section */}
-              {showPhotoPreview && photoBase64 && (
-                <div 
-                  className="mt-3 border border-glass-border p-1 rounded bg-surface shadow-sm relative" 
-                  ref={photoPreviewRef}
-                >
-                  <img 
-                    src={`data:image/jpeg;base64,${photoBase64}`}
-                    alt="Patient Photo Preview" 
-                    className="w-full max-h-[200px] object-contain"
-                  />
-                  <button
-                    onClick={() => setShowPhotoPreview(false)}
-                    className="absolute top-1 right-1 bg-surface border border-glass-border rounded-full p-1 shadow-sm"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-text-dim" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                  <div className="text-xs text-center text-text-dim py-1">
-                    Photo will appear on all connected devices
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="mb-6">
-          {patientData.patientId ? (
-            <div className="border border-glass-border p-3 rounded-lg bg-white/5 shadow-sm">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div className="flex flex-wrap items-center">
-                  <span className="text-sm font-medium text-text-dim mr-2 whitespace-nowrap">Patient ID:</span>
-                  <div className="w-full sm:w-auto mt-1 sm:mt-0">
-                    <span className="inline-block text-sm font-mono bg-black/30 text-text px-2 py-1 rounded border border-glass-border select-all overflow-hidden text-ellipsis max-w-full break-all">
-                      {patientData.patientId}
-                    </span>
-                  </div>
-                </div>
-                <Button
-                  variant="outlined"
-                  color="error"
-                  size="small"
-                  onClick={handleClearPatientId}
-                  className="whitespace-nowrap mt-2 sm:mt-0"
-                >
-                  Reset All Data
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <Button variant="outlined" onClick={generatePatientId} className="mb-4">
-              Register Patient
-            </Button>
-          )}
-        </div>
-        <div className="flex justify-center mt-6">
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleFinalSubmit}
-            className="w-full sm:w-64 bg-accent-gradient hover:brightness-110 text-[#061018] font-semibold shadow-lg shadow-accent-2/30"
-          >
-            Submit
-          </Button>
-        </div>
-        {renderDataSummary()}
       </div>
-    </div>
+      <div className="border-b border-glass-border pb-4 mb-6">
+        <h2 className="text-xl font-display font-semibold mb-4 text-text">
+          Family & Contact Details
+        </h2>
+        <div className="flex flex-wrap gap-4">
+          <TextField
+            label="Father's Name"
+            variant="outlined"
+            size="small"
+            className="w-full sm:w-64"
+            value={fatherName}
+            onChange={(e) => handleInputChange('fatherName', e.target.value)}
+          />
+          <TextField
+            label="Mother's Name"
+            variant="outlined"
+            size="small"
+            className="w-full sm:w-64"
+            value={motherName}
+            onChange={(e) => handleInputChange('motherName', e.target.value)}
+          />
+          <TextField
+            label="Mobile"
+            variant="outlined"
+            size="small"
+            className="w-full sm:w-64"
+            value={mobile}
+            onChange={(e) => handleInputChange('mobile', e.target.value)}
+          />
+        </div>
+      </div>
+      <div className="border-b border-glass-border pb-4 mb-6">
+        <h2 className="text-xl font-display font-semibold mb-4 text-text">
+          Additional Details
+        </h2>
+        <div className="flex flex-wrap gap-4">
+          <TextField
+            label="DOB"
+            type="date"
+            InputLabelProps={{ shrink: true }}
+            variant="outlined"
+            size="small"
+            className="w-full sm:w-64"
+            value={dob}
+            onChange={(e) => handleInputChange('dob', e.target.value)}
+          />
+          <LabeledSelect
+            label="Gender"
+            value={gender}
+            onChange={(v) => handleInputChange('gender', v)}
+            options={["Male", "Female", "Other"]}
+          />
+          <LabeledSelect
+            label="Blood Group"
+            value={bloodGroup}
+            onChange={(v) => handleInputChange('bloodGroup', v)}
+            options={["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-", "NA"]}
+          />
+          <TextField
+            label="Medical Officer"
+            variant="outlined"
+            size="small"
+            className="w-full sm:w-64"
+            value={medicalOfficer}
+            onChange={(e) => handleInputChange('medicalOfficer', e.target.value)}
+          />
+          <div className="w-full sm:w-64 flex flex-col">
+            <input
+              id="patient-photo-upload"
+              type="file"
+              accept="image/*"
+              required
+              capture="environment"
+              onChange={handlePhotoChange}
+              className="hidden" // Hide the native input
+            />
+            <div className="flex items-center">
+              <label
+                htmlFor="patient-photo-upload"
+                className={`flex items-center justify-center px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 text-sm ${
+                  photo
+                  ? 'bg-success/10 border border-success/60 text-success hover:bg-success/20 flex-grow'
+                  : 'bg-accent-gradient text-on-accent hover:brightness-110 shadow-sm'
+                }`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 mr-1.5 ${photo ? 'text-success' : 'text-on-accent'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  {photo ?
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /> :
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  }
+                </svg>
+                <span className="font-medium whitespace-nowrap">
+                  {photo ? 'Photo Uploaded' : 'Upload Photo'}
+                </span>
+              </label>
+              {photo && (
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setPhoto(null);
+                    setPhotoBase64("");
+                    setShowPhotoPreview(false);
+
+                    // Update context to remove the photo, which will trigger the broadcast
+                    updateDepartment("it", {
+                      ...patientData.it,
+                      photo: undefined,
+                      photoFileName: undefined
+                    });
+
+                    // Reset the file input
+                    const fileInput = document.getElementById('patient-photo-upload') as HTMLInputElement;
+                    if (fileInput) fileInput.value = '';
+                  }}
+                  className="ml-2 p-1.5 bg-white/10 hover:bg-white/20 text-text-dim rounded-full flex items-center justify-center transition-colors"
+                  title="Delete photo (will be removed from all devices)"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              )}
+            </div>
+            {photo && (
+              <div className="mt-1 flex items-center text-xs">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1 text-success flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-text-dim truncate max-w-[180px]">
+                  {photo.name}
+                </span>
+                <button
+                  onClick={() => setShowPhotoPreview(prev => !prev)}
+                  className="ml-2 text-accent hover:brightness-110 underline"
+                >
+                  {showPhotoPreview ? 'Hide Preview' : 'Preview'}
+                </button>
+              </div>
+            )}
+            {/* Photo preview section */}
+            {showPhotoPreview && photoBase64 && (
+              <div
+                className="mt-3 border border-glass-border p-1 rounded bg-surface shadow-sm relative"
+                ref={photoPreviewRef}
+              >
+                <img
+                  src={`data:image/jpeg;base64,${photoBase64}`}
+                  alt="Patient Photo Preview"
+                  className="w-full max-h-[200px] object-contain"
+                />
+                <button
+                  onClick={() => setShowPhotoPreview(false)}
+                  className="absolute top-1 right-1 bg-surface border border-glass-border rounded-full p-1 shadow-sm"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-text-dim" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+                <div className="text-xs text-center text-text-dim py-1">
+                  Photo will appear on all connected devices
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+      <div className="mb-6">
+        {patientData.patientId ? (
+          <div className="border border-glass-border p-3 rounded-lg bg-white/5 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex flex-wrap items-center">
+                <span className="text-sm font-medium text-text-dim mr-2 whitespace-nowrap">Patient ID:</span>
+                <div className="w-full sm:w-auto mt-1 sm:mt-0">
+                  <span className="inline-block text-sm font-mono bg-black/30 text-text px-2 py-1 rounded border border-glass-border select-all overflow-hidden text-ellipsis max-w-full break-all">
+                    {patientData.patientId}
+                  </span>
+                </div>
+              </div>
+              <Button
+                variant="outlined"
+                color="error"
+                size="small"
+                onClick={handleClearPatientId}
+                className="whitespace-nowrap mt-2 sm:mt-0"
+              >
+                Reset All Data
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <Button
+            variant="outlined"
+            onClick={generatePatientId}
+            disabled={generatingId}
+            className="mb-4"
+          >
+            {generatingId ? "Generating..." : "Register Patient"}
+          </Button>
+        )}
+      </div>
+      <div className="flex justify-center mt-6">
+        <SubmitButton onClick={handleFinalSubmit} loading={submitting}>
+          Submit
+        </SubmitButton>
+      </div>
+      {renderDataSummary()}
+    </DashboardShell>
   );
 };
-
-// Add at top of file with other imports:
-function debounce<F extends (...args: any[]) => any>(func: F, wait: number) {
-  let timeout: ReturnType<typeof setTimeout>;
-  return function executedFunction(...args: Parameters<F>) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-  };
-}
 
 export default ITDashboard;

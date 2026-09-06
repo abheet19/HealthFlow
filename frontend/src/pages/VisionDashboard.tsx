@@ -1,10 +1,12 @@
 import * as React from "react";
 import { useState, useContext, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { Button, TextField, FormControl, InputLabel, Select, MenuItem } from "@mui/material";
+import { TextField } from "@mui/material";
 import { PatientContext } from "../context/PatientContext";
 import { useToast } from "../context/ToastContext";
-import { getApiUrl } from "../config/api";  // Import the API URL helper
+import DashboardShell from "../components/DashboardShell";
+import LabeledSelect from "../components/LabeledSelect";
+import SubmitButton from "../components/SubmitButton";
 
 const VisionDashboard: React.FC = () => {
   const [reVision, setReVision] = useState("6/6");
@@ -13,11 +15,9 @@ const VisionDashboard: React.FC = () => {
   const [leColor, setLeColor] = useState("");
   const [reSquint, setReSquint] = useState("");
   const [leSquint, setLeSquint] = useState("");
-  const [manualPatientId, setManualPatientId] = useState("");
-  // Add visionData state variable
-  const [visionData, setVisionData] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
 
-  const { updateDepartment, patientData, updatePatientId, resetPatientData } = useContext(PatientContext);
+  const { updateDepartment, patientData, updatePatientId } = useContext(PatientContext);
   const { showToast } = useToast();
   const location = useLocation();
 
@@ -32,14 +32,6 @@ const VisionDashboard: React.FC = () => {
       setLeSquint(patientData.vision.le_squint || "");
     }
   }, [patientData.vision]);
-
-  useEffect(() => {
-    // Optionally, if patientData.patientId is absent, prompt user to enter it
-    if (!patientData.patientId && manualPatientId) {
-      // update context with manually provided patient id
-      // ...call updatePatientId(manualPatientId)
-    }
-  }, [patientData.patientId, manualPatientId]);
 
   // Automatically read patientId from the URL and update context if not already set
   useEffect(() => {
@@ -62,29 +54,13 @@ const VisionDashboard: React.FC = () => {
     const handleGlobalReset = () => {
       resetForm(); // Reset all form fields
     };
-    
+
     window.addEventListener('patientDataReset', handleGlobalReset);
-    
+
     return () => {
       window.removeEventListener('patientDataReset', handleGlobalReset);
     };
   }, []);
-
-  // Original effect for loading data from context
-  useEffect(() => {
-    if (patientData.vision) {
-      setReVision(patientData.vision.re_vision || "6/6");
-      setLeVision(patientData.vision.le_vision || "6/6");
-      setReColor(patientData.vision.re_color_blindness || "");
-      setLeColor(patientData.vision.le_color_blindness || "");
-      setReSquint(patientData.vision.re_squint || "");
-      setLeSquint(patientData.vision.le_squint || "");
-    }
-  }, [patientData.vision]);
-
-  const updateVision = (updates: Partial<Record<string, string>>) => {
-    // Don't update department data until submit button is clicked
-  };
 
   const resetForm = () => {
     setReVision("6/6");
@@ -102,39 +78,27 @@ const VisionDashboard: React.FC = () => {
       return;
     }
 
-    // Create data object with all field values
-    const data = {
-      re_vision: reVision,
-      le_vision: leVision,
-      re_color_blindness: reColor,
-      le_color_blindness: leColor,
-      re_squint: reSquint,
-      le_squint: leSquint,
-      isSubmitted: true // Add isSubmitted flag to mark this department as complete
-    };
-
-    // Update patient data in context
-    updateDepartment("vision", data);
-    showToast("Vision data saved successfully", "success");
-    resetForm();
-  };
-
-  const handleFinalSubmit = async () => {
-    // ...validate Vision data...
+    setSaving(true);
     try {
-      const res = await fetch(getApiUrl("/api/submit_vision"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ /* Vision data */ })
-      });
-      const result = await res.json();
-      if (result.message === "Vision info submitted successfully.") {
-        showToast("Vision data submitted successfully.", "success");
-      } else {
-        showToast(result.message, "error");
-      }
-    } catch (error) {
-      showToast("Error submitting Vision data.", "error");
+      // Create data object with all field values
+      const data = {
+        re_vision: reVision,
+        le_vision: leVision,
+        re_color_blindness: reColor,
+        le_color_blindness: leColor,
+        re_squint: reSquint,
+        le_squint: leSquint,
+        isSubmitted: true // Add isSubmitted flag to mark this department as complete
+      };
+
+      // Update patient data in context
+      updateDepartment("vision", data);
+      showToast("Vision data saved successfully", "success");
+      resetForm();
+    } catch {
+      showToast("Error saving Vision data.", "error");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -143,150 +107,99 @@ const VisionDashboard: React.FC = () => {
     if (typeof window.inputDebounceTimers === 'undefined') {
       window.inputDebounceTimers = {};
     }
-    
+
     // Clear any existing timer for this field
     if (window.inputDebounceTimers[field]) {
       clearTimeout(window.inputDebounceTimers[field]);
     }
-    
+
     // Set a new timer to update context after typing stops
     window.inputDebounceTimers[field] = setTimeout(() => {
       // Update only the specific field that changed
       updateDepartment('vision', { [field]: value });
     }, 300); // 300ms debounce delay - adjust if needed
-  
-    // Also update the local state to ensure immediate UI feedback
-    switch(field) {
-      case 're_vision': setReVision(value); break;
-      case 'le_vision': setLeVision(value); break;
-      case 're_color_blindness': setReColor(value); break;
-      case 'le_color_blindness': setLeColor(value); break;
-      case 're_squint': setReSquint(value); break;
-      case 'le_squint': setLeSquint(value); break;
-    }
   };
 
   return (
-    <div className="p-4 flex flex-col items-center bg-bg min-h-screen font-body">
-      <div className="bg-glass backdrop-blur-xl border border-glass-border shadow-lg rounded-2xl p-6 w-full max-w-4xl">
-        {patientData.patientId ? (
-          <>
-            <div className="mb-4 text-text-dim">
-              <p>Patient ID: {patientData.patientId}</p>
-              {patientData.it?.name && (
-                <p>Patient Name: <span className="font-bold">{patientData.it.name}</span></p>
-              )}
-            </div>
-            <h1 className="text-3xl font-display font-bold mb-6 text-text">
-              Vision Examination Report
-            </h1>
-
-            <div className="border-b border-glass-border pb-4 mb-6">
-              <h2 className="text-xl font-display font-semibold mb-4 text-text">
-                Right Eye
-              </h2>
-              <div className="flex flex-wrap gap-2">
-                <TextField
-                  label="Vision"
-                  variant="outlined"
-                  size="small"
-                  className="w-full sm:w-64"
-                  value={reVision}
-                  onChange={(e) => {
-                    handleInputChange('re_vision', e.target.value);
-                  }}
-                />
-                <FormControl variant="outlined" size="small" className="w-full sm:w-64">
-                  <InputLabel>Color Blindness</InputLabel>
-                  <Select
-                    label="Color Blindness"
-                    value={reColor}
-                    onChange={(e) => {
-                      handleInputChange('re_color_blindness', e.target.value as string);
-                    }}
-                  >
-                    <MenuItem value="No">No</MenuItem>
-                    <MenuItem value="YES">YES</MenuItem>
-                  </Select>
-                </FormControl>
-                <FormControl variant="outlined" size="small" className="w-full sm:w-64">
-                  <InputLabel>Squint</InputLabel>
-                  <Select
-                    label="Squint"
-                    value={reSquint}
-                    onChange={(e) => {
-                      handleInputChange('re_squint', e.target.value as string);
-                    }}
-                  >
-                    <MenuItem value="No">No</MenuItem>
-                    <MenuItem value="YES">YES</MenuItem>
-                  </Select>
-                </FormControl>
-              </div>
-            </div>
-
-            <div className="border-b border-glass-border pb-4 mb-6">
-              <h2 className="text-xl font-display font-semibold mb-4 text-text">Left Eye</h2>
-              <div className="flex flex-wrap gap-2">
-                <TextField
-                  label="Vision"
-                  variant="outlined"
-                  size="small"
-                  className="w-full sm:w-64"
-                  value={leVision}
-                  onChange={(e) => {
-                    handleInputChange('le_vision', e.target.value);
-                  }}
-                />
-                <FormControl variant="outlined" size="small" className="w-full sm:w-64">
-                  <InputLabel>Color Blindness</InputLabel>
-                  <Select
-                    label="Color Blindness"
-                    value={leColor}
-                    onChange={(e) => {
-                      handleInputChange('le_color_blindness', e.target.value as string);
-                    }}
-                  >
-                    <MenuItem value="No">No</MenuItem>
-                    <MenuItem value="YES">YES</MenuItem>
-                  </Select>
-                </FormControl>
-                <FormControl variant="outlined" size="small" className="w-full sm:w-64">
-                  <InputLabel>Squint</InputLabel>
-                  <Select
-                    label="Squint"
-                    value={leSquint}
-                    onChange={(e) => {
-                      handleInputChange('le_squint', e.target.value as string);
-                    }}
-                  >
-                    <MenuItem value="No">No</MenuItem>
-                    <MenuItem value="YES">YES</MenuItem>
-                  </Select>
-                </FormControl>
-              </div>
-            </div>
-
-            <div className="flex justify-center mt-6">
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleSubmit}
-                className="w-full sm:w-64 bg-accent-gradient hover:brightness-110 text-[#061018] font-semibold shadow-lg shadow-accent-2/30"
-              >
-                Save
-              </Button>
-            </div>
-          </>
-        ) : (
-          <div className="text-center p-8">
-            <h2 className="text-xl text-text-dim">
-              Waiting for patient ID from IT Department...
-            </h2>
-          </div>
-        )}
+    <DashboardShell title="Vision Examination Report">
+      <div className="border-b border-glass-border pb-4 mb-6">
+        <h2 className="text-xl font-display font-semibold mb-4 text-text">
+          Right Eye
+        </h2>
+        <div className="flex flex-wrap gap-2">
+          <TextField
+            label="Vision"
+            variant="outlined"
+            size="small"
+            className="w-full sm:w-64"
+            value={reVision}
+            onChange={(e) => {
+              setReVision(e.target.value);
+              handleInputChange('re_vision', e.target.value);
+            }}
+          />
+          <LabeledSelect
+            label="Color Blindness"
+            value={reColor}
+            onChange={(v) => {
+              setReColor(v);
+              handleInputChange('re_color_blindness', v);
+            }}
+            options={["No", "YES"]}
+          />
+          <LabeledSelect
+            label="Squint"
+            value={reSquint}
+            onChange={(v) => {
+              setReSquint(v);
+              handleInputChange('re_squint', v);
+            }}
+            options={["No", "YES"]}
+          />
+        </div>
       </div>
-    </div>
+
+      <div className="border-b border-glass-border pb-4 mb-6">
+        <h2 className="text-xl font-display font-semibold mb-4 text-text">Left Eye</h2>
+        <div className="flex flex-wrap gap-2">
+          <TextField
+            label="Vision"
+            variant="outlined"
+            size="small"
+            className="w-full sm:w-64"
+            value={leVision}
+            onChange={(e) => {
+              setLeVision(e.target.value);
+              handleInputChange('le_vision', e.target.value);
+            }}
+          />
+          <LabeledSelect
+            label="Color Blindness"
+            value={leColor}
+            onChange={(v) => {
+              setLeColor(v);
+              handleInputChange('le_color_blindness', v);
+            }}
+            options={["No", "YES"]}
+          />
+          <LabeledSelect
+            label="Squint"
+            value={leSquint}
+            onChange={(v) => {
+              setLeSquint(v);
+              handleInputChange('le_squint', v);
+            }}
+            options={["No", "YES"]}
+          />
+        </div>
+      </div>
+
+      <div className="flex justify-center mt-6">
+        <SubmitButton onClick={handleSubmit} loading={saving}>
+          Save
+        </SubmitButton>
+      </div>
+    </DashboardShell>
   );
 };
 
