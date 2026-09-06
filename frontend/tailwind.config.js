@@ -7,18 +7,23 @@ export default {
   theme: {
     extend: {
       colors: {
-        bg: "#0b0d12",
-        surface: "#11141c",
+        // Clinical emerald/mint - HealthFlow's own accent family, distinct
+        // from the sibling projects' palettes (Weft teal+indigo, Vantage
+        // gold+ochre): a single green hue carried across three depths.
+        bg: "#0A0D0B",
+        surface: "#10140F",
         glass: "rgba(255,255,255,0.04)",
-        "glass-border": "rgba(255,255,255,0.08)",
+        "glass-border": "rgba(94,230,168,0.14)",
         text: {
-          DEFAULT: "#e8eaf0",
-          dim: "#9aa1b2",
+          DEFAULT: "#E6F5EE",
+          dim: "#93AFA3",
         },
         accent: {
-          DEFAULT: "#61dafb",
-          2: "#3178c6",
+          DEFAULT: "#3ECF8E",
+          light: "#5EE6A8",
+          2: "#1E9A66",
         },
+        "on-accent": "#04140D",
         success: "#4ade80",
         danger: "#f87171",
       },
@@ -28,9 +33,10 @@ export default {
         mono: ['"JetBrains Mono"', "Consolas", "monospace"],
       },
       backgroundImage: {
-        "accent-gradient": "linear-gradient(135deg, #3178C6, #61dafb)",
+        "accent-gradient":
+          "linear-gradient(135deg, #5EE6A8, #3ECF8E 55%, #1E9A66)",
         "app-glow":
-          "radial-gradient(1200px 600px at 20% -10%, rgba(22,35,58,0.2), transparent), radial-gradient(1000px 500px at 90% 10%, rgba(26,42,26,0.13), transparent)",
+          "radial-gradient(1200px 600px at 20% -10%, rgba(30,154,102,0.16), transparent), radial-gradient(1000px 500px at 90% 10%, rgba(94,230,168,0.10), transparent)",
       },
       backdropBlur: {
         xl: "16px",

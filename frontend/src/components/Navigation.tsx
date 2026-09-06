@@ -44,13 +44,13 @@ const Navigation: React.FC = () => {
         <Toolbar className="flex items-center">
           <div className="flex items-center space-x-3 flex-grow">
             <div
-              className="bg-accent-gradient text-[#061018] font-display font-bold text-lg rounded-full w-8 h-8 flex items-center justify-center shadow-lg shadow-accent-2/30 hover:scale-105 transition-transform cursor-pointer"
+              className="bg-accent-gradient text-on-accent font-display font-bold text-lg rounded-full w-8 h-8 flex items-center justify-center shadow-lg shadow-accent-2/30 hover:scale-105 transition-transform cursor-pointer"
               title="Home"
             >
               +
             </div>
             <span className="text-xl font-display font-semibold text-text">
-              Health Report Card
+              HealthFlow
             </span>
           </div>
           {isMobile && (
@@ -71,7 +71,7 @@ const Navigation: React.FC = () => {
                 to={item.path}
                 className={`!normal-case !rounded-lg !px-3 !py-1.5 !text-sm !font-medium transition-colors ${
                   currentPath === item.path
-                    ? "!text-[#061018] !bg-accent-gradient"
+                    ? "!text-on-accent !bg-accent-gradient"
                     : "!text-text-dim hover:!text-text hover:!bg-white/5"
                 }`}
               >
