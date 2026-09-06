@@ -72,9 +72,9 @@ header, so a style change only has to happen in one place.
 Captured live from [the deployed app](https://healthflow-abheet19.fly.dev), running against the real
 Fly Postgres backend.
 
-| IT dashboard (patient intake) | Dental dashboard (empty state) |
+| IT dashboard (patient intake) | Dental dashboard (Socket.IO connecting state) |
 |---|---|
-| ![IT dashboard](docs/screenshots/it-dashboard.png) | ![Dental dashboard waiting for a patient ID](docs/screenshots/dental-dashboard.png) |
+| ![IT dashboard](docs/screenshots/it-dashboard.png) | ![Dental dashboard connecting to the realtime server](docs/screenshots/dental-dashboard.png) |
 
 ![Patients list](docs/screenshots/patients-list.png)
 
