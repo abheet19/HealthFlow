@@ -31,5 +31,23 @@ if [ "$INITIALIZE_DB" = "true" ]; then
   python init_db.py
 fi
 
-# Start the Flask application
-python app.py
+# Start the Flask-SocketIO app under gunicorn with the eventlet worker class.
+# The Werkzeug dev server (`python server.py` / socketio.run) isn't meant for
+# production traffic; gunicorn+eventlet is the standard production setup for
+# Flask-SocketIO. Single worker is required: Socket.IO session/session-room
+# state lives in-process, so multiple workers would each only see a fraction
+# of connected clients without an external message queue (e.g. Redis) wired
+# up, which this app doesn't have.
+#
+# The entry module is "server.py", not "app.py" - gunicorn's "module:attr"
+# target does a plain `import module`, and this directory also has an
+# `app/` package (routes/config/utils/services). A same-named app.py file
+# and app/ package are ambiguous to Python's import machinery, and it
+# resolved to the package, not the script, breaking `app:app`.
+PORT="${PORT:-5000}"
+exec gunicorn \
+  --worker-class eventlet \
+  --workers 1 \
+  --bind "0.0.0.0:${PORT}" \
+  --timeout 120 \
+  server:app

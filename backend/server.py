@@ -1,3 +1,6 @@
+import eventlet
+eventlet.monkey_patch()
+
 from flask import Flask
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
@@ -33,7 +36,11 @@ CORS_ORIGINS = [
 ]
 
 CORS(app, resources={r"/api/*": {"origins": CORS_ORIGINS}})
-socketio = SocketIO(app, cors_allowed_origins=CORS_ORIGINS, async_mode="threading")
+# async_mode="eventlet" pairs with the gunicorn eventlet worker used in
+# production (see entrypoint.sh) - "threading" was fine under the Werkzeug
+# dev server but doesn't scale past a handful of concurrent socket
+# connections, which is what we're moving off of.
+socketio = SocketIO(app, cors_allowed_origins=CORS_ORIGINS, async_mode="eventlet")
 
 # Register blueprints
 app.register_blueprint(api_routes)
@@ -76,12 +83,13 @@ def init_db():
     except Exception as e:
         logging.error(f"Database initialization error: {str(e)}")
 
+# Run once at import time (not just under `if __name__ == '__main__'`) so this
+# also fires when the app is started via gunicorn, which imports this module
+# as "app:app" rather than executing it as a script.
+init_db()
+
 if __name__ == '__main__':
-    # Initialize database before starting the app
-    init_db()
-    
-    # Get port from environment variable or use 5000 as default
+    # Local/dev entrypoint only. Production runs under gunicorn with the
+    # eventlet worker class (see entrypoint.sh) instead of this dev server.
     port = int(os.environ.get('PORT', 5000))
-    
-    # Run the application
     socketio.run(app, host='0.0.0.0', port=port, allow_unsafe_werkzeug=True)

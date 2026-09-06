@@ -2,8 +2,9 @@ from flask import Blueprint, request, jsonify, send_file, current_app
 from app.config import get_db
 from app.services import patient_service, report_service
 from app.utils import (
-    transform_it, transform_ent, transform_vision, 
-    transform_general, transform_dental, translate_record
+    transform_it, transform_ent, transform_vision,
+    transform_general, transform_dental, translate_record,
+    validate_fields
 )
 from datetime import datetime
 import logging
@@ -55,16 +56,34 @@ def submit_patient():
             
         required_depts = ["it", "ent", "vision", "general", "dental"]
         missing = [dept for dept in required_depts if dept not in data or not data[dept]]
-        
+
         if missing:
             return jsonify({"error": f"Missing data for departments: {', '.join(missing)}"}), 400
 
+        if not data.get("patientId"):
+            return jsonify({"error": "patientId is required."}), 400
+
         it_data_raw = data["it"]
+
+        # `name` and `dob` are required, non-empty IT fields. `dob` in particular
+        # maps to a Postgres DATE column - an empty string ("" from an untouched
+        # HTML date input) fails at insert time with a raw 500, and even a
+        # non-empty value could be a malformed date string. Validate both the
+        # presence and the format here so the client gets a clear 400 instead.
+        valid, message = validate_fields(it_data_raw, ["name", "dob"])
+        if not valid:
+            return jsonify({"error": f"IT department: {message}"}), 400
+
+        try:
+            datetime.strptime(it_data_raw["dob"], "%Y-%m-%d")
+        except (ValueError, TypeError):
+            return jsonify({"error": "IT department: dob must be a valid date (YYYY-MM-DD)."}), 400
+
         it_photo = it_data_raw.get("photo")
         if it_photo and "," in it_photo:
             it_photo = it_photo.split(",")[1]
         it_data_raw["photo"] = it_photo if it_photo else None
-        
+
         it_data = transform_it(data["it"])
         ent_data = transform_ent(data["ent"])
         vision_data = transform_vision(data["vision"])

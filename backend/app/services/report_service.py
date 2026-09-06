@@ -17,15 +17,22 @@ class ReportService:
 
             for key, value in patient_record.items():
                 if key == "photo" and value:
-                    if isinstance(value, bytes):
-                        img_bytes = value
-                    else:
-                        img_str = value.split(",")[1] if value.startswith("data:image") else value
-                        img_bytes = base64.b64decode(img_str)
-                    
-                    image = Image.open(BytesIO(img_bytes)).convert("RGB")
-                    cropped_stream = crop_image_circle(image, 144)
-                    context[key] = InlineImage(doc, cropped_stream, width=Inches(1.5))
+                    # A corrupt/undecodable photo shouldn't sink the whole report -
+                    # the rest of the medical data is still valid and worth
+                    # generating. Fall back to an empty photo field instead.
+                    try:
+                        if isinstance(value, bytes):
+                            img_bytes = value
+                        else:
+                            img_str = value.split(",")[1] if value.startswith("data:image") else value
+                            img_bytes = base64.b64decode(img_str)
+
+                        image = Image.open(BytesIO(img_bytes)).convert("RGB")
+                        cropped_stream = crop_image_circle(image, 144)
+                        context[key] = InlineImage(doc, cropped_stream, width=Inches(1.5))
+                    except Exception as photo_error:
+                        logging.error(f"Error processing patient photo, omitting from report: {str(photo_error)}")
+                        context[key] = ""
                 else:
                     context[key] = str(value) if value is not None else ""
 

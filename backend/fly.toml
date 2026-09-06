@@ -12,7 +12,11 @@ primary_region = "sin"
   force_https = true
   auto_stop_machines = "stop"
   auto_start_machines = true
-  min_machines_running = 1
+  # Traffic on this app is low/bursty (personal project, not a production
+  # service under constant load) - keeping a machine always warm just to
+  # avoid Socket.IO cold starts isn't worth the standing cost. The frontend
+  # already runs with min_machines_running = 0; match it here too.
+  min_machines_running = 0
   processes = ["app"]
 
 [[vm]]

@@ -112,7 +112,7 @@ cd backend
 pip install -r requirements.txt
 # .env with POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_HOST / POSTGRES_PORT / POSTGRES_DB
 python init_db.py
-python app.py
+python server.py
 
 # Frontend, in a second terminal
 cd frontend

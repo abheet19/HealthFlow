@@ -8,3 +8,5 @@ python-dotenv
 python-docx
 docxtpl
 Pillow
+gunicorn
+eventlet
