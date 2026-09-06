@@ -210,7 +210,9 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
     });
 
     newSocket.on('connect_error', (error: Error) => {
-      // Connection error handling silently
+      // Logged (not surfaced via toast): ToastProvider is mounted as a
+      // child of PatientProvider, so this context has no toast access.
+      console.warn('Socket connection error:', error.message);
     });
 
     return () => {

@@ -8,9 +8,9 @@ const getEnvVariable = (key: string): string | undefined => {
   if (import.meta.env && import.meta.env[key]) {
     return import.meta.env[key];
   }
-  // @ts-ignore - process.env might be available depending on build configuration
+  // @ts-expect-error - process.env might be available depending on build configuration
   if (typeof process !== 'undefined' && process.env && process.env[key]) {
-    // @ts-ignore
+    // @ts-expect-error - see above
     return process.env[key];
   }
   return undefined;

@@ -4,5 +4,9 @@
 const API_URL = import.meta.env.VITE_API_URL;
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL;
 
+if (import.meta.env.DEV) {
+  console.debug('[env]', { API_URL, SOCKET_URL });
+}
+
 // Export empty object to avoid TypeScript errors
 export {};
