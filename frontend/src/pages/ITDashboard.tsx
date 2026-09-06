@@ -388,12 +388,15 @@ const ITDashboard: React.FC = () => {
         body: JSON.stringify(combinedData)
       });
       const result = await res.json();
-      if (result.message === "Patient data submitted successfully.") {
+      if (res.ok && result.message === "Patient data submitted successfully.") {
         showToast("Patient data submitted successfully.", "success");
         resetForm();
         resetPatientData(); // This will clear everything
       } else {
-        showToast(result.message, "error");
+        // Validation/server failures come back as { error: "..." }, not
+        // { message: "..." } - showing result.message here rendered the
+        // literal text "undefined" in the toast instead of the real reason.
+        showToast(result.error || result.message || "Failed to submit patient data.", "error");
       }
     } catch {
       showToast("Error submitting patient data.", "error");
@@ -727,10 +730,19 @@ const ITDashboard: React.FC = () => {
           </Button>
         )}
       </div>
-      <div className="flex justify-center mt-6">
-        <SubmitButton onClick={handleFinalSubmit} loading={submitting}>
+      <div className="flex flex-col items-center mt-6 gap-2">
+        <SubmitButton
+          onClick={handleFinalSubmit}
+          loading={submitting}
+          disabled={!patientData.patientId}
+        >
           Submit
         </SubmitButton>
+        {!patientData.patientId && (
+          <p className="text-xs text-text-dim">
+            Register the patient above to get a Patient ID before submitting.
+          </p>
+        )}
       </div>
       {renderDataSummary()}
     </DashboardShell>

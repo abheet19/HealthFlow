@@ -41,12 +41,19 @@ type PatientDataUpdate = {
         : DepartmentData;
 }
 
+// Connection state for the shared Socket.IO connection, surfaced so
+// dashboards can tell apart three visually distinct situations: still
+// connecting to the realtime server, connected but genuinely waiting on data
+// (e.g. no patient ID yet), and a connection that's failing/retrying.
+export type ConnectionStatus = 'connecting' | 'connected' | 'error';
+
 interface PatientContextProps {
   patientData: PatientData;
   updateDepartment: (dept: keyof PatientData, data: Record<string, any>) => void;
   resetPatientData: (department?: keyof PatientData) => void;
   updatePatientId: (id: string) => void;
   resetDepartmentData: () => void;
+  connectionStatus: ConnectionStatus;
 }
 
 export const PatientContext = createContext<PatientContextProps>({
@@ -54,7 +61,8 @@ export const PatientContext = createContext<PatientContextProps>({
   updateDepartment: () => {},
   resetPatientData: () => {},
   updatePatientId: () => {},
-  resetDepartmentData: () => {}
+  resetDepartmentData: () => {},
+  connectionStatus: 'connecting'
 });
 
 export const PatientProvider = ({ children }: { children: ReactNode }) => {
@@ -64,6 +72,7 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
     return savedData ? JSON.parse(savedData) : {};
   });
   const [socket, setSocket] = useState<any>(null);
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
 
   // Save to localStorage whenever patientData changes
   useEffect(() => {
@@ -80,7 +89,15 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
     setSocket(newSocket);
 
     newSocket.on('connect', () => {
-      // Connected to WebSocket server
+      setConnectionStatus('connected');
+    });
+
+    newSocket.on('disconnect', () => {
+      setConnectionStatus('connecting');
+    });
+
+    newSocket.on('reconnect_failed', () => {
+      setConnectionStatus('error');
     });
 
     // Listen for new patient IDs
@@ -389,12 +406,13 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <PatientContext.Provider 
-      value={{ 
-        patientData, 
-        updateDepartment, 
-        resetPatientData, 
+      value={{
+        patientData,
+        updateDepartment,
+        resetPatientData,
         updatePatientId,
-        resetDepartmentData
+        resetDepartmentData,
+        connectionStatus
       }}
     >
       {children}

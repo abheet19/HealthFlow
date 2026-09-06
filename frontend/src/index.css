@@ -7,3 +7,29 @@
     @apply bg-bg bg-app-glow bg-no-repeat text-text font-body min-h-screen;
   }
 }
+
+@layer utilities {
+  /* Subtle entrance used when switching between department dashboards -
+     the shell card is keyed by title, so this replays on every route
+     change instead of the page just snapping into place. */
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in-up {
+    animation: fade-in-up 0.25s ease-out;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in-up {
+    animation: none;
+  }
+}

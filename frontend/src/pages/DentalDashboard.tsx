@@ -1,16 +1,12 @@
 import * as React from "react";
-import { useState, useContext, useEffect, useRef } from "react";
+import { useState, useContext, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { TextField } from "@mui/material";
 import { PatientContext } from "../context/PatientContext";
 import { useToast } from "../context/ToastContext";
-import { getApiUrl } from "../config/api";
 import DashboardShell from "../components/DashboardShell";
 import LabeledSelect from "../components/LabeledSelect";
 import SubmitButton from "../components/SubmitButton";
-
-// Define Timer type to fix NodeJS.Timeout error
-type TimerType = ReturnType<typeof setTimeout>;
 
 // Improved tooth selector component with better click handling
 const ToothSelector: React.FC<{
@@ -66,9 +62,6 @@ const DentalDashboard: React.FC = () => {
   const { updateDepartment, patientData, updatePatientId } = useContext(PatientContext);
   const { showToast } = useToast();
   const [saving, setSaving] = useState(false);
-  // Add polling interval for data synchronization
-  const pollingIntervalRef = useRef<TimerType | null>(null);
-  const lastSyncTimestamp = useRef<number>(Date.now());
 
   const location = useLocation();
 
@@ -183,50 +176,6 @@ const DentalDashboard: React.FC = () => {
     }
   };
 
-  // Add effect for real-time data sync for cross-device synchronization
-  useEffect(() => {
-    // Setup polling for data synchronization if we have a patient ID
-    if (patientData.patientId) {
-      // Clear any existing interval
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-      }
-
-      // Function to fetch latest patient data
-      const fetchLatestData = async () => {
-        try {
-          const res = await fetch(getApiUrl(`/api/get_patient_data?patient_id=${patientData.patientId}&timestamp=${lastSyncTimestamp.current}`));
-          const data = await res.json();
-
-          // If the data has been updated since our last sync
-          if (data.updated) {
-            // Update the lastSyncTimestamp
-            lastSyncTimestamp.current = Date.now();
-
-            // Update the local state with the latest data from the backend
-            if (data.dental) {
-              // Only update if there's actual data to prevent unnecessary state changes
-              loadPatientData(data.dental);
-            }
-          }
-        } catch (error) {
-          console.error("Error syncing patient data:", error);
-        }
-      };
-
-      // Start polling for updates every 5 seconds
-      pollingIntervalRef.current = setInterval(fetchLatestData, 5000);
-    }
-
-    // Clean up the interval on unmount
-    return () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-        pollingIntervalRef.current = null;
-      }
-    };
-  }, [patientData.patientId]);
-
   // Persist Dental form data across tab switches
   useEffect(() => {
     if (patientData.dental) {
@@ -296,9 +245,6 @@ const DentalDashboard: React.FC = () => {
       tooth_cavity_permanent: allPermanentTeeth,
       tooth_cavity_primary: allPrimaryTeeth
     });
-
-    // Update the timestamp of the last sync to prevent immediate overwriting
-    lastSyncTimestamp.current = Date.now();
   };
 
   const FIELD_NAME_MAP: Record<string, string> = {
@@ -357,9 +303,6 @@ const DentalDashboard: React.FC = () => {
     window.inputDebounceTimers[field] = setTimeout(() => {
       // Update only the specific field that changed
       updateDepartment('dental', { [field]: value });
-
-      // Update the timestamp of the last sync to prevent immediate overwriting
-      lastSyncTimestamp.current = Date.now();
     }, 300); // 300ms debounce delay - adjust if needed
   };
 
