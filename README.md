@@ -69,15 +69,14 @@ header, so a style change only has to happen in one place.
 
 ## 🖼 Screenshots
 
-_Placeholders below — the frontend can't fully render without the backend and Postgres running, so
-these need to be captured locally with `docker-compose up` (or `npm run dev` + a local backend) and
-saved over these paths:_
+Captured live from [the deployed app](https://healthflow-abheet19.fly.dev), running against the real
+Fly Postgres backend.
 
-| Screen | Path |
+| IT dashboard (patient intake) | Dental dashboard (empty state) |
 |---|---|
-| IT dashboard (patient intake + photo) | `docs/screenshots/it-dashboard.png` |
-| A department exam form (e.g. Dental) | `docs/screenshots/dental-dashboard.png` |
-| Patients list + report download | `docs/screenshots/patients-list.png` |
+| ![IT dashboard](docs/screenshots/it-dashboard.png) | ![Dental dashboard waiting for a patient ID](docs/screenshots/dental-dashboard.png) |
+
+![Patients list](docs/screenshots/patients-list.png)
 
 ---
 
