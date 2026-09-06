@@ -167,22 +167,22 @@ const VisionDashboard: React.FC = () => {
   };
 
   return (
-    <div className="p-4 flex flex-col items-center bg-gray-50 min-h-screen">
-      <div className="bg-white shadow-lg rounded-lg p-6 w-full max-w-4xl">
+    <div className="p-4 flex flex-col items-center bg-bg min-h-screen font-body">
+      <div className="bg-glass backdrop-blur-xl border border-glass-border shadow-lg rounded-2xl p-6 w-full max-w-4xl">
         {patientData.patientId ? (
           <>
-            <div className="mb-4 text-gray-600">
+            <div className="mb-4 text-text-dim">
               <p>Patient ID: {patientData.patientId}</p>
               {patientData.it?.name && (
                 <p>Patient Name: <span className="font-bold">{patientData.it.name}</span></p>
               )}
             </div>
-            <h1 className="text-3xl font-bold mb-6 text-gray-800">
+            <h1 className="text-3xl font-display font-bold mb-6 text-text">
               Vision Examination Report
             </h1>
 
-            <div className="border-b pb-4 mb-6">
-              <h2 className="text-xl font-semibold mb-4 text-gray-700">
+            <div className="border-b border-glass-border pb-4 mb-6">
+              <h2 className="text-xl font-display font-semibold mb-4 text-text">
                 Right Eye
               </h2>
               <div className="flex flex-wrap gap-2">
@@ -225,8 +225,8 @@ const VisionDashboard: React.FC = () => {
               </div>
             </div>
 
-            <div className="border-b pb-4 mb-6">
-              <h2 className="text-xl font-semibold mb-4 text-gray-700">Left Eye</h2>
+            <div className="border-b border-glass-border pb-4 mb-6">
+              <h2 className="text-xl font-display font-semibold mb-4 text-text">Left Eye</h2>
               <div className="flex flex-wrap gap-2">
                 <TextField
                   label="Vision"
@@ -272,7 +272,7 @@ const VisionDashboard: React.FC = () => {
                 variant="contained"
                 color="primary"
                 onClick={handleSubmit}
-                className="w-full sm:w-64 bg-blue-500 hover:bg-blue-600 text-white"
+                className="w-full sm:w-64 bg-accent-gradient hover:brightness-110 text-[#061018] font-semibold shadow-lg shadow-accent-2/30"
               >
                 Save
               </Button>
@@ -280,7 +280,7 @@ const VisionDashboard: React.FC = () => {
           </>
         ) : (
           <div className="text-center p-8">
-            <h2 className="text-xl text-gray-600">
+            <h2 className="text-xl text-text-dim">
               Waiting for patient ID from IT Department...
             </h2>
           </div>

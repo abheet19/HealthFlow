@@ -416,28 +416,28 @@ const ITDashboard: React.FC = () => {
 
     return (
       <div className="mt-6">
-        <h2 className="text-xl font-bold mb-4">Status & Summary</h2>
+        <h2 className="text-xl font-display font-bold mb-4 text-text">Status & Summary</h2>
         <div className="grid grid-cols-2 gap-4 mb-6">
           {['ENT', 'Vision', 'General', 'Dental'].map(dept => (
             <div
               key={dept}
               className={`p-4 rounded-lg border shadow-sm ${
-                completedDepts.includes(dept.toLowerCase()) 
-                  ? 'bg-green-100 border-green-500' 
-                  : 'bg-gray-100 border-gray-300'
+                completedDepts.includes(dept.toLowerCase())
+                  ? 'bg-success/10 border-success/50 text-text'
+                  : 'bg-white/5 border-glass-border text-text-dim'
               }`}
             >
               <div className="font-medium text-lg">{dept}</div>
-              <div className="text-sm text-gray-600">
-                {completedDepts.includes(dept.toLowerCase()) 
-                  ? 'Completed ✓' 
+              <div className="text-sm text-text-dim">
+                {completedDepts.includes(dept.toLowerCase())
+                  ? 'Completed ✓'
                   : 'Pending...'}
               </div>
             </div>
           ))}
         </div>
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h3 className="text-lg font-semibold mb-4">Patient Information</h3>
+        <div className="bg-glass backdrop-blur-xl border border-glass-border rounded-lg shadow-md p-6 mb-6 text-text">
+          <h3 className="text-lg font-display font-semibold mb-4">Patient Information</h3>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <p><span className="font-medium">Name:</span> {name || '-'}</p>
@@ -455,8 +455,8 @@ const ITDashboard: React.FC = () => {
           </div>
         </div>
         {departments.map(dept => dept.data && (
-          <div key={dept.name} className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h3 className="text-lg font-semibold mb-4">{dept.name} Department Summary</h3>
+          <div key={dept.name} className="bg-glass backdrop-blur-xl border border-glass-border rounded-lg shadow-md p-6 mb-6 text-text">
+            <h3 className="text-lg font-display font-semibold mb-4">{dept.name} Department Summary</h3>
             <div className="text-sm grid grid-cols-2 gap-x-4 gap-y-2">
               {Object.entries(dept.data).map(([key, value]) => (
                 <div key={key}>
@@ -520,11 +520,11 @@ const ITDashboard: React.FC = () => {
   }, [patientData.it]);
 
   return (
-    <div className="p-4 flex flex-col items-center bg-gray-50 min-h-screen">
-      <div className="bg-white shadow-lg rounded-lg p-6 w-full max-w-4xl">
-        <h1 className="text-3xl font-bold mb-6 text-gray-800">IT Dashboard</h1>
-        <div className="border-b pb-4 mb-6">
-          <h2 className="text-xl font-semibold mb-4 text-gray-700">
+    <div className="p-4 flex flex-col items-center bg-bg min-h-screen font-body">
+      <div className="bg-glass backdrop-blur-xl border border-glass-border shadow-lg rounded-2xl p-6 w-full max-w-4xl">
+        <h1 className="text-3xl font-display font-bold mb-6 text-text">IT Dashboard</h1>
+        <div className="border-b border-glass-border pb-4 mb-6">
+          <h2 className="text-xl font-display font-semibold mb-4 text-text">
             Basic Information
           </h2>
           <div className="flex flex-wrap gap-4">
@@ -562,8 +562,8 @@ const ITDashboard: React.FC = () => {
             />
           </div>
         </div>
-        <div className="border-b pb-4 mb-6">
-          <h2 className="text-xl font-semibold mb-4 text-gray-700">
+        <div className="border-b border-glass-border pb-4 mb-6">
+          <h2 className="text-xl font-display font-semibold mb-4 text-text">
             Family & Contact Details
           </h2>
           <div className="flex flex-wrap gap-4">
@@ -593,8 +593,8 @@ const ITDashboard: React.FC = () => {
             />
           </div>
         </div>
-        <div className="border-b pb-4 mb-6">
-          <h2 className="text-xl font-semibold mb-4 text-gray-700">
+        <div className="border-b border-glass-border pb-4 mb-6">
+          <h2 className="text-xl font-display font-semibold mb-4 text-text">
             Additional Details
           </h2>
           <div className="flex flex-wrap gap-4">
@@ -702,7 +702,7 @@ const ITDashboard: React.FC = () => {
                       const fileInput = document.getElementById('patient-photo-upload') as HTMLInputElement;
                       if (fileInput) fileInput.value = '';
                     }}
-                    className="ml-2 p-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full flex items-center justify-center transition-colors"
+                    className="ml-2 p-1.5 bg-white/10 hover:bg-white/20 text-text-dim rounded-full flex items-center justify-center transition-colors"
                     title="Delete photo (will be removed from all devices)"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -716,12 +716,12 @@ const ITDashboard: React.FC = () => {
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1 text-green-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <span className="text-gray-500 truncate max-w-[180px]">
+                  <span className="text-text-dim truncate max-w-[180px]">
                     {photo.name}
                   </span>
                   <button 
                     onClick={() => setShowPhotoPreview(prev => !prev)} 
-                    className="ml-2 text-blue-500 hover:text-blue-600 underline"
+                    className="ml-2 text-accent hover:brightness-110 underline"
                   >
                     {showPhotoPreview ? 'Hide Preview' : 'Preview'}
                   </button>
@@ -730,7 +730,7 @@ const ITDashboard: React.FC = () => {
               {/* Photo preview section */}
               {showPhotoPreview && photoBase64 && (
                 <div 
-                  className="mt-3 border p-1 rounded bg-white shadow-sm relative" 
+                  className="mt-3 border border-glass-border p-1 rounded bg-surface shadow-sm relative" 
                   ref={photoPreviewRef}
                 >
                   <img 
@@ -740,13 +740,13 @@ const ITDashboard: React.FC = () => {
                   />
                   <button
                     onClick={() => setShowPhotoPreview(false)}
-                    className="absolute top-1 right-1 bg-white rounded-full p-1 shadow-sm"
+                    className="absolute top-1 right-1 bg-surface border border-glass-border rounded-full p-1 shadow-sm"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-text-dim" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
-                  <div className="text-xs text-center text-gray-500 py-1">
+                  <div className="text-xs text-center text-text-dim py-1">
                     Photo will appear on all connected devices
                   </div>
                 </div>
@@ -756,12 +756,12 @@ const ITDashboard: React.FC = () => {
         </div>
         <div className="mb-6">
           {patientData.patientId ? (
-            <div className="border p-3 rounded-lg bg-gray-50 shadow-sm">
+            <div className="border border-glass-border p-3 rounded-lg bg-white/5 shadow-sm">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div className="flex flex-wrap items-center">
-                  <span className="text-sm font-medium text-gray-500 mr-2 whitespace-nowrap">Patient ID:</span>
+                  <span className="text-sm font-medium text-text-dim mr-2 whitespace-nowrap">Patient ID:</span>
                   <div className="w-full sm:w-auto mt-1 sm:mt-0">
-                    <span className="inline-block text-sm font-mono bg-white px-2 py-1 rounded border border-gray-200 select-all overflow-hidden text-ellipsis max-w-full break-all">
+                    <span className="inline-block text-sm font-mono bg-black/30 text-text px-2 py-1 rounded border border-glass-border select-all overflow-hidden text-ellipsis max-w-full break-all">
                       {patientData.patientId}
                     </span>
                   </div>
@@ -788,7 +788,7 @@ const ITDashboard: React.FC = () => {
             variant="contained"
             color="primary"
             onClick={handleFinalSubmit}
-            className="w-full sm:w-64 bg-blue-500 hover:bg-blue-600 text-white"
+            className="w-full sm:w-64 bg-accent-gradient hover:brightness-110 text-[#061018] font-semibold shadow-lg shadow-accent-2/30"
           >
             Submit
           </Button>

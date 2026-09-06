@@ -539,21 +539,21 @@ const DentalDashboard: React.FC = () => {
   };
 
   return (
-    <div className="p-4 flex flex-col items-center bg-gray-50 min-h-screen">
-      <div className="bg-white shadow-lg rounded-lg p-6 w-full max-w-4xl">
+    <div className="p-4 flex flex-col items-center bg-bg min-h-screen font-body">
+      <div className="bg-glass backdrop-blur-xl border border-glass-border shadow-lg rounded-2xl p-6 w-full max-w-4xl">
         {patientData.patientId ? (
           <>
-            <div className="mb-4 text-gray-600">
+            <div className="mb-4 text-text-dim">
               <p>Patient ID: {patientData.patientId}</p>
               {patientData.it?.name && (
                 <p>Patient Name: <span className="font-bold">{patientData.it.name}</span></p>
               )}
             </div>
-            <h1 className="text-3xl font-bold mb-6 text-gray-800">
+            <h1 className="text-3xl font-display font-bold mb-6 text-text">
               Dental Examination Report
             </h1>
-            <div className="border-b pb-4 mb-6">
-              <h2 className="text-xl font-semibold mb-4 text-gray-700">
+            <div className="border-b border-glass-border pb-4 mb-6">
+              <h2 className="text-xl font-display font-semibold mb-4 text-text">
                 Extra Oral Examination
               </h2>
               <div className="flex flex-wrap gap-4">
@@ -575,7 +575,7 @@ const DentalDashboard: React.FC = () => {
                   />
                   <button 
                     type="button" 
-                    className="absolute right-1 top-1/2 transform -translate-y-1/2 px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-100"
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 px-2 py-1 text-xs border border-glass-border rounded hover:bg-white/10 text-text-dim"
                     onClick={() => {
                       const newValue = dentalRemarks === "NA" ? "" : "NA";
                       setDentalRemarks(newValue);
@@ -588,13 +588,13 @@ const DentalDashboard: React.FC = () => {
               </div>
             </div>
 
-            <div className="border-b pb-4 mb-6">
-              <h2 className="text-xl font-semibold mb-4 text-gray-700">
+            <div className="border-b border-glass-border pb-4 mb-6">
+              <h2 className="text-xl font-display font-semibold mb-4 text-text">
                 Intra Oral Examination
               </h2>
               <div className="flex flex-col gap-4">
                 <div>
-                  <h3 className="text-lg font-medium mb-2 text-gray-600">
+                  <h3 className="text-lg font-medium mb-2 text-text-dim">
                     Tooth Cavity (Permanent Teeth)
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -642,7 +642,7 @@ const DentalDashboard: React.FC = () => {
                 </div>
 
                 <div>
-                  <h3 className="text-lg font-medium mb-2 text-gray-600">
+                  <h3 className="text-lg font-medium mb-2 text-text-dim">
                     Tooth Cavity (Primary Teeth)
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -743,7 +743,7 @@ const DentalDashboard: React.FC = () => {
                 variant="contained"
                 color="primary"
                 onClick={handleSubmit}
-                className="w-full sm:w-64 bg-blue-500 hover:bg-blue-600 text-white"
+                className="w-full sm:w-64 bg-accent-gradient hover:brightness-110 text-[#061018] font-semibold shadow-lg shadow-accent-2/30"
               >
                 Save
               </Button>
@@ -751,7 +751,7 @@ const DentalDashboard: React.FC = () => {
           </>
         ) : (
           <div className="text-center p-8">
-            <h2 className="text-xl text-gray-600">
+            <h2 className="text-xl text-text-dim">
               Waiting for patient ID from IT Department...
             </h2>
           </div>

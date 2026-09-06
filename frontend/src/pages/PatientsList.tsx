@@ -133,9 +133,10 @@ const PatientsList: React.FC = () => {
   };
 
   return (
-    <Box sx={{ p: 2, backgroundColor: "#f9f9f9", minHeight: "100vh" }}>
+    <Box sx={{ p: 2, backgroundColor: "transparent", minHeight: "100vh" }}>
       <Paper
-        elevation={3}
+        elevation={0}
+        className="!bg-glass !backdrop-blur-xl !border !border-glass-border"
         sx={{
           p: 2,
           maxWidth: "1200px",
@@ -145,9 +146,10 @@ const PatientsList: React.FC = () => {
       >
         <Typography
           variant="h4"
+          className="font-display"
           sx={{
             textAlign: "center",
-            color: "black",
+            color: "#e8eaf0",
             fontWeight: "bold",
             mb: 2,
           }}
@@ -173,7 +175,7 @@ const PatientsList: React.FC = () => {
           />
           <Button
             variant="contained"
-            color="primary"
+            className="!bg-accent-gradient !text-[#061018] !font-semibold !shadow-lg !shadow-accent-2/30"
             onClick={fetchPatients}
             disabled={loading}
             sx={{
@@ -188,28 +190,29 @@ const PatientsList: React.FC = () => {
         <Box sx={{ overflowX: "auto" }}>
           <TableContainer
             component={Paper}
-            sx={{ borderRadius: 2, minWidth: "600px" }}
+            className="!bg-transparent"
+            sx={{ borderRadius: 2, minWidth: "600px", border: "1px solid rgba(255,255,255,0.08)" }}
           >
             <Table size="small">
               <TableHead>
-                <TableRow sx={{ backgroundColor: "#1976d2" }}>
-                  <TableCell align="center" sx={{ color: "white", fontWeight: "bold" }}>
+                <TableRow sx={{ backgroundImage: "linear-gradient(135deg, #3178C6, #61dafb)" }}>
+                  <TableCell align="center" sx={{ color: "#061018", fontWeight: "bold" }}>
                     Photo
                   </TableCell>
-                  <TableCell align="center" sx={{ color: "white", fontWeight: "bold" }}>Name</TableCell>
-                  <TableCell align="center" sx={{ color: "white", fontWeight: "bold" }}>Division</TableCell>
+                  <TableCell align="center" sx={{ color: "#061018", fontWeight: "bold" }}>Name</TableCell>
+                  <TableCell align="center" sx={{ color: "#061018", fontWeight: "bold" }}>Division</TableCell>
                   {!isMobile && (
-                    <TableCell align="center" sx={{ color: "white", fontWeight: "bold" }}>Roll No</TableCell>
+                    <TableCell align="center" sx={{ color: "#061018", fontWeight: "bold" }}>Roll No</TableCell>
                   )}
                   <TableCell
                     align="center"
-                    sx={{ color: "white", fontWeight: "bold" }}
+                    sx={{ color: "#061018", fontWeight: "bold" }}
                   >
                     Mobile
                   </TableCell>
                   <TableCell
                     align="center"
-                    sx={{ color: "white", fontWeight: "bold" }}
+                    sx={{ color: "#061018", fontWeight: "bold" }}
                   >
                     Actions
                   </TableCell>
@@ -220,9 +223,9 @@ const PatientsList: React.FC = () => {
                   <TableRow
                     key={patient.patientId}
                     sx={{
-                      backgroundColor: index % 2 === 0 ? "#f5f5f5" : "white",
+                      backgroundColor: index % 2 === 0 ? "rgba(255,255,255,0.03)" : "transparent",
                       transition: "background-color 0.3s",
-                      "&:hover": { backgroundColor: "#e3f2fd" },
+                      "&:hover": { backgroundColor: "rgba(97,218,251,0.08)" },
                     }}
                   >
                     <TableCell align="center">
@@ -250,8 +253,8 @@ const PatientsList: React.FC = () => {
                         onClick={() => handleDownloadReport(patient.patientId, patient.name)}
                         style={{
                           ...downloadButtonStyle,
-                          backgroundColor: '#1976d2',
-                          color: 'white',
+                          backgroundImage: 'linear-gradient(135deg, #3178C6, #61dafb)',
+                          color: '#061018',
                         }}
                         title="Download Word Document"
                       >

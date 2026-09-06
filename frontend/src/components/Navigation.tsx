@@ -36,38 +36,43 @@ const Navigation: React.FC = () => {
 
   return (
     <>
-      <AppBar position="static" className="bg-blue-600 px-4 py-2">
+      <AppBar
+        position="static"
+        elevation={0}
+        className="bg-surface/70 backdrop-blur-xl border-b border-glass-border px-4 py-2"
+      >
         <Toolbar className="flex items-center">
-          <div className="flex items-center space-x-4 flex-grow">
+          <div className="flex items-center space-x-3 flex-grow">
             <div
-              className="bg-white text-blue-500 font-bold text-lg rounded-full w-8 h-8 flex items-center justify-center hover:shadow-md cursor-pointer"
+              className="bg-accent-gradient text-[#061018] font-display font-bold text-lg rounded-full w-8 h-8 flex items-center justify-center shadow-lg shadow-accent-2/30 hover:scale-105 transition-transform cursor-pointer"
               title="Home"
             >
               +
             </div>
-            <span className="text-xl font-bold text-white">
+            <span className="text-xl font-display font-semibold text-text">
               Health Report Card
             </span>
           </div>
           {isMobile && (
             <IconButton
               edge="end"
-              color="inherit"
-              aria-label="menu"
               onClick={toggleDrawer(true)}
+              className="!text-text"
+              aria-label="menu"
             >
               <MenuIcon />
             </IconButton>
           )}
-          <div className="hidden sm:flex space-x-6">
+          <div className="hidden sm:flex space-x-2">
             {menuItems.map((item) => (
               <Button
                 key={item.label}
-                color="inherit"
                 component={Link}
                 to={item.path}
-                className={`text-white hover:underline ${
-                  currentPath === item.path ? "font-bold underline" : ""
+                className={`!normal-case !rounded-lg !px-3 !py-1.5 !text-sm !font-medium transition-colors ${
+                  currentPath === item.path
+                    ? "!text-[#061018] !bg-accent-gradient"
+                    : "!text-text-dim hover:!text-text hover:!bg-white/5"
                 }`}
               >
                 {item.label}
@@ -77,7 +82,7 @@ const Navigation: React.FC = () => {
         </Toolbar>
       </AppBar>
       <Drawer anchor="left" open={drawerOpen} onClose={toggleDrawer(false)}>
-        <div className="w-64 h-full bg-gray-100 shadow-lg flex flex-col p-4">
+        <div className="w-64 h-full bg-surface text-text shadow-lg flex flex-col p-4">
           <List className="flex-grow">
             {menuItems.map((item) => (
               <ListItem
@@ -86,15 +91,15 @@ const Navigation: React.FC = () => {
                 component={Link}
                 to={item.path}
                 onClick={toggleDrawer(false)}
-                className={`hover:bg-gray-200 ${
-                  currentPath === item.path ? "bg-gray-300" : ""
+                className={`!rounded-lg !mb-1 hover:!bg-white/5 ${
+                  currentPath === item.path ? "!bg-white/10" : ""
                 }`}
               >
                 <ListItemText primary={item.label} />
               </ListItem>
             ))}
           </List>
-          <div className="text-center text-sm text-gray-500 mt-4">
+          <div className="text-center text-sm text-text-dim mt-4">
             © 2025 Abheet Singh
           </div>
         </div>
