@@ -94,6 +94,26 @@ def main():
         print(f"\r  composed {i}/{len(entries)}", end="")
 
     print()
+
+    # Cap every hold at MAX_HOLD_MS so no beat freezes past ~1.5s. A capped
+    # frame that's still byte-identical to its neighbour is dropped outright
+    # rather than kept as a second identical frame, because Pillow's GIF
+    # `optimize` pass merges consecutive byte-identical frames on save
+    # regardless — it would otherwise silently undo the cap by re-summing two
+    # adjacent capped holds back into one long freeze.
+    MAX_HOLD_MS = 1500
+    capped_frames, capped_durations = [], []
+    prev_bytes = None
+    for f, ms in zip(frames, durations):
+        b = f.tobytes()
+        if prev_bytes is not None and b == prev_bytes:
+            capped_durations[-1] = min(MAX_HOLD_MS, capped_durations[-1] + ms)
+            continue
+        capped_frames.append(f)
+        capped_durations.append(min(MAX_HOLD_MS, ms))
+        prev_bytes = b
+    frames, durations = capped_frames, capped_durations
+
     args.out.parent.mkdir(parents=True, exist_ok=True)
     frames[0].save(
         args.out,
