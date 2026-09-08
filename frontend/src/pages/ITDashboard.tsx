@@ -91,16 +91,6 @@ const ITDashboard: React.FC = () => {
   }, [patientData.it]);
 
   const handleInputChange = (field: string, value: string) => {
-    // Debounce the context updates to prevent flickering
-    if (typeof window.inputDebounceTimers === 'undefined') {
-      window.inputDebounceTimers = {};
-    }
-
-    // Clear any existing timer for this field
-    if (window.inputDebounceTimers[field]) {
-      clearTimeout(window.inputDebounceTimers[field]);
-    }
-
     // Update local state immediately for smooth UI feedback
     switch(field) {
       case 'name': setName(value); break;
@@ -117,22 +107,8 @@ const ITDashboard: React.FC = () => {
       // Photo is handled separately in handlePhotoChange
     }
 
-    // Set a new timer to update context after typing stops
-    window.inputDebounceTimers[field] = setTimeout(() => {
-      // Create a copy of the current IT data to ensure we don't lose any fields
-      const updatedItData = {
-        ...(patientData.it || {}), // Use empty object as fallback if it doesn't exist
-        [field]: value,
-      };
-
-      // Make sure photo data is preserved
-      if (photoBase64) {
-        updatedItData.photo = photoBase64;
-      }
-
-      // Update context with the complete data
-      updateDepartment('it', updatedItData);
-    }, 300); // 300ms debounce delay - adjust if needed
+    // Send only the changed field; functional context merging preserves rapid edits.
+    updateDepartment('it', { [field]: value });
   };
 
   // Update completed departments whenever patientData changes
@@ -351,7 +327,7 @@ const ITDashboard: React.FC = () => {
 
     const required = ["ent", "vision", "general", "dental"];
     for (const dept of required) {
-      if (!(patientData as any)[dept]) {
+      if (!(patientData as any)[dept]?.isSubmitted) {
         showToast(`Data for ${dept.toUpperCase()} department is missing.`, "error");
         return;
       }

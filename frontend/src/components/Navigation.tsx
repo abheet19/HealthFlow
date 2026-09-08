@@ -11,15 +11,17 @@ import {
   ListItemText,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
-import { Link } from "react-router-dom";
+import { clearAccessCode } from "../config/api";
+import { Link, useLocation } from "react-router-dom";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
 
 const Navigation: React.FC = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const currentPath = window.location.pathname;
+  const currentPath = useLocation().pathname;
+  const lockWorkspace = () => { clearAccessCode(); sessionStorage.removeItem("patientData"); window.location.reload(); };
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   const toggleDrawer = (open: boolean) => () => {
     setDrawerOpen(open);
@@ -53,6 +55,7 @@ const Navigation: React.FC = () => {
               HealthFlow
             </span>
           </div>
+          <Button onClick={lockWorkspace} className="!text-text-dim">Lock</Button>
           {isMobile && (
             <IconButton
               edge="end"
@@ -63,7 +66,7 @@ const Navigation: React.FC = () => {
               <MenuIcon />
             </IconButton>
           )}
-          <div className="hidden sm:flex space-x-2">
+          <div className={isMobile ? "hidden" : "flex space-x-2"}>
             {menuItems.map((item) => (
               <Button
                 key={item.label}

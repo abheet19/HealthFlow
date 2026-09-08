@@ -8,7 +8,7 @@ const getEnvVariable = (key: string): string | undefined => {
 
 export const API_BASE_URL =
   getEnvVariable('VITE_API_URL') ||
-  'https://doctor-report-backend-720901500415.asia-south1.run.app';
+  'http://127.0.0.1:5000';
 
 export const getApiUrl = (endpoint: string) => {
   const formattedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;

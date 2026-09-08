@@ -20,7 +20,7 @@ import { useToast } from "../context/ToastContext";
 import { apiFetch } from "../config/api"; // Import the API URL helper
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload'; // Import download icon
 
-const placeholderImage = "https://via.placeholder.com/150"; // default placeholder
+const placeholderImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Crect width='40' height='40' fill='%2312241c'/%3E%3Ccircle cx='20' cy='14' r='7' fill='%2393afa3'/%3E%3Cpath d='M7 38v-6a13 13 0 0 1 26 0v6' fill='%2393afa3'/%3E%3C/svg%3E"; // default placeholder
 const SKELETON_ROWS = 4;
 
 const PatientsList: React.FC = () => {

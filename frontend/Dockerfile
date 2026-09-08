@@ -4,8 +4,7 @@ COPY package*.json ./
 
 # Install dependencies with improved configuration
 RUN npm config set registry https://registry.npmjs.org/
-RUN npm config set strict-ssl false
-RUN npm install --legacy-peer-deps
+RUN npm ci --legacy-peer-deps
 
 # Copy all files including env files
 COPY . .

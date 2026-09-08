@@ -1,6 +1,6 @@
 import { FormEvent, useState } from "react";
 import { Box, Button, Paper, TextField, Typography } from "@mui/material";
-import { saveAccessCode } from "../config/api";
+import { getApiUrl, saveAccessCode } from "../config/api";
 
 interface AccessGateProps {
   onUnlock: () => void;
@@ -10,15 +10,27 @@ const AccessGate = ({ onUnlock }: AccessGateProps) => {
   const [accessCode, setAccessCode] = useState("");
   const [error, setError] = useState("");
 
-  const unlock = (event: FormEvent) => {
+  const [pending, setPending] = useState(false);
+
+  const unlock = async (event: FormEvent) => {
     event.preventDefault();
     const trimmed = accessCode.trim();
     if (!trimmed) {
       setError("Enter the clinic workspace access code.");
       return;
     }
-    saveAccessCode(trimmed);
-    onUnlock();
+    setPending(true);
+    try {
+      const response = await fetch(getApiUrl("/api/session"), {
+        headers: { "X-HealthFlow-Access-Code": trimmed },
+        signal: AbortSignal.timeout(10000),
+      });
+      if (!response.ok) throw new Error(response.status === 401 ? "That workspace code is not valid." : "The workspace is unavailable. Try again shortly.");
+      saveAccessCode(trimmed);
+      onUnlock();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not open the workspace.");
+    } finally { setPending(false); }
   };
 
   return (
@@ -39,8 +51,8 @@ const AccessGate = ({ onUnlock }: AccessGateProps) => {
             helperText={error || "The code is kept only for this browser session."}
             onChange={(event) => { setAccessCode(event.target.value); setError(""); }}
           />
-          <Button type="submit" fullWidth variant="contained" className="!bg-accent-gradient !text-on-accent !font-semibold" sx={{ mt: 2 }}>
-            Open workspace
+          <Button disabled={pending} type="submit" fullWidth variant="contained" className="!bg-accent-gradient !text-on-accent !font-semibold" sx={{ mt: 2 }}>
+            {pending ? "Checking code…" : "Open workspace"}
           </Button>
         </Box>
       </Paper>

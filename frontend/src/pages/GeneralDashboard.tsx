@@ -123,7 +123,6 @@ const GeneralDashboard: React.FC = () => {
 
             // Only update in context - don't read back from context in this effect
             updateDepartment('general', {
-              ...patientData.general,
               height,
               weight,
               bmi: calculatedBMI
@@ -140,7 +139,6 @@ const GeneralDashboard: React.FC = () => {
 
         // Only update the necessary fields without reading back from context
         updateDepartment('general', {
-          ...patientData.general,
           height,
           weight,
           bmi: ""
@@ -196,27 +194,8 @@ const GeneralDashboard: React.FC = () => {
 
   // Modify the handleInputChange function to prevent updates when values haven't changed
   const handleInputChange = (field: string, value: string) => {
-    // Debounce the context updates to prevent flickering
-    if (typeof window.inputDebounceTimers === 'undefined') {
-      window.inputDebounceTimers = {};
-    }
-
-    // Clear any existing timer for this field
-    if (window.inputDebounceTimers[field]) {
-      clearTimeout(window.inputDebounceTimers[field]);
-    }
-
-    // Set a new timer to update context after typing stops
-    window.inputDebounceTimers[field] = setTimeout(() => {
-      // Only update if the value has actually changed
-      if (patientData.general && patientData.general[field] !== value) {
-        // Update only the specific field that changed while preserving all general data
-        updateDepartment('general', {
-          ...patientData.general, // Include ALL existing general data
-          [field]: value
-        });
-      }
-    }, 300); // 300ms debounce delay - adjust if needed
+    // Apply a field patch immediately: a pending debounce must not overwrite a save/reset.
+    updateDepartment('general', { [field]: value });
   };
 
   const resetForm = () => {

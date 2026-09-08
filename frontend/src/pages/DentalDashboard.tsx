@@ -289,21 +289,8 @@ const DentalDashboard: React.FC = () => {
   };
 
   const handleInputChange = (field: string, value: string) => {
-    // Debounce the context updates to prevent flickering
-    if (typeof window.inputDebounceTimers === 'undefined') {
-      window.inputDebounceTimers = {};
-    }
-
-    // Clear any existing timer for this field
-    if (window.inputDebounceTimers[field]) {
-      clearTimeout(window.inputDebounceTimers[field]);
-    }
-
-    // Set a new timer to update context after typing stops
-    window.inputDebounceTimers[field] = setTimeout(() => {
-      // Update only the specific field that changed
-      updateDepartment('dental', { [field]: value });
-    }, 300); // 300ms debounce delay - adjust if needed
+    // Apply a field patch immediately: a pending debounce must not overwrite a save/reset.
+    updateDepartment('dental', { [field]: value });
   };
 
   const handleDropdownChange = (label: string, setValue: (v: string) => void) => (value: string) => {

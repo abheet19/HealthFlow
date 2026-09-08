@@ -1,7 +1,7 @@
 /**
  * HealthFlow hero-demo recorder.
  *
- * Drives the *deployed* app with two independent browser contexts side by side
+ * Drives an isolated local app with two independent browser contexts side by side
  * (IT desk on the left, a department dashboard on the right) and captures PNG
  * frame pairs of the real flow:
  *
@@ -21,7 +21,7 @@
  *   cd tools
  *   npm install
  *   npx playwright install chromium
- *   node record-demo.mjs                       # records against the Fly deployment
+ *   node record-demo.mjs                       # local stack only; remote hosts are rejected
  *   BASE_URL=http://localhost:5173 node record-demo.mjs   # or against a local dev server
  *
  * Then:
@@ -34,7 +34,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const BASE_URL = process.env.BASE_URL || "https://healthflow-abheet19.fly.dev";
+const BASE_URL = process.env.BASE_URL || "http://127.0.0.1:5179";
+if (!["127.0.0.1", "localhost", "[::1]"].includes(new URL(BASE_URL).hostname)) throw new Error("Recording writes synthetic records: use a loopback-only isolated stack.");
+const ACCESS_CODE = process.env.HEALTHFLOW_ACCESS_CODE || "synthetic-local-test";
 const FRAME_DIR = path.join(HERE, ".frames");
 const PHOTO = path.join(HERE, "assets", "demo-patient.jpg");
 
@@ -220,8 +222,8 @@ async function main() {
   console.log(`Recording against ${BASE_URL}`);
   // Fly scale-to-zero: wake both machines before the camera rolls, so the
   // recording never opens on a cold start.
-  console.log("Waking the deployment...");
-  for (const url of [BASE_URL, `${process.env.API_URL || "https://healthflow-api-abheet19.fly.dev"}/health`]) {
+  console.log("Checking isolated local stack...");
+  for (const url of [BASE_URL, `${process.env.API_URL || "http://127.0.0.1:5059"}/health`]) {
     try {
       const t0 = Date.now();
       const r = await fetch(url);
@@ -231,7 +233,7 @@ async function main() {
     }
   }
 
-  const browser = await chromium.launch();
+  const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" });
   // Two separate contexts => two separate localStorage jars. Nothing crosses
   // between the panes except over the real Socket.IO connection.
   const ctxIT = await browser.newContext({ viewport: PANE, deviceScaleFactor: SCALE });
@@ -243,6 +245,11 @@ async function main() {
 
   await itPage.goto(`${BASE_URL}/it`, { waitUntil: "networkidle" });
   await deptPage.goto(`${BASE_URL}/ent`, { waitUntil: "networkidle" });
+  for (const page of [itPage, deptPage]) {
+    await page.getByLabel("Workspace access code").fill(ACCESS_CODE);
+    await page.getByRole("button", { name: "Open workspace" }).click();
+    await page.getByLabel("Workspace access code").waitFor({ state: "detached" });
+  }
 
   // Let both sockets finish connecting so the ENT pane shows its real
   // "waiting for a patient ID" state rather than the connecting spinner.
@@ -349,17 +356,12 @@ async function main() {
   await shot(20);   // all four department tiles now green on the IT dashboard
 
   // --- 6. IT's final submit writes the record to Postgres ------------------
-  // Re-assert every IT field right before submitting. If a late socket echo
+  // Assert every IT field before submitting; never repair the application under test. If a late socket echo
   // cleared one, the submit would fail validation and the GIF would end on a
   // red toast - repair it here rather than record a broken flow.
   for (const [label, value] of IT_FIELDS) {
     const field = labelled(itPage, label).locator("input").first();
-    if ((await field.inputValue()) !== value) {
-      console.log(`
-  repairing IT field ${label}`);
-      await field.fill(value);
-      await itPage.waitForTimeout(SETTLE);
-    }
+    if ((await field.inputValue()) !== value) throw new Error(`Intake lost field ${label}`);
   }
   await shot(2);
   await clickText(itPage, "Submit");
@@ -387,7 +389,7 @@ async function main() {
     JSON.stringify({ base: BASE_URL, patientId, pane: PANE, scale: SCALE, frames }, null, 2)
   );
   console.log(`\nCaptured ${frames.length} unique frames -> ${FRAME_DIR}`);
-  console.log(`Patient ID written to the live database: ${patientId}`);
+  console.log(`Patient ID written to isolated local database: ${patientId}`);
 
   await browser.close();
 }

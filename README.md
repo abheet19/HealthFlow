@@ -27,7 +27,7 @@ five live dashboards and stitched into a single formatted `.docx` report.
 
 ![HealthFlow demo](docs/demo/healthflow-demo.gif)
 
-<sub>Two browser tabs, recorded against the live deployment: IT registers a patient, the department<br>
+<sub>Two independent browser contexts, recorded against an isolated local PostgreSQL stack: IT registers a patient, the department<br>
 tab picks them up over the WebSocket, all four departments report in, and the <code>.docx</code> falls out the end.</sub>
 
 </div>
@@ -50,6 +50,19 @@ bundles all five sections into one call, the backend stores it in Postgres, and 
 report is generated from a template and made available for download from the patients list.
 
 ---
+
+
+```mermaid
+flowchart LR
+  IT[Intake tab] <-->|authenticated draft events| S[Socket.IO relay]
+  D[Four department tabs] <-->|field patches| S
+  IT -->|final combined submission| F[Flask API]
+  F --> P[(PostgreSQL)]
+  P --> W[DOCX template renderer]
+  W --> R[Downloadable report]
+```
+
+Draft changes synchronize before the final database commit. The current workspace has one shared active workflow; see [testing and limitations](docs/TESTING.md) before assuming multi-patient isolation.
 
 ## 🛠 Tech stack
 
@@ -78,12 +91,11 @@ header, so a style change only has to happen in one place.
 
 ## 🖼 Screenshots
 
-Captured live from [the deployed app](https://healthflow-abheet19.fly.dev), running against the real
-Fly Postgres backend.
+Captured from the current application with synthetic records on an isolated local PostgreSQL stack.
 
-| IT dashboard (patient intake) | Dental dashboard (Socket.IO connecting state) |
+| IT dashboard (patient intake) | Dental dashboard (shared-workflow waiting state) |
 |---|---|
-| ![IT dashboard](docs/screenshots/it-dashboard.png) | ![Dental dashboard connecting to the realtime server](docs/screenshots/dental-dashboard.png) |
+| ![IT dashboard](docs/screenshots/it-dashboard.png) | ![Dental dashboard waiting for a workflow](docs/screenshots/dental-dashboard.png) |
 
 ![Patients list](docs/screenshots/patients-list.png)
 
@@ -121,11 +133,13 @@ cd backend
 pip install -r requirements.txt
 # .env with POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_HOST / POSTGRES_PORT / POSTGRES_DB
 python init_db.py
+# Set HEALTHFLOW_ACCESS_CODE and CORS_ORIGINS for your local frontend
 python server.py
 
 # Frontend, in a second terminal
 cd frontend
 npm ci
+# Set VITE_API_URL and VITE_SOCKET_URL to your local backend
 npm run dev
 ```
 
@@ -145,38 +159,25 @@ HealthFlow/
 
 ## 🎬 Regenerating the demo GIF
 
-The GIF at the top isn't a mockup — it's a Playwright script driving two independent browser
-contexts against the deployed app, so the right-hand pane only ever changes because something
+The GIF at the top is a Playwright script driving two independent browser
+contexts against an isolated local stack, so the right-hand pane only ever changes because something
 actually arrived over the WebSocket. Re-record it whenever the UI changes:
 
 ```bash
 cd tools
 npm install
 npx playwright install chromium
-BASE_URL=http://localhost:5173 node record-demo.mjs  # must run only against a local stack
+BASE_URL=http://127.0.0.1:5179 node record-demo.mjs  # must run only against a local stack
 python build-gif.py       # composites the panes -> docs/demo/healthflow-demo.gif
 ```
 
 `record-demo.mjs` should run against a local stack and registers a synthetic patient named
 **Demo Patient** and runs the full five-department flow. `build-gif.py` takes `--width`, `--colors`
 and `--tempo` if you need to trade size against length. Point the recorder at a local stack with
-`BASE_URL=http://localhost:5173 node record-demo.mjs` to keep the demo out of the deployed database
+`BASE_URL=http://127.0.0.1:5179 node record-demo.mjs` to keep the demo out of the deployed database
 entirely.
 
-> [!WARNING]
-> Run against the deployment, the recording writes a real patient row to the production Postgres,
-> and there is no delete endpoint. Clean it up afterwards from the backend machine:
->
-> ```bash
-> fly ssh console -a healthflow-api-abheet19
-> # then, in the machine:
-> python
-> >>> from app.config import get_db
-> >>> from sqlalchemy import text
-> >>> db = get_db()
-> >>> db.execute(text("DELETE FROM patient_records WHERE name = 'Demo Patient'"))
-> >>> db.commit()
-> ```
+> The recorder rejects remote frontend URLs. Use a disposable local database and never record against deployed patient records.
 
 <sub>Further backend details (endpoints, environment variables, deployment) live in
 <code>backend/</code>'s own comments and configuration.</sub>

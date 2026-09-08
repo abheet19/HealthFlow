@@ -8,6 +8,7 @@ from app.utils import (
 )
 from datetime import datetime
 import logging
+from sqlalchemy.exc import IntegrityError
 
 # Blueprint for patient-related routes
 api_routes = Blueprint('api', __name__, url_prefix='/api')
@@ -50,17 +51,17 @@ def generate_patient_id():
 def submit_patient():
     db = get_db()
     try:
-        data = request.json
-        if not data:
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict) or not data:
             return jsonify({"error": "Invalid request data"}), 400
             
         required_depts = ["it", "ent", "vision", "general", "dental"]
-        missing = [dept for dept in required_depts if dept not in data or not data[dept]]
+        missing = [dept for dept in required_depts if dept not in data or not isinstance(data[dept], dict) or not data[dept]]
 
         if missing:
             return jsonify({"error": f"Missing data for departments: {', '.join(missing)}"}), 400
 
-        if not data.get("patientId"):
+        if not isinstance(data.get("patientId"), str) or not 1 <= len(data["patientId"]) <= 30:
             return jsonify({"error": "patientId is required."}), 400
 
         it_data_raw = data["it"]
@@ -109,6 +110,8 @@ def submit_patient():
         patient_service.submit_patient_data(db, flat_data)
         return jsonify({"message": "Patient data submitted successfully."}), 200
         
+    except IntegrityError:
+        return jsonify({"error": "This patient ID has already been submitted."}), 409
     except Exception as e:
         logging.error(f"Error saving patient data: {str(e)}")
         return jsonify({"error": "Failed to save patient data"}), 500

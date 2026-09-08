@@ -21,6 +21,7 @@ logging.basicConfig(level=logging.WARNING)
 
 # Initialize Flask app
 app = Flask(__name__)
+app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024
 
 # Allowed frontend origins for CORS / Socket.IO. Configurable via env (comma-separated)
 # so this doesn't have to be hardcoded per deployment target; keeps the old Cloud Run
@@ -62,18 +63,23 @@ def _valid_access_code(value: object) -> bool:
     expected = _configured_access_code()
     if not expected:
         return not _public_access_is_required()
-    return isinstance(value, str) and hmac.compare_digest(value, expected)
+    return isinstance(value, str) and hmac.compare_digest(value.encode("utf-8"), expected.encode("utf-8"))
 
 
 @app.before_request
 def protect_patient_api():
-    if not request.path.startswith("/api/"):
+    if request.method == "OPTIONS" or not request.path.startswith("/api/"):
         return None
     if _valid_access_code(request.headers.get("X-HealthFlow-Access-Code", "")):
         return None
     if _public_access_is_required() and not _configured_access_code():
         return jsonify({"error": "HealthFlow is not enabled for public access."}), 503
     return jsonify({"error": "A valid HealthFlow access code is required."}), 401
+@app.get('/api/session')
+def workspace_session():
+    return jsonify({"authorized": True}), 200
+
+
 @app.route('/health')
 def health():
     return {"status": "ok"}, 200
@@ -81,7 +87,7 @@ def health():
 
 @socketio.on('connect')
 def protect_realtime_channel(auth):
-    auth = auth or {}
+    auth = auth if isinstance(auth, dict) else {}
     if not _valid_access_code(auth.get("accessCode")):
         return False
 # WebSocket event handlers
@@ -99,11 +105,16 @@ def handle_photo_delete():
 
 @socketio.on('photoUpdate')
 def handle_photo_update(data):
-    emit('photoUpdate', data, broadcast=True)
+    emit('photoUpdate', data, broadcast=True, include_self=False)
 
 @socketio.on('departmentUpdate')
 def handle_department_update(data):
-    emit('departmentUpdate', data, broadcast=True)
+    allowed = {"it", "ent", "vision", "general", "dental"}
+    if not isinstance(data, dict) or not set(data).issubset(allowed):
+        return {"error": "Invalid department update."}
+    if any(value is not None and not isinstance(value, dict) for value in data.values()):
+        return {"error": "Department values must be objects or null."}
+    emit('departmentUpdate', data, broadcast=True, include_self=False)
 
 # Initialize database
 def init_db():

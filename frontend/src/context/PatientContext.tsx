@@ -68,15 +68,16 @@ export const PatientContext = createContext<PatientContextProps>({
 export const PatientProvider = ({ children }: { children: ReactNode }) => {
   // Initialize state from localStorage first
   const [patientData, setPatientData] = useState<PatientData>(() => {
-    const savedData = localStorage.getItem('patientData');
-    return savedData ? JSON.parse(savedData) : {};
+    localStorage.removeItem('patientData');
+    try { return JSON.parse(sessionStorage.getItem('patientData') || '{}'); }
+    catch { return {}; }
   });
   const [socket, setSocket] = useState<any>(null);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
 
   // Save to localStorage whenever patientData changes
   useEffect(() => {
-    localStorage.setItem('patientData', JSON.stringify(patientData));
+    sessionStorage.setItem('patientData', JSON.stringify(patientData));
   }, [patientData]);
 
   // WebSocket initialization
@@ -121,7 +122,7 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
         Object.entries(updatedData).forEach(([dept, data]) => {
           const deptKey = dept as DepartmentName;
           
-          if (data === undefined) {
+          if (data === undefined || data === null) {
             // If the department data is undefined, it means it was reset
             result[deptKey] = undefined;
           } else {
@@ -191,7 +192,7 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
         };
         
         // Save to localStorage for persistence
-        localStorage.setItem('patientData', JSON.stringify(updatedData));
+        sessionStorage.setItem('patientData', JSON.stringify(updatedData));
         
         console.log('Photo updated in patient context');
         return updatedData;
@@ -220,7 +221,7 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
     // Add new listener for reset event
     newSocket.on('resetPatientData', () => {
       setPatientData({});
-      localStorage.removeItem('patientData');
+      sessionStorage.removeItem('patientData');
       
       // Dispatch a custom event that all components can listen for
       const resetEvent = new CustomEvent('patientDataReset');
@@ -231,6 +232,7 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
       // Logged (not surfaced via toast): ToastProvider is mounted as a
       // child of PatientProvider, so this context has no toast access.
       console.warn('Socket connection error:', error.message);
+      setConnectionStatus('error');
     });
 
     return () => {
@@ -240,93 +242,20 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
 
   // Enhanced updateDepartment with special handling for dental data
   const updateDepartment = (dept: keyof PatientData, data: Record<string, any>) => {
-    // Special handling for dental department to ensure teeth data is properly handled
-    if (dept === 'dental' && (data.tooth_cavity_permanent !== undefined || data.tooth_cavity_primary !== undefined)) {
-      // Get current dental data or empty object
-      const currentDental = (patientData[dept] || {}) as DentalData;
-      
-      // Create a new dental object with proper merging of teeth data
-      const updatedDentalData = { ...currentDental };
-      
-      // Update permanent teeth only if present in new data
-      if (data.tooth_cavity_permanent !== undefined) {
-        updatedDentalData.tooth_cavity_permanent = data.tooth_cavity_permanent;
-      }
-      
-      // Update primary teeth only if present in new data
-      if (data.tooth_cavity_primary !== undefined) {
-        updatedDentalData.tooth_cavity_primary = data.tooth_cavity_primary;
-      }
-      
-      // Add all other dental properties
-      Object.entries(data).forEach(([key, value]) => {
-        if (key !== 'tooth_cavity_permanent' && key !== 'tooth_cavity_primary') {
-          updatedDentalData[key] = value;
-        }
-      });
-      
-      const updatedData: PatientData = {
-        ...patientData,
-        [dept]: updatedDentalData,
-        timestamp: Date.now()
-      };
-      
-      setPatientData(updatedData);
-      localStorage.setItem('patientData', JSON.stringify(updatedData));
-      
-      // Broadcast dental update to all clients
-      if (socket?.connected) {
-        socket.emit('departmentUpdate', { [dept]: updatedDentalData });
-      }
-    } else {
-      // Standard handling for other departments
-      // Merge new data with existing department data instead of replacing
-      const updatedDeptData = {
-        ...((typeof patientData[dept] === 'object') ? patientData[dept] as Record<string, any> : {}),
-        ...data
-      };
-      
-      const updatedData = {
-        ...patientData,
-        [dept]: updatedDeptData,
-        timestamp: Date.now()
-      };
-      
-      setPatientData(updatedData);
-      localStorage.setItem('patientData', JSON.stringify(updatedData));
-      
-      // Broadcast department update to all clients
-      if (socket?.connected) {
-        // If this update contains a photo property, handle it separately
-        if (dept === 'it' && data.photo !== undefined) {
-          console.log('Sending photo update to server via socket');
-          
-          // Send the photo update
-          socket.emit('photoUpdate', { 
-            photo: data.photo, 
-            photoFileName: data.photoFileName || `photo_${new Date().getTime()}.jpg` 
-          });
-          
-          // ALSO send the other updated fields (excluding photo) to keep fields in sync
-          const nonPhotoData = { ...data };
-          delete nonPhotoData.photo;
-          delete nonPhotoData.photoFileName;
-          
-          // Only emit non-photo fields if there are any
-          if (Object.keys(nonPhotoData).length > 0) {
-            socket.emit('departmentUpdate', { [dept]: nonPhotoData });
-          }
-        } else if (dept === 'it' && data.photo === undefined && patientData.it?.photo) {
-          // If the photo was removed, broadcast deletion to all clients
-          socket.emit('photoDelete');
-          
-          // Also send any other updated fields
-          socket.emit('departmentUpdate', { [dept]: { ...data } });
-        } else {
-          // Normal updates (no photo involved)
-          socket.emit('departmentUpdate', { [dept]: { ...data } });
-        }
-      }
+    setPatientData(prev => ({
+      ...prev,
+      [dept]: { ...(typeof prev[dept] === "object" ? prev[dept] : {}), ...data },
+      timestamp: Date.now(),
+    }));
+    if (socket?.connected) {
+      if (dept === 'it' && Object.prototype.hasOwnProperty.call(data, 'photo')) {
+        if (data.photo) socket.emit('photoUpdate', { photo: data.photo, photoFileName: data.photoFileName });
+        else socket.emit('photoDelete');
+        const fields = { ...data };
+        delete fields.photo;
+        delete fields.photoFileName;
+        if (Object.keys(fields).length) socket.emit('departmentUpdate', { [dept]: fields });
+      } else socket.emit('departmentUpdate', { [dept]: data });
     }
   };
 
@@ -345,10 +274,10 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
     // Broadcast the reset to all clients
     if (socket?.connected) {
       socket.emit('departmentUpdate', {
-        ent: undefined,
-        vision: undefined,
-        general: undefined,
-        dental: undefined
+        ent: null,
+        vision: null,
+        general: null,
+        dental: null
       });
     }
   };
@@ -380,12 +309,12 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
       }
       
       if (socket?.connected) {
-        socket.emit('departmentUpdate', { [department]: undefined });
+        socket.emit('departmentUpdate', { [department]: null });
       }
     } else {
       // Full reset - clear everything
       setPatientData({});
-      localStorage.removeItem("patientData");
+      sessionStorage.removeItem("patientData");
       
       // Clear file input on full reset
       const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
