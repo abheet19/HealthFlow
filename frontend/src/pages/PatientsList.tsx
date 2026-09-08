@@ -17,7 +17,7 @@ import {
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useToast } from "../context/ToastContext";
-import { getApiUrl } from "../config/api"; // Import the API URL helper
+import { apiFetch } from "../config/api"; // Import the API URL helper
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload'; // Import download icon
 
 const placeholderImage = "https://via.placeholder.com/150"; // default placeholder
@@ -36,17 +36,17 @@ const PatientsList: React.FC = () => {
   const handleSearchChange = (value: string) => {
     // Update local state immediately for UI responsiveness
     setSearch(value);
-    
+
     // Debounce the filter operation
     if (typeof window.inputDebounceTimers === 'undefined') {
       window.inputDebounceTimers = {};
     }
-    
+
     // Clear any existing timer for the search field
     if (window.inputDebounceTimers['search']) {
       clearTimeout(window.inputDebounceTimers['search']);
     }
-    
+
     // Set a new timer to filter results after typing stops
     window.inputDebounceTimers['search'] = setTimeout(() => {
       // The filtering is handled in the filteredPatients variable
@@ -58,7 +58,7 @@ const PatientsList: React.FC = () => {
     setLoading(true);
     try {
       // Use the API helper instead of hardcoded URL
-      const res = await fetch(getApiUrl("/api/patients"));
+      const res = await apiFetch("/api/patients");
       if (!res.ok) {
         throw new Error(`Server responded with status: ${res.status}`);
       }
@@ -96,12 +96,10 @@ const PatientsList: React.FC = () => {
     patientName: string
   ) => {
     try {
-      const endpoint = getApiUrl(`/api/generate_report?patientId=${patientId}`);
-        
-      const res = await fetch(endpoint);
-      
+      const res = await apiFetch(`/api/generate_report?patientId=${patientId}`);
+
       if (!res.ok) throw new Error(`Failed to download DOCX report`);
-      
+
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -111,7 +109,7 @@ const PatientsList: React.FC = () => {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-      
+
       // Show success toast
       showToast(`DOCX report downloaded successfully`, "success");
     } catch (error) {

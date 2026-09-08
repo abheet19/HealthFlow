@@ -1,35 +1,32 @@
-// API configuration
-// This allows the API URL to be configured via environment variables
-// when deploying to different environments
-
-// Try to get environment variables from different sources (Vite's import.meta.env or process.env)
-// This provides better compatibility across different build systems
+// API configuration and single-user access-code transport.
 const getEnvVariable = (key: string): string | undefined => {
-  if (import.meta.env && import.meta.env[key]) {
-    return import.meta.env[key];
-  }
-  // @ts-expect-error - process.env might be available depending on build configuration
-  if (typeof process !== 'undefined' && process.env && process.env[key]) {
-    // @ts-expect-error - see above
-    return process.env[key];
-  }
+  if (import.meta.env && import.meta.env[key]) return import.meta.env[key];
+  // @ts-expect-error - process.env may be available in another build system.
+  if (typeof process !== 'undefined' && process.env && process.env[key]) return process.env[key];
   return undefined;
 };
 
-// For docker or production, it will use the VITE_API_URL environment variable
-// Default to the Cloud Run backend URL if no env variable is set
-export const API_BASE_URL = 
-  getEnvVariable('VITE_API_URL') || 
+export const API_BASE_URL =
+  getEnvVariable('VITE_API_URL') ||
   'https://doctor-report-backend-720901500415.asia-south1.run.app';
 
-// Helper function to construct API endpoints
 export const getApiUrl = (endpoint: string) => {
-  // Make sure endpoint starts with a slash if it doesn't already
   const formattedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   return `${API_BASE_URL}${formattedEndpoint}`;
 };
 
-// Socket.IO connection URL (same as API by default)
-export const SOCKET_URL = 
-  getEnvVariable('VITE_SOCKET_URL') || 
-  API_BASE_URL;
+export const SOCKET_URL = getEnvVariable('VITE_SOCKET_URL') || API_BASE_URL;
+
+const ACCESS_CODE_STORAGE_KEY = 'healthflow-access-code';
+
+export const getAccessCode = (): string => sessionStorage.getItem(ACCESS_CODE_STORAGE_KEY) || '';
+export const hasAccessCode = (): boolean => Boolean(getAccessCode());
+export const saveAccessCode = (code: string): void => sessionStorage.setItem(ACCESS_CODE_STORAGE_KEY, code.trim());
+export const clearAccessCode = (): void => sessionStorage.removeItem(ACCESS_CODE_STORAGE_KEY);
+
+export const apiFetch = (endpoint: string, init: RequestInit = {}): Promise<Response> => {
+  const headers = new Headers(init.headers);
+  const accessCode = getAccessCode();
+  if (accessCode) headers.set('X-HealthFlow-Access-Code', accessCode);
+  return fetch(getApiUrl(endpoint), { ...init, headers });
+};

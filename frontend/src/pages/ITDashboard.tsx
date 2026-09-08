@@ -2,7 +2,7 @@ import * as React from "react";
 import { useState, useContext, useEffect, useRef } from "react";
 import { Button, TextField } from "@mui/material";
 import { PatientContext } from "../context/PatientContext";
-import { getApiUrl } from "../config/api"; // Import API helper
+import { apiFetch } from "../config/api"; // Import API helper
 import { useToast } from "../context/ToastContext";
 import DashboardShell from "../components/DashboardShell";
 import LabeledSelect from "../components/LabeledSelect";
@@ -257,7 +257,7 @@ const ITDashboard: React.FC = () => {
   const generatePatientId = async () => {
     setGeneratingId(true);
     try {
-      const response = await fetch(getApiUrl('api/generate_patient_id'), {
+      const response = await apiFetch('api/generate_patient_id', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -382,7 +382,7 @@ const ITDashboard: React.FC = () => {
 
     setSubmitting(true);
     try {
-      const res = await fetch(getApiUrl("api/submit_patient"), {
+      const res = await apiFetch("api/submit_patient", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(combinedData)

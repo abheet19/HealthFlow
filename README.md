@@ -1,3 +1,5 @@
+> [!IMPORTANT]
+> **Demonstration workspace only.** The deployed instance now requires a workspace access code before its API, realtime channel, or dashboard can be used. It is for synthetic demonstration records only: do **not** enter real patient, school, employee, or health information. A shared access code is a useful personal-demo gate, not the authentication, role controls, consent, audit trail, retention policy, encryption program, and compliance review required for a clinical system.
 <div align="center">
 
 <br>
@@ -151,11 +153,11 @@ actually arrived over the WebSocket. Re-record it whenever the UI changes:
 cd tools
 npm install
 npx playwright install chromium
-node record-demo.mjs      # drives the live app, writes frame pairs to tools/.frames/
+BASE_URL=http://localhost:5173 node record-demo.mjs  # must run only against a local stack
 python build-gif.py       # composites the panes -> docs/demo/healthflow-demo.gif
 ```
 
-`record-demo.mjs` wakes the Fly machines first (they scale to zero), then registers a patient named
+`record-demo.mjs` should run against a local stack and registers a synthetic patient named
 **Demo Patient** and runs the full five-department flow. `build-gif.py` takes `--width`, `--colors`
 and `--tempo` if you need to trade size against length. Point the recorder at a local stack with
 `BASE_URL=http://localhost:5173 node record-demo.mjs` to keep the demo out of the deployed database

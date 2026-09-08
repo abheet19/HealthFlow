@@ -1,6 +1,6 @@
 import { createContext, useState, useEffect, ReactNode } from "react";
 import io from 'socket.io-client';
-import { SOCKET_URL } from "../config/api";
+import { getAccessCode, SOCKET_URL } from "../config/api";
 
 // Define dental data structure
 interface DentalData {
@@ -84,7 +84,8 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
     const newSocket = io(SOCKET_URL, {
       reconnection: true,
       reconnectionAttempts: 5,
-      transports: ['websocket']  // Force WebSocket transport
+      transports: ['websocket'],
+      auth: { accessCode: getAccessCode() }
     });
     setSocket(newSocket);
 

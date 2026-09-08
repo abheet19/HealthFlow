@@ -1,10 +1,11 @@
 import eventlet
 eventlet.monkey_patch()
 
-from flask import Flask
+from flask import Flask, jsonify, request
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
 import logging
+import hmac
 import os
 import sys
 
@@ -45,10 +46,44 @@ socketio = SocketIO(app, cors_allowed_origins=CORS_ORIGINS, async_mode="eventlet
 # Register blueprints
 app.register_blueprint(api_routes)
 
+
+def _configured_access_code() -> str:
+    return os.environ.get("HEALTHFLOW_ACCESS_CODE", "")
+
+
+def _public_access_is_required() -> bool:
+    return (
+        os.environ.get("HEALTHFLOW_REQUIRE_ACCESS_CODE", "").lower() in {"1", "true"}
+        or bool(os.environ.get("FLY_APP_NAME"))
+    )
+
+
+def _valid_access_code(value: object) -> bool:
+    expected = _configured_access_code()
+    if not expected:
+        return not _public_access_is_required()
+    return isinstance(value, str) and hmac.compare_digest(value, expected)
+
+
+@app.before_request
+def protect_patient_api():
+    if not request.path.startswith("/api/"):
+        return None
+    if _valid_access_code(request.headers.get("X-HealthFlow-Access-Code", "")):
+        return None
+    if _public_access_is_required() and not _configured_access_code():
+        return jsonify({"error": "HealthFlow is not enabled for public access."}), 503
+    return jsonify({"error": "A valid HealthFlow access code is required."}), 401
 @app.route('/health')
 def health():
     return {"status": "ok"}, 200
 
+
+@socketio.on('connect')
+def protect_realtime_channel(auth):
+    auth = auth or {}
+    if not _valid_access_code(auth.get("accessCode")):
+        return False
 # WebSocket event handlers
 @socketio.on('newPatientId')
 def handle_new_patient_id(patient_id):
