@@ -1,46 +1,28 @@
 import * as React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { ThemeProvider, CssBaseline } from "@mui/material";
-import theme from "./theme";
-import Navigation from "./components/Navigation";
-import ITDashboard from "./pages/ITDashboard";
-import ENT from "./pages/ENTDashboard";
-import Vision from "./pages/VisionDashboard";
-import General from "./pages/GeneralDashboard";
-import Dental from "./pages/DentalDashboard";
-import PatientsList from "./pages/PatientsList";
-import { PatientProvider } from "./context/PatientContext";
-import { ToastProvider } from "./context/ToastContext";
 import AccessGate from "./components/AccessGate";
 import { hasAccessCode } from "./config/api";
+
+// Keep the public access gate light. The authenticated clinical workspace,
+// Material UI, Socket.IO, and department routes load only after validation.
+const WorkspaceApp = React.lazy(() => import("./WorkspaceApp"));
 
 function App() {
   const [unlocked, setUnlocked] = React.useState(hasAccessCode);
 
+  if (!unlocked) {
+    return <AccessGate onUnlock={() => setUnlocked(true)} />;
+  }
+
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      {unlocked ? (
-        <PatientProvider>
-          <ToastProvider>
-            <Router>
-              <Navigation />
-              <Routes>
-                <Route path="/" element={<ITDashboard />} />
-                <Route path="/it" element={<ITDashboard />} />
-                <Route path="/ent" element={<ENT />} />
-                <Route path="/vision" element={<Vision />} />
-                <Route path="/general" element={<General />} />
-                <Route path="/dental" element={<Dental />} />
-                <Route path="/patients" element={<PatientsList />} />
-              </Routes>
-            </Router>
-          </ToastProvider>
-        </PatientProvider>
-      ) : (
-        <AccessGate onUnlock={() => setUnlocked(true)} />
-      )}
-    </ThemeProvider>
+    <React.Suspense
+      fallback={
+        <main className="min-h-screen grid place-items-center text-text-dim" aria-busy="true" aria-live="polite">
+          Opening the clinical workspace…
+        </main>
+      }
+    >
+      <WorkspaceApp />
+    </React.Suspense>
   );
 }
 

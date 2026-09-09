@@ -1,19 +1,22 @@
 import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 import {mkdir,writeFile} from 'node:fs/promises';
-const out=process.env.VERIFICATION_DIR || 'docs/verification';
+import {fileURLToPath} from 'node:url';
+// Keep durable synthetic-only evidence in the repository docs folder
+// regardless of the caller's working directory.
+const out=process.env.VERIFICATION_DIR || fileURLToPath(new URL('../docs/verification/',import.meta.url));
 await mkdir(out,{recursive:true});
 const browser=await chromium.launch({executablePath:'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'});
 const ctx=await browser.newContext({viewport:{width:1440,height:1000}});
 const page=await ctx.newPage();const second=await browser.newPage({viewport:{width:1280,height:900}});const checks=[];const errors=[];
 for(const p of [page,second])p.on('pageerror',e=>errors.push(e.message));
-const base='http://127.0.0.1:5179';
+const base=process.env.BASE_URL || 'http://127.0.0.1:5179';
 async function unlock(p){await p.getByLabel('Workspace access code').fill('synthetic-local-test');await p.getByRole('button',{name:'Open workspace'}).click();await p.getByLabel('Workspace access code').waitFor({state:'detached'});}
 async function pick(label,value){const field=second.locator('.MuiFormControl-root').filter({has:second.locator('label').filter({hasText:new RegExp('^'+label+'$')})});await field.locator('[role="combobox"]').click();await second.getByRole('option',{name:value,exact:true}).click();}
 try{
  await page.goto(base,{waitUntil:'networkidle'});await page.getByRole('button',{name:'Open workspace'}).click();await page.getByText('Enter the clinic workspace access code.').waitFor();checks.push('empty access code rejected');
  await page.getByLabel('Workspace access code').fill('wrong');await page.getByRole('button',{name:'Open workspace'}).click();await page.getByText('That workspace code is not valid.').waitFor();checks.push('wrong code rejected by backend before dashboard unlock');
- await unlock(page);await second.goto(base+'/dental',{waitUntil:'networkidle'});await unlock(second);await page.screenshot({path:out+'/it-empty.png',fullPage:true});
+ await unlock(page);await second.goto(base+'/dental',{waitUntil:'networkidle'});await unlock(second);await page.screenshot({path:out+'/it-empty.png',fullPage:true});await second.screenshot({path:out+'/dental-waiting.png',fullPage:true});
  await page.getByRole('button',{name:'Register Patient'}).click();await page.getByRole('button',{name:'Reset All Data'}).waitFor();await second.getByRole('button',{name:'Save',exact:true}).waitFor();checks.push('new patient ID delivered to independent browser via real Socket.IO');
  const fields={Name:'Rapid Test',DIV:'B','Roll No':'71','Admin No':'HF-TEST-71',"Father's Name":'Synthetic Parent',"Mother's Name":'Synthetic Parent',Mobile:'9000000000',DOB:'2012-04-18','Medical Officer':'Synthetic Officer'};
  for(const [label,v] of Object.entries(fields))await page.getByLabel(label,{exact:true}).fill(v);
@@ -28,7 +31,7 @@ try{
  for(const label of ['BP','Pulse','Hip','Waist']){const input=second.getByLabel(label,{exact:true});const block=input.locator('xpath=ancestor::div[contains(@class,"relative")][1]');await block.getByRole('button',{name:'NA',exact:true}).click();assert.equal(await input.inputValue(),'NA');await block.getByRole('button',{name:'NA',exact:true}).click();assert.equal(await input.inputValue(),'');}checks.push('all four vital/circumference NA controls toggle');
  await page.getByRole('button',{name:'Reset All Data'}).click();await second.getByText(/Waiting for patient ID/i).first().waitFor();checks.push('global reset reaches independent department browser');
  await page.goto(base+'/patients',{waitUntil:'networkidle'});await page.getByText('Demo Patient',{exact:true}).first().waitFor();await page.getByLabel('Search by Name').fill('does-not-exist');await page.getByText(/No patients match/).waitFor();await page.getByLabel('Search by Name').fill('Demo Patient');await page.getByRole('button',{name:'Refresh',exact:true}).click();await page.getByText('Patients list refreshed successfully').waitFor();await page.screenshot({path:out+'/patients-synthetic.png',fullPage:true});checks.push('persisted synthetic patient list, search empty state, and refresh');
- await page.setViewportSize({width:390,height:844});await page.getByRole('button',{name:'menu',exact:true}).click();await page.getByRole('link',{name:'IT',exact:true}).last().click();await page.getByRole('heading',{name:'IT Dashboard',exact:true}).waitFor();await page.screenshot({path:out+'/mobile-it.png',fullPage:true});checks.push('mobile navigation drawer works');
+ await page.setViewportSize({width:390,height:844});await page.getByRole('button',{name:'menu',exact:true}).click();await page.getByRole('link',{name:'IT',exact:true}).last().waitFor();await page.waitForTimeout(350);await page.screenshot({path:fileURLToPath(new URL('../docs/screenshots/mobile-navigation.png',import.meta.url)),fullPage:true});await page.getByRole('link',{name:'IT',exact:true}).last().click();await page.locator('.MuiDrawer-root').waitFor({state:'detached'});await page.getByRole('heading',{name:'IT Dashboard',exact:true}).waitFor();await page.getByRole('alert').waitFor({state:'hidden'});await page.screenshot({path:out+'/mobile-it.png',fullPage:true});checks.push('mobile navigation drawer works');
  await page.getByRole('button',{name:'Lock',exact:true}).click();await page.getByLabel('Workspace access code').waitFor();assert.equal(await page.evaluate(()=>sessionStorage.getItem('patientData')),null);assert.equal(await page.evaluate(()=>localStorage.getItem('patientData')),null);checks.push('lock clears session code/draft and returns to gate');
  assert.deepEqual(errors,[]);await writeFile(out+'/extra-browser-results.json',JSON.stringify({at:new Date().toISOString(),environment:'isolated local PostgreSQL/Flask/React; two independent browser contexts',checks,errors},null,2));console.log(JSON.stringify({checks:checks.length,errors}));
 }catch(e){await page.screenshot({path:out+'/failure-it.png',fullPage:true});await second.screenshot({path:out+'/failure-department.png',fullPage:true});throw e;}finally{await browser.close();}

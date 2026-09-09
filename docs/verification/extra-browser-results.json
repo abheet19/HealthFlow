@@ -1,0 +1,21 @@
+{
+  "at": "2026-09-09T10:18:33.038Z",
+  "environment": "isolated local PostgreSQL/Flask/React; two independent browser contexts",
+  "checks": [
+    "empty access code rejected",
+    "wrong code rejected by backend before dashboard unlock",
+    "new patient ID delivered to independent browser via real Socket.IO",
+    "rapid sequential field edits retained without recorder repair",
+    "synthetic photo upload, hide/show preview, delete",
+    "permanent/primary tooth toggle and dental remarks NA toggle",
+    "incomplete dental save reports validation error",
+    "BMI calculated from entered height/weight",
+    "all five conditional abnormality/allergy description fields appear, accept input, and hide",
+    "all four vital/circumference NA controls toggle",
+    "global reset reaches independent department browser",
+    "persisted synthetic patient list, search empty state, and refresh",
+    "mobile navigation drawer works",
+    "lock clears session code/draft and returns to gate"
+  ],
+  "errors": []
+}

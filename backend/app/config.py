@@ -50,7 +50,15 @@ def get_database_url():
 
 # Create a database engine and session factory
 DATABASE_URL = get_database_url()
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)  # Added pool_pre_ping for better connection reliability
+# Fail quickly when PostgreSQL is unavailable so an HTTP request or Fly health
+# check cannot sit on the driver's much longer default connection timeout.
+# pool_pre_ping keeps stale pooled connections from reaching application code.
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,
+    pool_timeout=1,
+    connect_args={"connect_timeout": 1},
+)
 SessionLocal = sessionmaker(bind=engine)
 
 # Database session dependency - fixed to return a session instead of yielding it

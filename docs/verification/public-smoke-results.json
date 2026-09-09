@@ -1,0 +1,17 @@
+{
+  "at": "2026-09-09T10:07:09.058Z",
+  "environment": "deployed Fly frontend and backend; unauthenticated boundary only",
+  "checks": [
+    "public frontend serves the access gate",
+    "empty access code is rejected in the browser",
+    "invalid code is rejected by the deployed backend and is not stored",
+    "deployed health probe verifies PostgreSQL and exposes safe timing headers"
+  ],
+  "expectedHttpFailures": [
+    {
+      "status": 401,
+      "url": "https://healthflow-api-abheet19.fly.dev/api/session"
+    }
+  ],
+  "errors": []
+}

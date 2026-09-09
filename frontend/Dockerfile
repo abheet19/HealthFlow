@@ -1,37 +1,24 @@
-FROM node:18-alpine as build
+FROM node:20-alpine AS build
 WORKDIR /app
 COPY package*.json ./
 
-# Install dependencies with improved configuration
+# Install exactly the lockfile used by CI/local verification.
 RUN npm config set registry https://registry.npmjs.org/
 RUN npm ci --legacy-peer-deps
 
-# Copy all files including env files
 COPY . .
-
-# Explicitly set NODE_ENV to production to ensure .env.production is used
 ENV NODE_ENV=production
 
-# Backend base URL, baked in at build time (Vite inlines env vars into the bundle).
+# Backend base URL, baked in at build time (Vite inlines env vars).
 ARG VITE_API_URL
 ARG VITE_SOCKET_URL
 ENV VITE_API_URL=${VITE_API_URL}
 ENV VITE_SOCKET_URL=${VITE_SOCKET_URL}
 
-# Create production build with production environment variables
 RUN npm run build
 
-# Use nginx to serve static files
 FROM nginx:alpine
-
-# Copy built assets from the build stage
 COPY --from=build /app/dist /usr/share/nginx/html
-
-# Copy nginx config
 COPY ./nginx.conf /etc/nginx/conf.d/default.conf
-
-# Expose port
 EXPOSE 3000
-
-# Start nginx
 CMD ["nginx", "-g", "daemon off;"]

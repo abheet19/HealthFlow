@@ -71,7 +71,8 @@ Draft changes synchronize before the final database commit. The current workspac
 | **Frontend** | React 18, TypeScript, Vite, Tailwind CSS, MUI (Material UI), Socket.IO client |
 | **Backend** | Python, Flask, Flask-SocketIO, SQLAlchemy, python-docx |
 | **Database** | PostgreSQL |
-| **Containerization** | Docker, docker-compose (frontend + backend + Postgres) |
+| **Containerization** | Docker, Docker Compose (frontend + backend + PostgreSQL 17) |
+| **Operations** | Fly.io, database-aware health check, request IDs and Server-Timing |
 
 ---
 
@@ -99,6 +100,13 @@ Captured from the current application with synthetic records on an isolated loca
 
 ![Patients list](docs/screenshots/patients-list.png)
 
+<details>
+<summary>Mobile navigation (390 px verified viewport)</summary>
+
+![Mobile navigation drawer](docs/screenshots/mobile-navigation.png)
+
+</details>
+
 ---
 
 ## Key features
@@ -112,6 +120,11 @@ Captured from the current application with synthetic records on an isolated loca
 - **Consistent feedback UX** — loading states while data is fetched, empty-state messaging when a
   department has no patients yet, and success/error toasts surfaced consistently across all five
   dashboards.
+- **Bounded browser payload** — department pages are loaded as route chunks, so opening one station
+  does not download every other form up front.
+- **Operational signals without patient payloads** — API responses carry a correlation ID and
+  `Server-Timing`; logs record only method, path, status and duration. `/health` checks PostgreSQL
+  before reporting ready.
 
 ---
 
@@ -124,6 +137,11 @@ git clone https://github.com/abheet19/HealthFlow.git
 cd HealthFlow
 docker-compose up --build
 ```
+
+Open `http://127.0.0.1:3000` and use the local synthetic code
+`synthetic-local-test`. Override `HEALTHFLOW_DB_PASSWORD` and
+`HEALTHFLOW_ACCESS_CODE` in an untracked `.env` when you need different local
+values. Never reuse deployment secrets or real records in this demo stack.
 
 **Without Docker:**
 
@@ -167,8 +185,9 @@ actually arrived over the WebSocket. Re-record it whenever the UI changes:
 cd tools
 npm install
 npx playwright install chromium
-BASE_URL=http://127.0.0.1:5179 node record-demo.mjs  # must run only against a local stack
+BASE_URL=http://127.0.0.1:5179 node record-demo.mjs  # loopback-only local stack
 python build-gif.py       # composites the panes -> docs/demo/healthflow-demo.gif
+node verify-workflows.mjs # extra validation, control, mobile and lock checks
 ```
 
 `record-demo.mjs` should run against a local stack and registers a synthetic patient named
@@ -179,5 +198,8 @@ entirely.
 
 > The recorder rejects remote frontend URLs. Use a disposable local database and never record against deployed patient records.
 
-<sub>Further backend details (endpoints, environment variables, deployment) live in
-<code>backend/</code>'s own comments and configuration.</sub>
+The latest measured checks, exact commands, deployment model and known limits
+are in [the testing artifact](docs/TESTING.md). The current build keeps the locked gate at 147.88 kB (48.04 kB gzip), then loads the authenticated
+workspace and selected route on demand. The deployed Lighthouse lab run measured 88 mobile / 95 desktop
+performance and 100 Accessibility, Best Practices and SEO on both profiles; `npm audit --omit=dev`
+reported zero known production dependency vulnerabilities in that run.

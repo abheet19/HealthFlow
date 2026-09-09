@@ -1,17 +1,21 @@
-version: "3.8"
 services:
   db:
-    image: postgres:14
+    image: postgres:17-alpine
     container_name: doctor_report_db
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${HEALTHFLOW_DB_PASSWORD:-healthflow-local-db}
       POSTGRES_DB: doctor_reports
     volumes:
       - db_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
-      
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d doctor_reports"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
   backend:
     build: ./backend
     container_name: doctor_report_backend
@@ -19,15 +23,23 @@ services:
       - "5000:5000"
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${HEALTHFLOW_DB_PASSWORD:-healthflow-local-db}
       POSTGRES_HOST: db
       POSTGRES_PORT: "5432"
       POSTGRES_DB: doctor_reports
+      HEALTHFLOW_ACCESS_CODE: ${HEALTHFLOW_ACCESS_CODE:-synthetic-local-test}
+      HEALTHFLOW_REQUIRE_ACCESS_CODE: "true"
+      CORS_ORIGINS: http://127.0.0.1:3000,http://localhost:3000,http://127.0.0.1:5179
     depends_on:
-      - db
-      
+      db:
+        condition: service_healthy
+
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: http://127.0.0.1:5000
+        VITE_SOCKET_URL: http://127.0.0.1:5000
     container_name: doctor_report_frontend
     ports:
       - "3000:3000"

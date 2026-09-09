@@ -9,17 +9,18 @@ elif [ -n "$DATABASE_URL" ]; then
   # string via DATABASE_URL - no local container to wait for.
   echo "Running with externally provided DATABASE_URL"
 else
-  # Local development with docker-compose
-  echo "Running in local development environment"
-  # Set explicit database credentials
-  export POSTGRES_USER=postgres
-  export POSTGRES_PASSWORD=postgres
-  export POSTGRES_DB=doctor_reports
-  export POSTGRES_HOST=db
-  export POSTGRES_PORT=5432
+  # Local development with docker-compose. Respect explicit Compose or shell
+  # values; the old entrypoint silently replaced the configured password with
+  # "postgres", so a freshly initialized database could never authenticate.
+  : "${POSTGRES_USER:=postgres}"
+  : "${POSTGRES_PASSWORD:=postgres}"
+  : "${POSTGRES_DB:=doctor_reports}"
+  : "${POSTGRES_HOST:=db}"
+  : "${POSTGRES_PORT:=5432}"
+  export POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB POSTGRES_HOST POSTGRES_PORT
 
-  # Wait for PostgreSQL to be ready before starting the app
-  until pg_isready -h db -p 5432; do
+  echo "Running in local development environment"
+  until pg_isready -h "$POSTGRES_HOST" -p "$POSTGRES_PORT"; do
     echo "Waiting for Postgres..."
     sleep 1
   done
