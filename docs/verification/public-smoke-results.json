@@ -1,5 +1,5 @@
 {
-  "at": "2026-09-09T10:07:09.058Z",
+  "at": "2026-09-09T16:41:51.217Z",
   "environment": "deployed Fly frontend and backend; unauthenticated boundary only",
   "checks": [
     "public frontend serves the access gate",

@@ -14,6 +14,7 @@ const Vision = React.lazy(() => import("./pages/VisionDashboard"));
 const General = React.lazy(() => import("./pages/GeneralDashboard"));
 const Dental = React.lazy(() => import("./pages/DentalDashboard"));
 const PatientsList = React.lazy(() => import("./pages/PatientsList"));
+const NotFoundPage = React.lazy(() => import("./pages/NotFoundPage"));
 
 function WorkspaceApp() {
   return (
@@ -38,6 +39,7 @@ function WorkspaceApp() {
                 <Route path="/general" element={<General />} />
                 <Route path="/dental" element={<Dental />} />
                 <Route path="/patients" element={<PatientsList />} />
+                <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </React.Suspense>
           </Router>

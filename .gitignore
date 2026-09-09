@@ -13,8 +13,8 @@
 .DS_Store
 .eggs/
 .env
-.env
 .env.*
+!.env.example
 .idea/
 .vscode/
 /backend/__pycache__/

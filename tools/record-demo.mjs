@@ -22,7 +22,7 @@
  *   npm install
  *   npx playwright install chromium
  *   node record-demo.mjs                       # local stack only; remote hosts are rejected
- *   BASE_URL=http://localhost:5173 node record-demo.mjs   # or against a local dev server
+ *   BASE_URL=http://localhost:3000 API_URL=http://localhost:5000 node record-demo.mjs
  *
  * Then:
  *   python build-gif.py
@@ -32,10 +32,16 @@ import { chromium } from "playwright";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { browserLaunchOptions } from "./browser-options.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const BASE_URL = process.env.BASE_URL || "http://127.0.0.1:5179";
-if (!["127.0.0.1", "localhost", "[::1]"].includes(new URL(BASE_URL).hostname)) throw new Error("Recording writes synthetic records: use a loopback-only isolated stack.");
+const API_URL = process.env.API_URL || "http://127.0.0.1:5000";
+for (const candidate of [BASE_URL, API_URL]) {
+  if (!["127.0.0.1", "localhost", "[::1]"].includes(new URL(candidate).hostname)) {
+    throw new Error("Recording writes synthetic records: use a loopback-only isolated stack.");
+  }
+}
 const ACCESS_CODE = process.env.HEALTHFLOW_ACCESS_CODE || "synthetic-local-test";
 const FRAME_DIR = path.join(HERE, ".frames");
 const PHOTO = path.join(HERE, "assets", "demo-patient.jpg");
@@ -220,20 +226,21 @@ async function main() {
   fs.mkdirSync(FRAME_DIR, { recursive: true });
 
   console.log(`Recording against ${BASE_URL}`);
-  // Fly scale-to-zero: wake both machines before the camera rolls, so the
-  // recording never opens on a cold start.
   console.log("Checking isolated local stack...");
-  for (const url of [BASE_URL, `${process.env.API_URL || "http://127.0.0.1:5059"}/health`]) {
-    try {
-      const t0 = Date.now();
-      const r = await fetch(url);
-      console.log(`  ${url} -> ${r.status} in ${Date.now() - t0}ms`);
-    } catch (e) {
-      console.log(`  ${url} -> ${e.message}`);
+  for (const url of [BASE_URL, `${API_URL}/health`]) {
+    const t0 = Date.now();
+    const response = await fetch(url);
+    console.log(`  ${url} -> ${response.status} in ${Date.now() - t0}ms`);
+    if (!response.ok) throw new Error(`Local preflight failed: ${url} returned ${response.status}`);
+    if (url.endsWith("/health")) {
+      const body = await response.json();
+      if (body.status !== "ok" || body.database !== "ok") {
+        throw new Error(`Local preflight failed: unhealthy API response ${JSON.stringify(body)}`);
+      }
     }
   }
 
-  const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" });
+  const browser = await chromium.launch(browserLaunchOptions());
   // Two separate contexts => two separate localStorage jars. Nothing crosses
   // between the panes except over the real Socket.IO connection.
   const ctxIT = await browser.newContext({ viewport: PANE, deviceScaleFactor: SCALE });

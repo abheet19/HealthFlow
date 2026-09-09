@@ -2,11 +2,12 @@ import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
+import {browserLaunchOptions} from './browser-options.mjs';
 // Keep durable synthetic-only evidence in the repository docs folder
 // regardless of the caller's working directory.
 const out=process.env.VERIFICATION_DIR || fileURLToPath(new URL('../docs/verification/',import.meta.url));
 await mkdir(out,{recursive:true});
-const browser=await chromium.launch({executablePath:'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'});
+const browser=await chromium.launch(browserLaunchOptions());
 const ctx=await browser.newContext({viewport:{width:1440,height:1000}});
 const page=await ctx.newPage();const second=await browser.newPage({viewport:{width:1280,height:900}});const checks=[];const errors=[];
 for(const p of [page,second])p.on('pageerror',e=>errors.push(e.message));
@@ -31,9 +32,7 @@ try{
  for(const label of ['BP','Pulse','Hip','Waist']){const input=second.getByLabel(label,{exact:true});const block=input.locator('xpath=ancestor::div[contains(@class,"relative")][1]');await block.getByRole('button',{name:'NA',exact:true}).click();assert.equal(await input.inputValue(),'NA');await block.getByRole('button',{name:'NA',exact:true}).click();assert.equal(await input.inputValue(),'');}checks.push('all four vital/circumference NA controls toggle');
  await page.getByRole('button',{name:'Reset All Data'}).click();await second.getByText(/Waiting for patient ID/i).first().waitFor();checks.push('global reset reaches independent department browser');
  await page.goto(base+'/patients',{waitUntil:'networkidle'});await page.getByText('Demo Patient',{exact:true}).first().waitFor();await page.getByLabel('Search by Name').fill('does-not-exist');await page.getByText(/No patients match/).waitFor();await page.getByLabel('Search by Name').fill('Demo Patient');await page.getByRole('button',{name:'Refresh',exact:true}).click();await page.getByText('Patients list refreshed successfully').waitFor();await page.screenshot({path:out+'/patients-synthetic.png',fullPage:true});checks.push('persisted synthetic patient list, search empty state, and refresh');
- await page.setViewportSize({width:390,height:844});await page.getByRole('button',{name:'menu',exact:true}).click();await page.getByRole('link',{name:'IT',exact:true}).last().waitFor();await page.waitForTimeout(350);await page.screenshot({path:fileURLToPath(new URL('../docs/screenshots/mobile-navigation.png',import.meta.url)),fullPage:true});await page.getByRole('link',{name:'IT',exact:true}).last().click();await page.locator('.MuiDrawer-root').waitFor({state:'detached'});await page.getByRole('heading',{name:'IT Dashboard',exact:true}).waitFor();await page.getByRole('alert').waitFor({state:'hidden'});await page.screenshot({path:out+'/mobile-it.png',fullPage:true});checks.push('mobile navigation drawer works');
+ await page.setViewportSize({width:390,height:844});await page.getByRole('button',{name:'menu',exact:true}).click();await page.getByRole('link',{name:'IT',exact:true}).last().waitFor();await page.waitForTimeout(350);await page.screenshot({path:fileURLToPath(new URL('../docs/screenshots/mobile-navigation.png',import.meta.url)),fullPage:true});await page.getByRole('link',{name:'IT',exact:true}).last().click();await page.locator('.MuiDrawer-root').waitFor({state:'detached'});await page.getByRole('heading',{name:'IT Dashboard',exact:true}).waitFor();await page.getByRole('alert').waitFor({state:'hidden'});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);await page.screenshot({path:out+'/mobile-it.png',fullPage:true});checks.push('mobile navigation drawer works with no page-level horizontal overflow');
  await page.getByRole('button',{name:'Lock',exact:true}).click();await page.getByLabel('Workspace access code').waitFor();assert.equal(await page.evaluate(()=>sessionStorage.getItem('patientData')),null);assert.equal(await page.evaluate(()=>localStorage.getItem('patientData')),null);checks.push('lock clears session code/draft and returns to gate');
  assert.deepEqual(errors,[]);await writeFile(out+'/extra-browser-results.json',JSON.stringify({at:new Date().toISOString(),environment:'isolated local PostgreSQL/Flask/React; two independent browser contexts',checks,errors},null,2));console.log(JSON.stringify({checks:checks.length,errors}));
 }catch(e){await page.screenshot({path:out+'/failure-it.png',fullPage:true});await second.screenshot({path:out+'/failure-department.png',fullPage:true});throw e;}finally{await browser.close();}
-
-

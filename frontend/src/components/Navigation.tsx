@@ -44,17 +44,21 @@ const Navigation: React.FC = () => {
         className="bg-surface/70 backdrop-blur-xl border-b border-glass-border px-4 py-2"
       >
         <Toolbar className="flex items-center">
-          <div className="flex items-center space-x-3 flex-grow">
-            <div
-              className="bg-accent-gradient text-on-accent font-display font-bold text-lg rounded-full w-8 h-8 flex items-center justify-center shadow-lg shadow-accent-2/30 hover:scale-105 transition-transform cursor-pointer"
-              title="Home"
+          <Link
+            to="/it"
+            aria-label="HealthFlow home"
+            className="flex items-center space-x-3 flex-grow rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+          >
+            <span
+              aria-hidden="true"
+              className="bg-accent-gradient text-on-accent font-display font-bold text-lg rounded-full w-8 h-8 flex items-center justify-center shadow-lg shadow-accent-2/30 hover:scale-105 transition-transform"
             >
               +
-            </div>
+            </span>
             <span className="text-xl font-display font-semibold text-text">
               HealthFlow
             </span>
-          </div>
+          </Link>
           <Button onClick={lockWorkspace} className="!text-text-dim">Lock</Button>
           {isMobile && (
             <IconButton
@@ -103,7 +107,7 @@ const Navigation: React.FC = () => {
             ))}
           </List>
           <div className="text-center text-sm text-text-dim mt-4">
-            © 2025 Abheet Singh
+            © {new Date().getFullYear()} Abheet Singh
           </div>
         </div>
       </Drawer>

@@ -2,15 +2,14 @@ import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
+import { browserLaunchOptions } from './browser-options.mjs';
 
 const frontend = process.env.PUBLIC_FRONTEND_URL || 'https://healthflow-abheet19.fly.dev';
 const backend = process.env.PUBLIC_BACKEND_URL || 'https://healthflow-api-abheet19.fly.dev';
 const evidence = fileURLToPath(new URL('../docs/verification/', import.meta.url));
 await mkdir(evidence, { recursive: true });
 
-const browser = await chromium.launch({
-  executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-});
+const browser = await chromium.launch(browserLaunchOptions());
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
 const errors = [];
 const httpFailures = [];

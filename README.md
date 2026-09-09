@@ -17,6 +17,7 @@ five live dashboards and stitched into a single formatted `.docx` report.
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-1E9A66?style=for-the-badge&logo=typescript&logoColor=white)
 ![Flask](https://img.shields.io/badge/Flask-Python-5EE6A8?style=for-the-badge&logo=flask&logoColor=0A0D0B)
 ![Postgres](https://img.shields.io/badge/PostgreSQL-database-3ECF8E?style=for-the-badge&logo=postgresql&logoColor=white)
+![CI](https://github.com/abheet19/HealthFlow/actions/workflows/ci.yml/badge.svg)
 ![Status](https://img.shields.io/badge/status-personal_project-8a94a6?style=for-the-badge)
 
 <br>
@@ -69,10 +70,10 @@ Draft changes synchronize before the final database commit. The current workspac
 | Layer | Technology |
 |---|---|
 | **Frontend** | React 18, TypeScript, Vite, Tailwind CSS, MUI (Material UI), Socket.IO client |
-| **Backend** | Python, Flask, Flask-SocketIO, SQLAlchemy, python-docx |
+| **Backend** | Python 3.12, Flask, Flask-SocketIO, SQLAlchemy, python-docx |
 | **Database** | PostgreSQL |
 | **Containerization** | Docker, Docker Compose (frontend + backend + PostgreSQL 17) |
-| **Operations** | Fly.io, database-aware health check, request IDs and Server-Timing |
+| **Operations** | Fly.io, GitHub Actions CI, database-aware health check, request IDs and Server-Timing |
 
 ---
 
@@ -135,7 +136,8 @@ Captured from the current application with synthetic records on an isolated loca
 ```bash
 git clone https://github.com/abheet19/HealthFlow.git
 cd HealthFlow
-docker-compose up --build
+cp .env.example .env
+docker compose up --build
 ```
 
 Open `http://127.0.0.1:3000` and use the local synthetic code
@@ -167,6 +169,7 @@ npm run dev
 
 ```
 HealthFlow/
+├── .github/    Source checks and full synthetic Docker acceptance in CI
 ├── backend/     Flask API, Socket.IO server, docx report generation
 ├── frontend/    React + TypeScript + Vite + Tailwind + MUI
 ├── tools/       Demo recorder (not part of the app build)
@@ -185,21 +188,20 @@ actually arrived over the WebSocket. Re-record it whenever the UI changes:
 cd tools
 npm install
 npx playwright install chromium
-BASE_URL=http://127.0.0.1:5179 node record-demo.mjs  # loopback-only local stack
-python build-gif.py       # composites the panes -> docs/demo/healthflow-demo.gif
-node verify-workflows.mjs # extra validation, control, mobile and lock checks
+BASE_URL=http://127.0.0.1:3000 API_URL=http://127.0.0.1:5000 node record-demo.mjs
+python build-gif.py # composites the panes -> docs/demo/healthflow-demo.gif
+BASE_URL=http://127.0.0.1:3000 npm run verify
 ```
 
 `record-demo.mjs` should run against a local stack and registers a synthetic patient named
 **Demo Patient** and runs the full five-department flow. `build-gif.py` takes `--width`, `--colors`
-and `--tempo` if you need to trade size against length. Point the recorder at a local stack with
-`BASE_URL=http://127.0.0.1:5179 node record-demo.mjs` to keep the demo out of the deployed database
-entirely.
+and `--tempo` if you need to trade size against length. The scripts use local Chrome on Windows,
+Playwright Chromium in Linux CI, or the browser at `CHROME_PATH` when set.
 
 > The recorder rejects remote frontend URLs. Use a disposable local database and never record against deployed patient records.
 
 The latest measured checks, exact commands, deployment model and known limits
-are in [the testing artifact](docs/TESTING.md). The current build keeps the locked gate at 147.88 kB (48.04 kB gzip), then loads the authenticated
-workspace and selected route on demand. The deployed Lighthouse lab run measured 88 mobile / 95 desktop
+are in [the testing artifact](docs/TESTING.md). The current build keeps the locked gate at 148.12 kB (48.06 kB gzip), then loads the authenticated
+workspace as a 242.39 kB route chunk (79.73 kB gzip) and the selected department on demand. The deployed Lighthouse lab run measured 88 mobile / 95 desktop
 performance and 100 Accessibility, Best Practices and SEO on both profiles; `npm audit --omit=dev`
 reported zero known production dependency vulnerabilities in that run.

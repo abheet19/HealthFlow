@@ -3,9 +3,11 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Records the HealthFlow hero demo GIF against the deployed app. Not part of the app build.",
+  "description": "Records and verifies HealthFlow against an isolated local stack. Not part of the app build.",
   "scripts": {
-    "record": "node record-demo.mjs"
+    "record": "node record-demo.mjs",
+    "verify": "node verify-workflows.mjs && node verify-navigation.mjs",
+    "verify:public": "node verify-public.mjs"
   },
   "devDependencies": {
     "playwright": "^1.47.0"

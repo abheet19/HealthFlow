@@ -2,24 +2,24 @@
 
 ## Current recheck — 2026-09-09
 
-The complete workflow was rerun on 2026-09-09 after the local-stack, dependency, bundle and operational changes in the working tree. The maintained recorder completed all five departments in two independent browser contexts, persisted `Demo Patient` to PostgreSQL, downloaded a 155,129-byte DOCX, and rebuilt the 43-frame/21.6-second README GIF. The separate browser suite then passed 14 grouped checks with zero page errors. Its machine-readable result and current screenshots are in `docs/verification/`.
+The complete workflow was rerun on 2026-09-09 after the local-stack, dependency, bundle and operational changes in the working tree. The maintained recorder completed all five departments in two independent browser contexts, persisted `Demo Patient` as `PID-20260909-c55fd70b` to PostgreSQL, downloaded a 155,129-byte DOCX, captured 62 source frame pairs, and rebuilt the optimized 43-frame/21.2-second README GIF (1,938,105 bytes; SHA-256 `0f7eb94c8ecbbee8491ef69bac1b740861de8219d6be0d000f6e15b12f79c99e`). The detailed browser suite then passed 14 grouped workflow checks, and the focused navigation suite passed eight route/menu/home-link checks, all with zero page errors. Its machine-readable result and current screenshots are in `docs/verification/`.
 
-Frontend lint and the production build passed. The locked public gate now ships as a 147.88 kB entry (48.04 kB gzip); after unlock, `WorkspaceApp` loads as a separate 241.77 kB chunk (79.60 kB gzip), followed by the selected department route. `npm audit --omit=dev` reports zero known production vulnerabilities after the React Router upgrade, and both maintained DOCX regressions pass. The exact production Docker bundle passed the 14-group browser suite with zero page errors. The deployed gate passed four public smoke checks. Lighthouse 13.4.1 measured mobile 88/100 performance and desktop 95/100, with Accessibility, Best Practices and SEO at 100/100 on both profiles; lab LCP was 3.1 s mobile and 1.1 s desktop, TBT was 0 ms, and CLS was 0.012 mobile/0 desktop. These point-in-time lab figures are evidence for this URL and run, not field performance or a general security certification.
+Frontend lint and the production build passed. The locked public gate ships as a 148.12 kB entry (48.06 kB gzip); after unlock, `WorkspaceApp` loads as a separate 242.39 kB chunk (79.73 kB gzip), followed by the selected department route. `npm audit --omit=dev` reports zero known production vulnerabilities after the React Router upgrade, and both maintained DOCX regressions pass. The exact Nginx + Python 3.12 + PostgreSQL 17 Docker bundle passed the browser suites with zero page errors; `pip check` reported no broken requirements. The deployed gate passed four public smoke checks before this release. Lighthouse 13.4.1 measured mobile 88/100 performance and desktop 95/100, with Accessibility, Best Practices and SEO at 100/100 on both profiles; lab LCP was 3.1 s mobile and 1.1 s desktop, TBT was 0 ms, and CLS was 0.012 mobile/0 desktop. These point-in-time lab figures are evidence for that deployed URL and run, not field performance or a general security certification.
 
 ## Environment and safety
 
-Full workflows ran against an isolated local stack: Docker Compose managed **PostgreSQL 17** and Flask/Gunicorn at loopback port 5000, while the recorder used Vite at 5179. Compose also defines the Nginx frontend used by the regular `docker compose up` path. Two independent browser contexts shared neither localStorage nor sessionStorage; department changes arrived through real Socket.IO. Only synthetic test records were used. No production patient row was created, edited, downloaded or removed by this verification.
+Full workflows ran against the exact isolated Docker stack: **PostgreSQL 17**, Flask/Gunicorn on **Python 3.12.14** at loopback port 5000, and the production Vite bundle served by Nginx at loopback port 3000. Two independent browser contexts shared neither localStorage nor sessionStorage; department changes arrived through real Socket.IO. Only synthetic test records were used. No production patient row was created, edited, downloaded or removed by this verification.
 
 This is guided browser automation with observed screenshots, DOM values, actual network, stored database values and an actual generated DOCX. It is not a claim that every theoretical path, medical condition, supported browser or load level was exhaustively verified.
 
 ## Reproduce the main local flow
 
 1. Start the repository's disposable local stack with `docker compose up --build -d`. It creates a project-scoped PostgreSQL volume, waits for database readiness, and uses the synthetic access code `synthetic-local-test` unless an untracked local `.env` overrides it. Do not point the stack at production.
-2. In `frontend/`, set `VITE_API_URL=http://127.0.0.1:5000` and `VITE_SOCKET_URL=http://127.0.0.1:5000`; run `npm ci`, `npm run lint`, `npm run build`, then `npm run dev -- --host 127.0.0.1 --port 5179 --strictPort`. Vite derives the browser-facing HMR port unless a reverse proxy explicitly sets `VITE_HMR_CLIENT_PORT`.
-3. In `tools/`, install its lockfile dependencies with `npm ci`. Set `CHROME_PATH` if Chrome is not at the tool's Windows default. Run `node record-demo.mjs`. It rejects non-loopback frontend origins and uses the synthetic local code above.
+2. Run source checks independently with `cd frontend; npm ci --legacy-peer-deps; npm run lint; npm run build` and `cd backend; python -m pip install -r requirements.txt; python -m pip check; python -m unittest discover -s tests -v`.
+3. In `tools/`, install its lockfile dependencies with `npm ci`. Set `CHROME_PATH` to use a specific browser; otherwise the scripts use Chrome on Windows and Playwright Chromium on Linux. Run `BASE_URL=http://127.0.0.1:3000 API_URL=http://127.0.0.1:5000 node record-demo.mjs`. Both origins must be loopback, and the recorder stops immediately if the frontend or database-aware API health probe fails.
 4. Observe IT register a patient and fill synthetic intake/photo data. ENT must receive the ID through Socket.IO. Save ENT, Vision, General and Dental, then use IT's final Submit. The Patients page must show the new row and its Word Doc action must download a report. Repairing a dropped field manually is not an acceptable pass.
 5. Inspect `.frames/manifest.json` and the generated DOCX. Expected sample values include Demo Patient, 142 cm, 36 kg, BMI 17.85, BP 104/68 and vision 6/6; template placeholders must be expanded. Compare the stored PostgreSQL row to these values. `python build-gif.py` creates the README GIF from the captured frames.
-6. Run `node verify-workflows.mjs` on the same isolated stack for the extra controls below. It uses a fresh draft but expects the recorder's stored synthetic row for list/search checks. Output defaults to the repository's `docs/verification/` folder; set `VERIFICATION_DIR` to override it.
+6. Run `BASE_URL=http://127.0.0.1:3000 npm run verify` on the same isolated stack for the extra controls below. It runs both the detailed workflow suite and the route-recovery/home-link suite. The workflow test uses a fresh draft but expects the recorder's stored synthetic row for list/search checks. Output defaults to the repository's `docs/verification/` folder; set `VERIFICATION_DIR` to override it.
 7. Stop local servers and dispose of the explicitly created test database/cluster when no other local tests need it. Never use a broad delete or a production cleanup query as a substitute for isolation.
 
 ## Acceptance matrix
@@ -39,11 +39,12 @@ This is guided browser automation with observed screenshots, DOM values, actual 
 | Reset | IT Reset All Data returns an independent department to waiting | Passed |
 | Patients | Search existing/missing name, Refresh, and download Word Doc | Passed, including empty-result and success feedback |
 | Mobile / Lock | 390 px navigation works; Lock clears current-tab code/draft and restores gate | Passed |
+| Route recovery / navigation | All six menu links open the expected page; unknown URLs explain the problem and return to IT; the brand link returns home | Passed in eight focused browser checks |
 | Tablet | Main recording at 640 px has no observed overflow | Passed in current recording |
 | HTTP/CORS/socket | Unauthenticated API 401; valid session 200; OPTIONS allowed; no-code socket rejected | Passed |
 | Invalid report | Missing `patientId` gives 400; absent synthetic ID gives 404 | Passed |
 | Bounded read burst (2026-09-08) | 20 local API reads at concurrency 4 | 20/20 HTTP 200; mean 8.3 ms, max 36.62 ms |
-| Database outage / recovery | Stop Compose database, call `/health`, restart database, call `/health` again | Degraded response was HTTP 503 `{"database":"unavailable","status":"degraded"}` in 1.919 s; recovery response was HTTP 200 `{"database":"ok","status":"ok"}` |
+| Database outage / recovery | Stop Compose database, call `/health`, restart database, call `/health` again | Python 3.12 recheck: HTTP 503 `{"database":"unavailable","status":"degraded"}` in 2.035 s; HTTP 200 `{"database":"ok","status":"ok"}` on the first one-second recovery poll |
 
 There is no measured statement or branch coverage percentage. The read burst does not establish sustained capacity or production latency. The outage check establishes bounded readiness behavior for one local stop/restart, not automatic failover, data recovery, or backup restore.
 
@@ -61,23 +62,23 @@ Current in-repository evidence is in:
 - `docs/verification/*.png` — current synthetic desktop/mobile states.
 - `docs/screenshots/` and `docs/demo/healthflow-demo.gif` — current README media.
 - `backend/tests/test_report.py` — the two maintained DOCX content regressions.
-- `tools/record-demo.mjs` and `tools/verify-workflows.mjs` — executable browser acceptance paths.
+- `tools/record-demo.mjs`, `tools/verify-workflows.mjs` and `tools/verify-navigation.mjs` — executable browser acceptance paths.
 
 The recorder manifest and generated DOCX remain in gitignored `tools/.frames/`. Earlier bounded-load and release evidence is dated in the existing study pack; it must not be presented as a measurement of the current working tree.
 
 ## Deployment, CI and local hooks
 
-The frontend is a Vite bundle built in a Node container and served by Nginx. `frontend/src/App.tsx` keeps the unauthenticated access boundary small and lazy-loads `WorkspaceApp` only after the tab has a validated code. `WorkspaceApp` then mounts MUI, routing, the shared patient/socket and toast providers, and lazy department routes behind `React.Suspense`. The backend image installs Python dependencies and PostgreSQL client tools, then starts one Gunicorn Eventlet worker through `backend/entrypoint.sh`. PostgreSQL is a separate stateful service.
+The frontend is a Vite bundle built in a Node container and served by Nginx. `frontend/src/App.tsx` keeps the unauthenticated access boundary small and lazy-loads `WorkspaceApp` only after the tab has a validated code. `WorkspaceApp` then mounts MUI, routing, the shared patient/socket and toast providers, and lazy department routes behind `React.Suspense`. The backend image uses Python 3.12, installs explicitly pinned direct dependencies and PostgreSQL client tools, then starts one Gunicorn Eventlet worker through `backend/entrypoint.sh`. PostgreSQL is a separate stateful service.
 
 Docker Compose wires PostgreSQL 17, the backend and frontend together. The database has a `pg_isready` health check; the backend waits on `service_healthy`. Compose passes a synthetic local access code and loopback CORS origins, and bakes loopback API/socket URLs into the frontend image. Build-time `VITE_*` values are public configuration, not secrets.
 
 Fly deploys two apps: `healthflow-api-abheet19` for Flask/Socket.IO and `healthflow-abheet19` for static Nginx assets. Both can stop when idle. Fly routes HTTPS and starts machines; it does not add workflow isolation or a cross-machine Socket.IO broker. Backend secrets are `DATABASE_URL` and `HEALTHFLOW_ACCESS_CODE` and belong in Fly secrets. `HEALTHFLOW_REQUIRE_ACCESS_CODE`, `CORS_ORIGINS`, `LOG_LEVEL` and `PORT` are runtime configuration.
 
-No versioned `.github/workflows`, `.husky` or `.pre-commit-config.yaml` exists in HealthFlow, and the checked Git configuration had no `core.hooksPath`. There is therefore no enforced CI or pre-commit gate in this repository. The current manual gates are:
+`.github/workflows/ci.yml` enforces two independent gates on pushes to `main` and pull requests. `source-checks` runs frontend install/lint/build plus Python 3.12 dependency and DOCX unit checks. `synthetic-workflow` builds the three Docker services, waits for the database-aware health endpoint, records the five-department path, runs the 14 grouped browser checks and eight navigation checks, uploads acceptance evidence, prints container logs on failure, and always stops the stack. There is no versioned local pre-commit hook; the equivalent manual gates are:
 
 - Frontend: `cd frontend; npm ci; npm run lint; npm run build`
 - Backend: `cd backend; python -m unittest discover -s tests`
-- Browser: isolated stack, then `tools/record-demo.mjs` and `tools/verify-workflows.mjs`
+- Browser: isolated stack, then `tools/record-demo.mjs` and `npm run verify`
 - Release: `fly status`, `fly releases`, `fly logs`, `/health`, unauthenticated API 401, and the access gate
 
 Deploy from `backend/` with `fly deploy --app healthflow-api-abheet19` and from `frontend/` with `fly deploy --app healthflow-abheet19`. Record the tested commit and image for any real release. Re-deploying a previously verified image is an application rollback; database changes still require a compatible migration/restore plan.
