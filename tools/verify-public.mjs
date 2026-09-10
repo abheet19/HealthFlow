@@ -32,7 +32,7 @@ try {
   checks.push('public frontend serves the access gate');
 
   await page.getByRole('button', { name: 'Open workspace' }).click();
-  await page.getByText('Enter the clinic workspace access code.').waitFor();
+  await page.getByText('Enter the clinic ID, user ID, and workspace access code.').waitFor();
   checks.push('empty access code is rejected in the browser');
 
   await page.getByLabel('Workspace access code').fill('definitely-not-the-code');

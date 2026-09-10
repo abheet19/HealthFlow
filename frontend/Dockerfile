@@ -22,6 +22,8 @@ ENV VITE_HEALTHFLOW_USER_ID=${VITE_HEALTHFLOW_USER_ID}
 RUN npm run build
 
 FROM nginx:alpine
+ARG HEALTHFLOW_REVISION=unknown
+LABEL org.opencontainers.image.revision="${HEALTHFLOW_REVISION}"
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY ./nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 3000
