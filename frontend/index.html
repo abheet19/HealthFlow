@@ -9,21 +9,89 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=optional"
       rel="stylesheet"
       media="print"
       onload="this.media='all'"
     />
     <noscript>
       <link
-        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=optional"
         rel="stylesheet"
       />
     </noscript>
     <title>HealthFlow</title>
+    <!-- A small branded first paint while the application stylesheet loads. -->
+    <style id="access-gate-prepaint-styles">
+      #access-gate-prepaint {
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        display: grid;
+        box-sizing: border-box;
+        place-items: center;
+        min-height: 100vh;
+        padding: 16px;
+        color: #e6f5ee;
+        background: #0a0d0b radial-gradient(900px 500px at 20% -10%, rgba(30, 154, 102, .16), transparent);
+        font-family: "Segoe UI", system-ui, sans-serif;
+      }
+      #access-gate-prepaint[hidden] { display: none; }
+      .access-gate-prepaint-card {
+        box-sizing: border-box;
+        width: min(100%, 440px);
+        padding: 32px;
+        border: 1px solid rgba(94, 230, 168, .14);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, .04);
+        box-shadow: 0 24px 50px rgba(0, 0, 0, .35);
+      }
+      .access-gate-prepaint-mark {
+        display: block;
+        width: 56px;
+        height: 56px;
+        margin-bottom: 20px;
+        border-radius: 16px;
+        box-shadow: 0 8px 20px rgba(30, 154, 102, .3);
+      }
+      .access-gate-prepaint-card h1 {
+        margin: 0;
+        font-size: 36px;
+        line-height: 1.1;
+      }
+      .access-gate-prepaint-card p {
+        margin: 10px 0 0;
+        color: #93afa3;
+        font-size: 16px;
+        line-height: 1.625;
+      }
+      .access-gate-prepaint-card .access-gate-prepaint-status {
+        margin-top: 24px;
+        font-size: 14px;
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="access-gate-prepaint" role="status" aria-live="polite">
+      <section class="access-gate-prepaint-card">
+        <svg class="access-gate-prepaint-mark" viewBox="0 0 256 256" aria-hidden="true"><defs><linearGradient id="prepaint-face" x1="0" y1="0" x2=".35" y2="1"><stop stop-color="#79f0bc"/><stop offset=".5" stop-color="#3ecf8e"/><stop offset="1" stop-color="#168e61"/></linearGradient><linearGradient id="prepaint-flank" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#176a4c"/><stop offset="1" stop-color="#073323"/></linearGradient></defs><rect width="256" height="256" rx="56" fill="#07100b"/><path d="M99 45h58v54h54v58h-54v54H99v-54H45V99h54Z" fill="#020705" transform="translate(12 12)"/><path d="M99 45h58v54h54v58h-54v54H99v-54H45V99h54Z" fill="url(#prepaint-flank)" transform="translate(6 6)"/><path d="M99 45h58v54h54v58h-54v54H99v-54H45V99h54Z" fill="url(#prepaint-face)"/><path d="M57 128h39l15-23 24 47 17-24h47" fill="none" stroke="#eafbf3" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <h1>HealthFlow</h1>
+        <p>Enter the clinic workspace code to access patient records and real-time dashboards.</p>
+        <p class="access-gate-prepaint-status">Opening secure access…</p>
+      </section>
+    </div>
+    <div id="root" aria-hidden="true"></div>
+    <script>
+      try {
+        const unlocked = sessionStorage.getItem('healthflow-access-code')
+          && sessionStorage.getItem('healthflow-clinic-id')
+          && sessionStorage.getItem('healthflow-user-id');
+        if (unlocked) {
+          document.getElementById('access-gate-prepaint').hidden = true;
+          document.getElementById('root').removeAttribute('aria-hidden');
+        }
+      } catch {}
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
