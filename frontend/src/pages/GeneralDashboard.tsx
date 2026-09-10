@@ -584,7 +584,7 @@ const GeneralDashboard: React.FC = () => {
         </div>
       </div>
 
-      <h1 className="text-2xl font-bold mb-4 text-text">Vitals Examination Report</h1>
+      <h2 className="text-2xl font-bold mb-4 text-text">Vitals Examination Report</h2>
 
       <div className="border-b border-glass-border pb-4 mb-4">
         <h2 className="text-xl font-semibold mb-2 text-text">Vital Signs</h2>
@@ -603,6 +603,8 @@ const GeneralDashboard: React.FC = () => {
             />
             <button
               type="button"
+              aria-label="Set BP to not applicable"
+              aria-pressed={bp === "NA"}
               className="absolute right-1 top-1/2 transform -translate-y-1/2 px-2 py-1 text-xs border border-glass-border rounded hover:bg-white/10 text-text-dim"
               onClick={() => {
                 const newValue = bp === "NA" ? "" : "NA";
@@ -627,6 +629,8 @@ const GeneralDashboard: React.FC = () => {
             />
             <button
               type="button"
+              aria-label="Set pulse to not applicable"
+              aria-pressed={pulse === "NA"}
               className="absolute right-1 top-1/2 transform -translate-y-1/2 px-2 py-1 text-xs border border-glass-border rounded hover:bg-white/10 text-text-dim"
               onClick={() => {
                 const newValue = pulse === "NA" ? "" : "NA";
@@ -657,6 +661,8 @@ const GeneralDashboard: React.FC = () => {
             />
             <button
               type="button"
+              aria-label="Set hip circumference to not applicable"
+              aria-pressed={hip === "NA"}
               className="absolute right-1 top-1/2 transform -translate-y-1/2 px-2 py-1 text-xs border border-glass-border rounded hover:bg-white/10 text-text-dim"
               onClick={() => {
                 const newValue = hip === "NA" ? "" : "NA";
@@ -681,6 +687,8 @@ const GeneralDashboard: React.FC = () => {
             />
             <button
               type="button"
+              aria-label="Set waist circumference to not applicable"
+              aria-pressed={waist === "NA"}
               className="absolute right-1 top-1/2 transform -translate-y-1/2 px-2 py-1 text-xs border border-glass-border rounded hover:bg-white/10 text-text-dim"
               onClick={() => {
                 const newValue = waist === "NA" ? "" : "NA";

@@ -38,7 +38,9 @@ tab picks them up over the WebSocket, all four departments report in, and the <c
 > [!NOTE]
 > **Live service: [healthflow-abheet19.fly.dev](https://healthflow-abheet19.fly.dev).**
 > Release status is established by matching the tested Git commit to both Fly releases and rerunning
-> the public health/access smoke. The local path below remains the supported synthetic demo setup.
+> the public health/access smoke. The frontend publishes that commit at `/release.json`; the API
+> publishes it in `/health`, so a mismatched two-service release fails verification. The local path
+> below remains the supported synthetic demo setup.
 
 ---
 
@@ -131,6 +133,8 @@ Captured from the current application with synthetic records on an isolated loca
 - **Operational signals without patient payloads** — API responses carry a correlation ID and
   `Server-Timing`; logs record only method, path, status and duration. `/health` checks PostgreSQL
   before reporting ready.
+- **Keyboard and phone-width access** — a skip link, named controls, exposed toggle state, one main
+  landmark and page heading per route, and every navigation destination are automatically checked at 320 px.
 
 ---
 
@@ -150,6 +154,10 @@ local synthetic code `synthetic-local-test`. Override `HEALTHFLOW_DB_PASSWORD`,
 the default identity, and `HEALTHFLOW_ACCESS_CODE` in an untracked `.env`, or
 configure an exact `HEALTHFLOW_IDENTITIES_JSON` clinic/user map. Never reuse
 deployment secrets or real records in this demo stack.
+
+Follow [the usage guide](docs/USAGE.md) for the department sequence, keyboard/mobile controls, and
+failure recovery. To enable the repository's dependency-free pre-commit gate in a clone, run
+`git config core.hooksPath .githooks` once after installing the pinned frontend/backend dependencies.
 
 **Without Docker:**
 
@@ -208,7 +216,9 @@ Playwright Chromium in Linux CI, or the browser at `CHROME_PATH` when set.
 > The recorder rejects remote frontend URLs. Use a disposable local database and never record against deployed patient records.
 
 The latest measured checks, exact commands, deployment model and known limits
-are in [the testing artifact](docs/TESTING.md). The current Docker build keeps the locked gate at 149.95 kB (48.44 kB gzip), then loads the authenticated
-workspace as a 242.28 kB route chunk (79.72 kB gzip) and the selected department on demand. The deployed Lighthouse lab run measured 88 mobile / 95 desktop
-performance and 100 Accessibility, Best Practices and SEO on both profiles; `npm audit --omit=dev`
-reported zero known production dependency vulnerabilities in that run.
+are in [the testing artifact](docs/TESTING.md). The current production build keeps the locked gate at
+149.91 kB (48.51 kB gzip), then loads the authenticated workspace as a 242.38 kB route chunk
+(79.81 kB gzip) and the selected department on demand. Pinned Lighthouse 13 lab runs against that
+build scored 100 for Performance, Accessibility, Best Practices, and SEO on mobile and desktop;
+automated accessibility does not constitute independent WCAG certification. `npm audit --omit=dev`
+reported zero known production dependency vulnerabilities in this release check.

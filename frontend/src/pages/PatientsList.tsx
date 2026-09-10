@@ -23,36 +23,23 @@ import CloudDownloadIcon from '@mui/icons-material/CloudDownload'; // Import dow
 const placeholderImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Crect width='40' height='40' fill='%2312241c'/%3E%3Ccircle cx='20' cy='14' r='7' fill='%2393afa3'/%3E%3Cpath d='M7 38v-6a13 13 0 0 1 26 0v6' fill='%2393afa3'/%3E%3C/svg%3E"; // default placeholder
 const SKELETON_ROWS = 4;
 
+interface PatientListItem {
+  patientId: string;
+  name: string;
+  div?: string;
+  rollNo?: string;
+  mobile?: string;
+  photo?: string;
+}
+
 const PatientsList: React.FC = () => {
   const { showToast } = useToast(); // Removed hideToast as it's no longer needed
-  const [patients, setPatients] = useState<any[]>([]);
+  const [patients, setPatients] = useState<PatientListItem[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm")); // Check if the screen is mobile-sized
-
-  // Handle search input with debouncing
-  const handleSearchChange = (value: string) => {
-    // Update local state immediately for UI responsiveness
-    setSearch(value);
-
-    // Debounce the filter operation
-    if (typeof window.inputDebounceTimers === 'undefined') {
-      window.inputDebounceTimers = {};
-    }
-
-    // Clear any existing timer for the search field
-    if (window.inputDebounceTimers['search']) {
-      clearTimeout(window.inputDebounceTimers['search']);
-    }
-
-    // Set a new timer to filter results after typing stops
-    window.inputDebounceTimers['search'] = setTimeout(() => {
-      // The filtering is handled in the filteredPatients variable
-      // This debounce just ensures we don't re-filter on every keystroke
-    }, 300); // 300ms debounce delay - consistent with other pages
-  };
 
   const fetchPatients = useCallback(async (opts: { silent?: boolean } = {}) => {
     setLoading(true);
@@ -96,7 +83,7 @@ const PatientsList: React.FC = () => {
     patientName: string
   ) => {
     try {
-      const res = await apiFetch(`/api/generate_report?patientId=${patientId}`);
+      const res = await apiFetch(`/api/generate_report?patientId=${encodeURIComponent(patientId)}`);
 
       if (!res.ok) throw new Error(`Failed to download DOCX report`);
 
@@ -137,7 +124,7 @@ const PatientsList: React.FC = () => {
   };
 
   return (
-    <Box sx={{ p: 2, backgroundColor: "transparent", minHeight: "100vh" }}>
+    <Box component="main" id="main-content" tabIndex={-1} sx={{ p: 2, backgroundColor: "transparent", minHeight: "100vh" }}>
       <Paper
         elevation={0}
         className="!bg-glass !backdrop-blur-xl !border !border-glass-border"
@@ -150,6 +137,7 @@ const PatientsList: React.FC = () => {
       >
         <Typography
           variant="h4"
+          component="h1"
           className="font-display"
           sx={{
             textAlign: "center",
@@ -174,7 +162,7 @@ const PatientsList: React.FC = () => {
             variant="outlined"
             size="small"
             value={search}
-            onChange={(e) => handleSearchChange(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
             sx={{ width: isMobile ? "100%" : "250px" }} // Reduced width for non-mobile screens
           />
           <Button
@@ -197,7 +185,8 @@ const PatientsList: React.FC = () => {
             className="!bg-transparent"
             sx={{ borderRadius: 2, minWidth: "600px", border: "1px solid rgba(255,255,255,0.08)" }}
           >
-            <Table size="small">
+            <Table size="small" aria-label="Synthetic patient records">
+              <caption className="sr-only">Synthetic patient records and report downloads</caption>
               <TableHead>
                 <TableRow sx={{ backgroundImage: "linear-gradient(135deg, #5EE6A8, #3ECF8E 55%, #1E9A66)" }}>
                   <TableCell align="center" sx={{ color: "#04140D", fontWeight: "bold" }}>
@@ -277,6 +266,7 @@ const PatientsList: React.FC = () => {
                       {/* Only Word Document Button */}
                       <button
                         onClick={() => handleDownloadReport(patient.patientId, patient.name)}
+                        aria-label={`Download Word document for ${patient.name}`}
                         style={{
                           ...downloadButtonStyle,
                           backgroundImage: 'linear-gradient(135deg, #5EE6A8, #3ECF8E 55%, #1E9A66)',

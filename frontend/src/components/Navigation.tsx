@@ -38,12 +38,19 @@ const Navigation: React.FC = () => {
 
   return (
     <>
+      <a
+        href="#main-content"
+        className="sr-only z-50 rounded-lg bg-surface px-4 py-2 text-text focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:ring-2 focus:ring-accent"
+      >
+        Skip to main content
+      </a>
       <AppBar
+        component="header"
         position="static"
         elevation={0}
         className="bg-surface/70 backdrop-blur-xl border-b border-glass-border px-4 py-2"
       >
-        <Toolbar className="flex items-center">
+        <Toolbar component="nav" aria-label="Primary" className="flex items-center">
           <Link
             to="/it"
             aria-label="HealthFlow home"
@@ -64,7 +71,7 @@ const Navigation: React.FC = () => {
               edge="end"
               onClick={toggleDrawer(true)}
               className="!text-text"
-              aria-label="menu"
+              aria-label="Open navigation menu"
             >
               <MenuIcon />
             </IconButton>

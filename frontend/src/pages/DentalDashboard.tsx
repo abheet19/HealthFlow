@@ -15,6 +15,7 @@ const ToothSelector: React.FC<{
   selected: string[];
   onChange: (sel: string[]) => void;
 }> = ({ label, options, selected, onChange }) => {
+  const groupLabelId = React.useId();
   // Improved toggleSelection function with explicit handling of selection state
   const toggleSelection = (num: string) => {
     // Create a proper copy of the selected array to avoid reference issues
@@ -33,12 +34,13 @@ const ToothSelector: React.FC<{
 
   return (
     <div className="flex flex-col space-y-1">
-      <span className="font-medium text-sm text-text">{label}:</span>
-      <div className="grid grid-cols-8 gap-1 sm:grid-cols-8 md:grid-cols-8">
+      <span id={groupLabelId} className="font-medium text-sm text-text">{label}:</span>
+      <div className="grid grid-cols-8 gap-1 sm:grid-cols-8 md:grid-cols-8" role="group" aria-labelledby={groupLabelId}>
         {options.map((num) => (
           <button
             key={num}
             type="button"
+            aria-pressed={selected.includes(num)}
             onClick={(e) => {
               e.preventDefault(); // Prevent any default behavior
               e.stopPropagation(); // Stop event propagation
@@ -406,6 +408,8 @@ const DentalDashboard: React.FC = () => {
             />
             <button
               type="button"
+              aria-label="Set dental remarks to not applicable"
+              aria-pressed={dentalRemarks === "NA"}
               className="absolute right-1 top-1/2 transform -translate-y-1/2 px-2 py-1 text-xs border border-glass-border rounded hover:bg-white/10 text-text-dim"
               onClick={() => {
                 const newValue = dentalRemarks === "NA" ? "" : "NA";

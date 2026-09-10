@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+
+repo_root=$(git rev-parse --show-toplevel)
+
+git diff --check --cached
+(cd "$repo_root/frontend" && npm run lint && npm run build)
+(cd "$repo_root/backend" && python -m unittest discover -s tests)

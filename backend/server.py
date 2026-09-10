@@ -150,9 +150,17 @@ def health():
         # traceback in the private runtime log stream.
         logging.exception("health check could not reach PostgreSQL")
     if database_ok:
-        return {"status": "ok", "database": "ok"}, 200
+        return {
+            "status": "ok",
+            "database": "ok",
+            "release": os.environ.get("HEALTHFLOW_REVISION", "unknown"),
+        }, 200
     logging.error("health check timed out or could not reach PostgreSQL")
-    return {"status": "degraded", "database": "unavailable"}, 503
+    return {
+        "status": "degraded",
+        "database": "unavailable",
+        "release": os.environ.get("HEALTHFLOW_REVISION", "unknown"),
+    }, 503
 
 
 register_realtime_handlers(socketio, access_registry)

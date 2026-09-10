@@ -14,6 +14,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check source whitespace
+        run: git diff --check HEAD^ HEAD
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -72,17 +75,50 @@ jobs:
           done
           docker compose logs
           exit 1
+      - name: Verify both containers identify the exact source
+        shell: bash
+        run: |
+          test "$(curl --fail --silent http://127.0.0.1:5000/health | jq --raw-output .release)" = "$GITHUB_SHA"
+          test "$(curl --fail --silent http://127.0.0.1:3000/release.json | jq --raw-output .release)" = "$GITHUB_SHA"
       - name: Record the complete five-department flow
         working-directory: tools
         env:
           BASE_URL: http://127.0.0.1:3000
           API_URL: http://127.0.0.1:5000
         run: node record-demo.mjs
-      - name: Verify workflows, mobile navigation, and route recovery
+      - name: Verify workflows, 320px navigation, accessibility, and failure recovery
         working-directory: tools
         env:
           BASE_URL: http://127.0.0.1:3000
         run: npm run verify
+      - name: Verify bounded database outage and recovery
+        shell: bash
+        run: |
+          mkdir -p docs/verification
+          docker compose stop db
+          outage_started=$(date +%s%3N)
+          outage_status=$(curl --silent --output /tmp/health-outage.json --write-out '%{http_code}' --max-time 5 http://127.0.0.1:5000/health)
+          outage_ms=$(($(date +%s%3N) - outage_started))
+          test "$outage_status" = "503"
+          test "$(jq --raw-output .database /tmp/health-outage.json)" = "unavailable"
+          test "$(jq --raw-output .release /tmp/health-outage.json)" = "$GITHUB_SHA"
+          docker compose start db
+          recovered=false
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:5000/health >/tmp/health-recovered.json; then
+              recovered=true
+              break
+            fi
+            sleep 1
+          done
+          test "$recovered" = "true"
+          test "$(jq --raw-output .release /tmp/health-recovered.json)" = "$GITHUB_SHA"
+          jq --null-input \
+            --arg at "$(date --iso-8601=seconds)" \
+            --argjson outageMs "$outage_ms" \
+            --arg release "$GITHUB_SHA" \
+            '{at: $at, release: $release, outageStatus: 503, outageMs: $outageMs, recoveryStatus: 200}' \
+            > docs/verification/database-recovery-results.json
       - name: Upload acceptance evidence
         if: always()
         uses: actions/upload-artifact@v4

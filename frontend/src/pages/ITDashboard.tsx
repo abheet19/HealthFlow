@@ -603,6 +603,8 @@ const ITDashboard: React.FC = () => {
               </label>
               {photo && (
                 <button
+                  type="button"
+                  aria-label="Delete patient photo"
                   onClick={(e) => {
                     e.preventDefault();
                     setPhoto(null);
@@ -638,6 +640,7 @@ const ITDashboard: React.FC = () => {
                   {photo.name}
                 </span>
                 <button
+                  type="button"
                   onClick={() => setShowPhotoPreview(prev => !prev)}
                   className="ml-2 text-accent hover:brightness-110 underline"
                 >
@@ -657,6 +660,8 @@ const ITDashboard: React.FC = () => {
                   className="w-full max-h-[200px] object-contain"
                 />
                 <button
+                  type="button"
+                  aria-label="Close patient photo preview"
                   onClick={() => setShowPhotoPreview(false)}
                   className="absolute top-1 right-1 bg-surface border border-glass-border rounded-full p-1 shadow-sm"
                 >

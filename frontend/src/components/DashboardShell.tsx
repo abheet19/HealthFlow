@@ -39,8 +39,8 @@ const DashboardShell: React.FC<DashboardShellProps> = ({
   const renderEmptyState = () => {
     if (connectionStatus === "connecting") {
       return (
-        <div className="text-center p-8 flex flex-col items-center gap-3">
-          <div className="h-8 w-8 rounded-full border-2 border-accent/30 border-t-accent animate-spin" />
+        <div className="text-center p-8 flex flex-col items-center gap-3" role="status" aria-live="polite">
+          <div className="h-8 w-8 rounded-full border-2 border-accent/30 border-t-accent animate-spin" aria-hidden="true" />
           <h2 className="text-xl text-text-dim">Connecting to HealthFlow...</h2>
           <p className="text-sm text-text-dim/70">Syncing with the realtime server</p>
         </div>
@@ -49,7 +49,7 @@ const DashboardShell: React.FC<DashboardShellProps> = ({
 
     if (connectionStatus === "error") {
       return (
-        <div className="text-center p-8 flex flex-col items-center gap-3">
+        <div className="text-center p-8 flex flex-col items-center gap-3" role="alert">
           <div className="h-10 w-10 rounded-full bg-danger/10 border border-danger/50 flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-danger" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3.75m0 3.75h.008v.008H12v-.008zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -64,7 +64,7 @@ const DashboardShell: React.FC<DashboardShellProps> = ({
     }
 
     return (
-      <div className="text-center p-8 flex flex-col items-center gap-3 border border-dashed border-glass-border rounded-xl">
+      <div className="text-center p-8 flex flex-col items-center gap-3 border border-dashed border-glass-border rounded-xl" role="status">
         <div className="h-10 w-10 rounded-full bg-white/5 border border-glass-border flex items-center justify-center">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-text-dim" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.5v15m7.5-7.5h-15" />
@@ -76,11 +76,14 @@ const DashboardShell: React.FC<DashboardShellProps> = ({
   };
 
   return (
-    <div className="p-4 flex flex-col items-center bg-bg min-h-screen font-body">
+    <main id="main-content" tabIndex={-1} className="p-4 flex flex-col items-center bg-bg min-h-screen font-body">
       <div
         key={title}
         className="bg-glass backdrop-blur-xl border border-glass-border shadow-lg rounded-2xl p-6 w-full max-w-4xl animate-fade-in-up"
       >
+        <h1 className="text-3xl font-display font-bold mb-6 text-text">
+          {title}
+        </h1>
         {requirePatientId && !hasPatient ? (
           renderEmptyState()
         ) : (
@@ -96,14 +99,11 @@ const DashboardShell: React.FC<DashboardShellProps> = ({
                 )}
               </div>
             )}
-            <h1 className="text-3xl font-display font-bold mb-6 text-text">
-              {title}
-            </h1>
             {children}
           </>
         )}
       </div>
-    </div>
+    </main>
   );
 };
 

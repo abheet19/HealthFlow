@@ -26,10 +26,14 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({
     color="primary"
     onClick={onClick}
     disabled={disabled || loading}
+    aria-busy={loading}
     className={`w-full sm:w-64 bg-accent-gradient hover:brightness-110 text-on-accent font-semibold shadow-lg shadow-accent-2/30 ${className}`}
   >
     {loading ? (
-      <CircularProgress size={20} sx={{ color: "#04140D" }} />
+      <>
+        <CircularProgress aria-hidden="true" size={20} sx={{ color: "#04140D" }} />
+        <span className="sr-only">Saving</span>
+      </>
     ) : (
       children
     )}

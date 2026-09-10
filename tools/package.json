@@ -6,7 +6,7 @@
   "description": "Records and verifies HealthFlow against an isolated local stack. Not part of the app build.",
   "scripts": {
     "record": "node record-demo.mjs",
-    "verify": "node verify-workflows.mjs && node verify-navigation.mjs",
+    "verify": "node verify-workflows.mjs && node verify-navigation.mjs && node verify-resilience.mjs",
     "verify:public": "node verify-public.mjs"
   },
   "devDependencies": {

@@ -26,12 +26,12 @@ The locked shell is small; the authenticated workspace and each department load 
 | --- | --- |
 | `frontend/src` | access gate, routing/lazy boundaries, PatientProvider, department forms, socket/fetch clients, and report/list UI |
 | `backend/server.py; backend/app/access.py; backend/app/realtime.py` | Flask/Socket.IO entry, exact credential registry, server-derived rooms, health, and request boundaries |
-| `backend/models; backend/services; backend/routes` | schema, transaction/persistence, report assembly, and HTTP contracts |
-| `backend/templates` | DOCX report template |
+| `backend/init_db.py; backend/app/routes.py; backend/app/services` | schema, transaction/persistence, report assembly, and HTTP contracts |
+| `backend/template.docx` | DOCX report template |
 | `tools` | synthetic recorder, browser verifier, socket probe, evidence checks, and media generation |
 | `docker-compose.yml; frontend/Dockerfile; backend/Dockerfile` | reproducible local production-shaped topology |
 | `frontend/fly.toml; backend/fly.toml` | separate hosted services |
-| `docs/TESTING.md; .github/workflows/ci.yml` | canonical acceptance and automated gate |
+| `docs/USAGE.md; docs/TESTING.md; .github/workflows/ci.yml` | product usage, canonical acceptance, and automated gate |
 
 ## Invariants and trust boundaries
 
@@ -48,7 +48,8 @@ The locked shell is small; the authenticated workspace and each department load 
 - Create a synthetic ID in IT and verify real Socket.IO delivery to an independent browser context in the same clinic, plus non-delivery to another clinic.
 - Complete IT, ENT, Vision, General, and Dental fields including conditional descriptions, N/A switches, BMI, teeth, and synthetic image add/show/delete.
 - Verify incomplete-form errors, rapid edit retention, clinic-scoped reset, clinic-filtered persistence/list/report access, Patients search/empty/reload, and DOCX download/content.
-- Use the mobile drawer and every navigation CTA without page-level overflow.
+- Use the keyboard skip link, mobile drawer, and every navigation CTA at 320 px without page-level overflow.
+- Exercise access/list/report failure and recovery, socket disconnect/reconnect, named controls, pressed state, main landmarks, page headings, and minimum target sizes.
 - Stop/restart the disposable database and verify bounded degraded `/health` then recovery.
 
 ## Concepts this project teaches
@@ -65,20 +66,20 @@ The locked shell is small; the authenticated workspace and each department load 
 
 ## CI, packaging, deployment, and rollback
 
-The release gate builds/lints the Vite frontend, checks Python dependencies and backend tests, starts PostgreSQL/API/frontend through Compose, records and verifies the complete synthetic workflow, then stops the stack. CI runs that source and Docker workflow; no continuous deployment is configured. Runtime secrets are `DATABASE_URL` plus either the legacy local-demo `HEALTHFLOW_ACCESS_CODE` and fixed default identity, or the multi-identity `HEALTHFLOW_IDENTITIES_JSON` map.
+The release gate checks whitespace, builds/lints the Vite frontend, checks Python dependencies and 11 backend tests, starts PostgreSQL/API/frontend through Compose, proves both containers identify the GitHub SHA, records and verifies the complete synthetic workflow, tests 320 px routes and recoverable failures, stops/restarts PostgreSQL, then stops the stack. CI runs that source and Docker workflow; no continuous deployment is configured. Runtime secrets are `DATABASE_URL` plus either the legacy local-demo `HEALTHFLOW_ACCESS_CODE` and fixed default identity, or the multi-identity `HEALTHFLOW_IDENTITIES_JSON` map.
 
-Deploy the backend first, verify database-aware health and schema initialization, then deploy the frontend with matching API/socket URLs. Rehearse migration, backup, restore, and rollback on a database copy; map both releases to the tested commit; and retain the previous images plus restore instructions.
+Deploy the backend first, verify database-aware health and schema initialization, then deploy the frontend with matching API/socket URLs. Backend `/health` and frontend `/release.json` must expose the same expected Git SHA. Rehearse migration, backup, restore, and rollback on a database copy; retain the previous images plus restore instructions.
 
 ## Current measured evidence
 
 | Result | Evidence |
 | --- | --- |
-| Exact Compose flow: all five departments, 62 unique frame pairs, fresh synthetic row, 155,133-byte DOCX, 14 workflow + 8 navigation checks, zero browser errors | `docs/TESTING.md` and `docs/verification/extra-browser-results.json` |
+| Exact Compose contract: all five departments, 62 frame pairs, a fresh synthetic row, DOCX content, 14 workflow + 17 navigation + 12 resilience/accessibility checks | `docs/TESTING.md`, CI artifact, and `docs/verification/*.json` |
 | Three live Socket.IO clients: same-clinic peer received one event; sender and other clinic received zero | `backend/tests/test_access_and_realtime.py` and release evidence |
 | Persisted boundary: each clinic listed only its own synthetic row; cross-clinic report request returned 404 | `backend/tests/test_patient_scope.py` and release evidence |
 | Backend regressions: 11/11, including exact credentials, clinic/user rooms, invalid event rejection, scoped list/report SQL, and DOCX behavior | `backend/tests` |
-| Public boundary: gate, unauthenticated API, and database-aware health | `docs/verification/public-smoke-results.json` |
-| Deployed Lighthouse sample: mobile 88, desktop 95; accessibility/best-practices/SEO 100 | `docs/verification/lighthouse-mobile.json` and `docs/verification/lighthouse-desktop.json` |
+| Public boundary: gate, safe access failure/recovery, matched frontend/API SHA, database health, 12-request bounded probe, 320 px/CLS | `tools/verify-public.mjs` and per-release `public-smoke-results.json` |
+| Current production-build Lighthouse: mobile/desktop 100 Performance, Accessibility, Best Practices, and SEO; mobile FCP/LCP 1.1 s, TBT 0 ms, CLS 0 | `docs/verification/lighthouse-mobile.json` and `docs/verification/lighthouse-desktop.json` |
 
 The evidence above belongs to its dated run and exact source. It becomes live evidence only after the same commit passes CI, maps to both releases, and passes post-deploy smoke.
 
@@ -89,16 +90,16 @@ The evidence above belongs to its dated run and exact source. It becomes live ev
 - Single-worker Eventlet/Socket.IO topology has no shared broker or demonstrated horizontal behavior; Eventlet migration remains due.
 - The idempotent initializer adds `clinic_id` and maps pre-existing rows to `demo`; it is not a migration framework. No tested production data mapping, backup/restore, or disaster-recovery flow exists; local outage recovery is not failover.
 - DOCX evidence checks package structure/content, not full Office/LibreOffice pagination or cross-suite rendering.
-- Guarded application release `8ffae57dbec52507a64cac7c22d1fe77827e18ac` passed CI and post-deploy smoke on 10 September 2026. The backend image carries that exact OCI revision; the live frontend files match the exact Fly-configured build byte-for-byte.
+- Automated accessibility checks cover detectable WCAG failures, keyboard entry, names, pressed state, target floor, landmarks, and 320 px overflow. They are not independent WCAG certification or a complete assistive-technology/browser matrix.
 
 ## Reading order
 
-1. `CONTEXT.md` — current safety and deployment boundary
-2. `D:\Work\HealthFlow Study Pack\02_HealthFlow_Concepts_From_Zero.md` — HTTP, sockets, React, Flask, SQL, and DOCX foundations
-3. `D:\Work\HealthFlow Study Pack\05_HealthFlow_System_Design_React_TypeScript_Flask_Walkthrough.md` — end-to-end code path
-4. `frontend/src; backend` — actual client/server implementation
-5. `docker-compose.yml; frontend/backend Fly configs; CI` — delivery topology
-6. `D:\Work\HealthFlow Study Pack\01_HealthFlow_Architecture_And_Pipeline.md` — compact architecture reference
+1. `CONTEXT.md` and `MEMORY.md` — current contract, decisions, evidence, and limits
+2. `docs/USAGE.md` — safe end-to-end product flow and recovery
+3. `D:\Work\HealthFlow Study Pack\02_HealthFlow_Concepts_From_Zero.md` — HTTP, sockets, React, Flask, SQL, and DOCX foundations
+4. `D:\Work\HealthFlow Study Pack\05_HealthFlow_System_Design_React_TypeScript_Flask_Walkthrough.md` — end-to-end code path
+5. `frontend/src; backend` — actual client/server implementation
+6. `docker-compose.yml; frontend/backend Fly configs; CI` — delivery topology
 7. `docs/SANITY.md; docs/TESTING.md; D:\Work\HealthFlow Study Pack\08_TESTING_ARTIFACT.md` — acceptance and evidence
 
 Use `docs/SANITY.md` in the repository, or `09_SANITY_CHECK.md` in the Study Pack, before claiming that a new change works.

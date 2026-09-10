@@ -38,11 +38,12 @@ const AccessGate = ({ onUnlock }: AccessGateProps) => {
         signal: AbortSignal.timeout(10_000),
       });
       if (!response.ok) {
-        throw new Error(
+        setError(
           response.status === 401
             ? "That workspace code is not valid."
             : "The workspace is unavailable. Try again shortly.",
         );
+        return;
       }
       saveWorkspaceCredentials({
         accessCode: trimmed,
@@ -50,8 +51,8 @@ const AccessGate = ({ onUnlock }: AccessGateProps) => {
         userId: trimmedUserId,
       });
       onUnlock();
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not open the workspace.");
+    } catch {
+      setError("The workspace is unavailable. Try again shortly.");
     } finally {
       setPending(false);
     }
