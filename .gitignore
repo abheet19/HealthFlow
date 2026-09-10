@@ -35,3 +35,4 @@ yarn-error.log*
 # Demo recorder (tools/) - captured frames and its Playwright install
 /tools/.frames/
 /tools/node_modules/
+/docs/verification/failure-*.png

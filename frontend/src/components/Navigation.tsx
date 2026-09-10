@@ -49,12 +49,11 @@ const Navigation: React.FC = () => {
             aria-label="HealthFlow home"
             className="flex items-center space-x-3 flex-grow rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
           >
-            <span
-              aria-hidden="true"
-              className="bg-accent-gradient text-on-accent font-display font-bold text-lg rounded-full w-8 h-8 flex items-center justify-center shadow-lg shadow-accent-2/30 hover:scale-105 transition-transform"
-            >
-              +
-            </span>
+            <img
+              src="/brand/mark.svg"
+              alt=""
+              className="h-8 w-8 rounded-lg shadow-lg shadow-accent-2/30 transition-transform hover:scale-105"
+            />
             <span className="text-xl font-display font-semibold text-text">
               HealthFlow
             </span>

@@ -1,8 +1,10 @@
 > [!IMPORTANT]
-> **Demonstration workspace only.** The deployed instance now requires a workspace access code before its API, realtime channel, or dashboard can be used. It is for synthetic demonstration records only: do **not** enter real patient, school, employee, or health information. A shared access code is a useful personal-demo gate, not the authentication, role controls, consent, audit trail, retention policy, encryption program, and compliance review required for a clinical system.
+> **Demonstration workspace only.** HealthFlow validates a configured clinic ID, user ID, and secret before its API or realtime channel can be used, then scopes stored rows, reports, and Socket.IO events to the authenticated clinic. It is for synthetic demonstration records only: do **not** enter real patient, school, employee, or health information. These configured credentials are not SSO, MFA, roles, consent, audit, retention, an encryption program, or a clinical compliance review.
 <div align="center">
 
 <br>
+
+<img src="brand/mark.svg" alt="HealthFlow mark" width="112">
 
 # 🩺 &nbsp;H E A L T H F L O W
 
@@ -34,9 +36,9 @@ tab picks them up over the WebSocket, all four departments report in, and the <c
 </div>
 
 > [!NOTE]
-> **Live at [healthflow-abheet19.fly.dev](https://healthflow-abheet19.fly.dev).** Frontend, backend
-> and Postgres are all deployed on Fly.io — see [Running it locally](#-running-it-locally) if you'd
-> rather run it yourself.
+> **Live service: [healthflow-abheet19.fly.dev](https://healthflow-abheet19.fly.dev).**
+> Release status is established by matching the tested Git commit to both Fly releases and rerunning
+> the public health/access smoke. The local path below remains the supported synthetic demo setup.
 
 ---
 
@@ -45,8 +47,9 @@ tab picks them up over the WebSocket, all four departments report in, and the <c
 A clinic checkup normally means five departments filling out paper forms for the same patient and
 someone reconciling all of it by hand afterwards. HealthFlow puts each department on its own
 dashboard — IT registers the patient and takes their photo, ENT/Vision/General/Dental each fill in
-their own exam fields — all reading and writing the same in-flight patient record over a WebSocket,
-so every tab stays in sync as data comes in. Once every department has submitted, IT's final submit
+their own exam fields — all reading and writing the clinic's current in-flight record over a
+clinic-scoped WebSocket room, so authenticated tabs in that clinic stay in sync. Once every
+department has submitted, IT's final submit
 bundles all five sections into one call, the backend stores it in Postgres, and a formatted `.docx`
 report is generated from a template and made available for download from the patients list.
 
@@ -55,7 +58,7 @@ report is generated from a template and made available for download from the pat
 
 ```mermaid
 flowchart LR
-  IT[Intake tab] <-->|authenticated draft events| S[Socket.IO relay]
+  IT[Intake tab] <-->|authenticated clinic-room events| S[Socket.IO relay]
   D[Four department tabs] <-->|field patches| S
   IT -->|final combined submission| F[Flask API]
   F --> P[(PostgreSQL)]
@@ -63,7 +66,9 @@ flowchart LR
   W --> R[Downloadable report]
 ```
 
-Draft changes synchronize before the final database commit. The current workspace has one shared active workflow; see [testing and limitations](docs/TESTING.md) before assuming multi-patient isolation.
+Draft changes synchronize before the final database commit. Different clinics are isolated, but
+each clinic still has one shared active draft. See [testing and limitations](docs/TESTING.md) before
+assuming simultaneous patient workflows, role authorization, or clinical readiness.
 
 ## 🛠 Tech stack
 
@@ -112,8 +117,8 @@ Captured from the current application with synthetic records on an isolated loca
 
 ## Key features
 
-- **Real-time sync across dashboards** — a Socket.IO connection keeps every department's view of a
-  patient record current as other departments submit data.
+- **Clinic-scoped real-time sync** — authenticated Socket.IO clients join server-derived clinic and
+  user rooms; department events reach peers in the same clinic and cannot select another room.
 - **Five department dashboards** — IT, ENT, Vision, General and Dental, each with its own required
   fields and validation, sharing one patient context.
 - **Automated `.docx` report generation** — once a patient's record is complete, a formatted Word
@@ -140,10 +145,11 @@ cp .env.example .env
 docker compose up --build
 ```
 
-Open `http://127.0.0.1:3000` and use the local synthetic code
-`synthetic-local-test`. Override `HEALTHFLOW_DB_PASSWORD` and
-`HEALTHFLOW_ACCESS_CODE` in an untracked `.env` when you need different local
-values. Never reuse deployment secrets or real records in this demo stack.
+Open `http://127.0.0.1:3000` and use clinic `demo`, user `demo-user`, and the
+local synthetic code `synthetic-local-test`. Override `HEALTHFLOW_DB_PASSWORD`,
+the default identity, and `HEALTHFLOW_ACCESS_CODE` in an untracked `.env`, or
+configure an exact `HEALTHFLOW_IDENTITIES_JSON` clinic/user map. Never reuse
+deployment secrets or real records in this demo stack.
 
 **Without Docker:**
 
@@ -153,7 +159,8 @@ cd backend
 pip install -r requirements.txt
 # .env with POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_HOST / POSTGRES_PORT / POSTGRES_DB
 python init_db.py
-# Set HEALTHFLOW_ACCESS_CODE and CORS_ORIGINS for your local frontend
+# Set either HEALTHFLOW_ACCESS_CODE + the default clinic/user, or
+# HEALTHFLOW_IDENTITIES_JSON, plus CORS_ORIGINS for your local frontend
 python server.py
 
 # Frontend, in a second terminal
@@ -201,7 +208,7 @@ Playwright Chromium in Linux CI, or the browser at `CHROME_PATH` when set.
 > The recorder rejects remote frontend URLs. Use a disposable local database and never record against deployed patient records.
 
 The latest measured checks, exact commands, deployment model and known limits
-are in [the testing artifact](docs/TESTING.md). The current build keeps the locked gate at 148.12 kB (48.06 kB gzip), then loads the authenticated
-workspace as a 242.39 kB route chunk (79.73 kB gzip) and the selected department on demand. The deployed Lighthouse lab run measured 88 mobile / 95 desktop
+are in [the testing artifact](docs/TESTING.md). The current Docker build keeps the locked gate at 149.95 kB (48.44 kB gzip), then loads the authenticated
+workspace as a 242.28 kB route chunk (79.72 kB gzip) and the selected department on demand. The deployed Lighthouse lab run measured 88 mobile / 95 desktop
 performance and 100 Accessibility, Best Practices and SEO on both profiles; `npm audit --omit=dev`
 reported zero known production dependency vulnerabilities in that run.

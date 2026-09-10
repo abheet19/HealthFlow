@@ -3,10 +3,9 @@ eventlet.monkey_patch()
 import eventlet.tpool
 
 from flask import Flask, g, jsonify, request
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO
 from flask_cors import CORS
 import logging
-import hmac
 import os
 import secrets
 import sys
@@ -17,6 +16,8 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from app.routes import api_routes
 from app.config import engine
+from app.access import WorkspaceAccessRegistry
+from app.realtime import register_realtime_handlers
 from sqlalchemy import text
 
 # Keep operational logs useful without recording request bodies, access codes,
@@ -62,10 +63,6 @@ socketio = SocketIO(
 app.register_blueprint(api_routes)
 
 
-def _configured_access_code() -> str:
-    return os.environ.get("HEALTHFLOW_ACCESS_CODE", "")
-
-
 def _public_access_is_required() -> bool:
     return (
         os.environ.get("HEALTHFLOW_REQUIRE_ACCESS_CODE", "").lower() in {"1", "true"}
@@ -73,11 +70,17 @@ def _public_access_is_required() -> bool:
     )
 
 
-def _valid_access_code(value: object) -> bool:
-    expected = _configured_access_code()
-    if not expected:
-        return not _public_access_is_required()
-    return isinstance(value, str) and hmac.compare_digest(value.encode("utf-8"), expected.encode("utf-8"))
+access_registry = WorkspaceAccessRegistry.from_environment(
+    require_access_code=_public_access_is_required()
+)
+
+
+def _authenticate_http_request():
+    return access_registry.authenticate(
+        request.headers.get("X-HealthFlow-Access-Code", ""),
+        request.headers.get("X-HealthFlow-Clinic-Id"),
+        request.headers.get("X-HealthFlow-User-Id"),
+    )
 
 
 @app.before_request
@@ -95,11 +98,13 @@ def begin_request_measurement():
 def protect_patient_api():
     if request.method == "OPTIONS" or not request.path.startswith("/api/"):
         return None
-    if _valid_access_code(request.headers.get("X-HealthFlow-Access-Code", "")):
+    identity = _authenticate_http_request()
+    if identity is not None:
+        g.workspace_identity = identity
         return None
-    if _public_access_is_required() and not _configured_access_code():
+    if _public_access_is_required() and not access_registry.has_credentials:
         return jsonify({"error": "HealthFlow is not enabled for public access."}), 503
-    return jsonify({"error": "A valid HealthFlow access code is required."}), 401
+    return jsonify({"error": "Valid HealthFlow clinic and user credentials are required."}), 401
 
 
 @app.after_request
@@ -122,7 +127,7 @@ def record_request_measurement(response):
 
 @app.get('/api/session')
 def workspace_session():
-    return jsonify({"authorized": True}), 200
+    return jsonify({"authorized": True, **g.workspace_identity.public_dict()}), 200
 
 
 @app.route('/health')
@@ -150,49 +155,18 @@ def health():
     return {"status": "degraded", "database": "unavailable"}, 503
 
 
-@socketio.on('connect')
-def protect_realtime_channel(auth):
-    auth = auth if isinstance(auth, dict) else {}
-    if not _valid_access_code(auth.get("accessCode")):
-        return False
-# WebSocket event handlers
-@socketio.on('newPatientId')
-def handle_new_patient_id(patient_id):
-    emit('newPatientId', patient_id, broadcast=True)
-
-@socketio.on('resetPatientData')
-def handle_reset():
-    emit('resetPatientData', broadcast=True)
-
-@socketio.on('photoDelete')
-def handle_photo_delete():
-    emit('photoDelete', broadcast=True)
-
-@socketio.on('photoUpdate')
-def handle_photo_update(data):
-    emit('photoUpdate', data, broadcast=True, include_self=False)
-
-@socketio.on('departmentUpdate')
-def handle_department_update(data):
-    allowed = {"it", "ent", "vision", "general", "dental"}
-    if not isinstance(data, dict) or not set(data).issubset(allowed):
-        return {"error": "Invalid department update."}
-    if any(value is not None and not isinstance(value, dict) for value in data.values()):
-        return {"error": "Department values must be objects or null."}
-    emit('departmentUpdate', data, broadcast=True, include_self=False)
+register_realtime_handlers(socketio, access_registry)
 
 # Initialize database
 def init_db():
     try:
-        with engine.connect() as conn:
-            result = conn.execute(text("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'patient_records')"))
-            table_exists = result.scalar()
-            
-            if not table_exists:
-                from init_db import init_db as create_tables
-                create_tables()
+        # The initializer is idempotent and includes additive schema upgrades.
+        # Running it only when the table is absent would strand older databases
+        # on stale columns and make a new release fail after startup.
+        from init_db import init_db as ensure_schema
+        ensure_schema()
     except Exception as e:
-        logging.error(f"Database initialization error: {str(e)}")
+        logging.error("Database initialization failed error_type=%s", type(e).__name__)
 
 # Run once at import time (not just under `if __name__ == '__main__'`) so this
 # also fires when the app is started via gunicorn, which imports this module

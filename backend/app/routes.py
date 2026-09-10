@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, send_file, current_app
+from flask import Blueprint, request, jsonify, send_file, current_app, g
 from app.config import get_db
 from app.services import patient_service, report_service
 from app.utils import (
@@ -17,7 +17,7 @@ api_routes = Blueprint('api', __name__, url_prefix='/api')
 def get_patients():
     db = get_db()
     try:
-        patients = patient_service.get_patients(db)
+        patients = patient_service.get_patients(db, g.workspace_identity.clinic_id)
         transformed_patients = [translate_record(row) for row in patients]
         
         for patient in transformed_patients:
@@ -25,8 +25,8 @@ def get_patients():
                 patient["photo"] = f"data:image/jpeg;base64,{patient['photo']}"
                 
         return jsonify(patients=transformed_patients), 200
-    except Exception as e:
-        logging.error(f"Error retrieving patients: {str(e)}")
+    except Exception as error:
+        logging.error("Patient list request failed error_type=%s", type(error).__name__)
         return jsonify({"error": "Error retrieving patients"}), 500
     finally:
         db.close()
@@ -38,11 +38,11 @@ def generate_patient_id():
         new_pid = patient_service.create_new_patient_id(db)
         
         socketio = current_app.extensions['socketio']
-        socketio.emit('newPatientId', new_pid)
+        socketio.emit('newPatientId', new_pid, to=g.workspace_identity.clinic_room)
         
         return jsonify({"patientId": new_pid, "success": True}), 200
-    except Exception as e:
-        logging.error(f"Error generating patient ID: {str(e)}")
+    except Exception as error:
+        logging.error("Patient ID request failed error_type=%s", type(error).__name__)
         return jsonify({"error": "Failed to generate patient ID", "success": False}), 500
     finally:
         db.close()
@@ -97,6 +97,7 @@ def submit_patient():
             capture_date = datetime.now()
 
         flat_data = {
+            "clinic_id": g.workspace_identity.clinic_id,
             "pid": data["patientId"],
             **it_data,
             **ent_data,
@@ -112,8 +113,8 @@ def submit_patient():
         
     except IntegrityError:
         return jsonify({"error": "This patient ID has already been submitted."}), 409
-    except Exception as e:
-        logging.error(f"Error saving patient data: {str(e)}")
+    except Exception as error:
+        logging.error("Patient submission failed error_type=%s", type(error).__name__)
         return jsonify({"error": "Failed to save patient data"}), 500
     finally:
         db.close()
@@ -126,7 +127,11 @@ def generate_report():
     
     db = get_db()
     try:
-        record = patient_service.get_patient_by_id(db, patient_id)
+        record = patient_service.get_patient_by_id(
+            db,
+            patient_id,
+            g.workspace_identity.clinic_id,
+        )
         if not record:
             return jsonify({"error": "Patient record not found."}), 404
 
@@ -140,8 +145,8 @@ def generate_report():
             download_name=f"{patient_name}.docx",
             mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
-    except Exception as e:
-        logging.error(f"Error generating report: {str(e)}")
+    except Exception as error:
+        logging.error("Report request failed error_type=%s", type(error).__name__)
         return jsonify({"error": "Failed to generate report."}), 500
     finally:
         db.close()

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="HealthFlow">
+  <title>HealthFlow</title>
+  <defs>
+    <linearGradient id="face" x1="0" y1="0" x2=".35" y2="1">
+      <stop stop-color="#79F0BC"/>
+      <stop offset=".5" stop-color="#3ECF8E"/>
+      <stop offset="1" stop-color="#168E61"/>
+    </linearGradient>
+    <linearGradient id="flank" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#176A4C"/>
+      <stop offset="1" stop-color="#073323"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="56" fill="#07100B"/>
+  <!-- A clinical cross whose centre continues as one patient flow. -->
+  <path d="M99 45h58v54h54v58h-54v54H99v-54H45V99h54Z" fill="#020705" transform="translate(12 12)"/>
+  <path d="M99 45h58v54h54v58h-54v54H99v-54H45V99h54Z" fill="url(#flank)" transform="translate(6 6)"/>
+  <path d="M99 45h58v54h54v58h-54v54H99v-54H45V99h54Z" fill="url(#face)"/>
+  <path d="M57 128h39l15-23 24 47 17-24h47" fill="none" stroke="#EAFBF3" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M101 54h54" fill="none" stroke="#EAFBF3" stroke-opacity=".42" stroke-width="6" stroke-linecap="round"/>
+</svg>

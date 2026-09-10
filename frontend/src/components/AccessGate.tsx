@@ -1,5 +1,10 @@
 import { FormEvent, useState } from "react";
-import { getApiUrl, saveAccessCode } from "../config/api";
+import {
+  DEFAULT_CLINIC_ID,
+  DEFAULT_USER_ID,
+  getApiUrl,
+  saveWorkspaceCredentials,
+} from "../config/api";
 
 interface AccessGateProps {
   onUnlock: () => void;
@@ -7,21 +12,29 @@ interface AccessGateProps {
 
 const AccessGate = ({ onUnlock }: AccessGateProps) => {
   const [accessCode, setAccessCode] = useState("");
+  const [clinicId, setClinicId] = useState(DEFAULT_CLINIC_ID);
+  const [userId, setUserId] = useState(DEFAULT_USER_ID);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
 
   const unlock = async (event: FormEvent) => {
     event.preventDefault();
     const trimmed = accessCode.trim();
-    if (!trimmed) {
-      setError("Enter the clinic workspace access code.");
+    const trimmedClinicId = clinicId.trim();
+    const trimmedUserId = userId.trim();
+    if (!trimmed || !trimmedClinicId || !trimmedUserId) {
+      setError("Enter the clinic ID, user ID, and workspace access code.");
       return;
     }
 
     setPending(true);
     try {
       const response = await fetch(getApiUrl("/api/session"), {
-        headers: { "X-HealthFlow-Access-Code": trimmed },
+        headers: {
+          "X-HealthFlow-Access-Code": trimmed,
+          "X-HealthFlow-Clinic-Id": trimmedClinicId,
+          "X-HealthFlow-User-Id": trimmedUserId,
+        },
         signal: AbortSignal.timeout(10_000),
       });
       if (!response.ok) {
@@ -31,7 +44,11 @@ const AccessGate = ({ onUnlock }: AccessGateProps) => {
             : "The workspace is unavailable. Try again shortly.",
         );
       }
-      saveAccessCode(trimmed);
+      saveWorkspaceCredentials({
+        accessCode: trimmed,
+        clinicId: trimmedClinicId,
+        userId: trimmedUserId,
+      });
       onUnlock();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not open the workspace.");
@@ -45,21 +62,49 @@ const AccessGate = ({ onUnlock }: AccessGateProps) => {
   return (
     <main className="min-h-screen grid place-items-center p-4">
       <section className="w-full max-w-[440px] rounded-2xl border border-glass-border bg-glass p-8 shadow-2xl backdrop-blur-xl animate-fade-in-up">
-        <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-full bg-accent-gradient text-2xl font-bold text-on-accent shadow-lg shadow-accent-2/30" aria-hidden="true">
-          +
-        </div>
+        <img className="mb-5 h-14 w-14 rounded-2xl shadow-lg shadow-accent-2/30" src="/brand/mark.svg" alt="" />
         <h1 className="font-display text-4xl font-semibold tracking-tight text-text">HealthFlow</h1>
         <p className="mt-2 mb-7 leading-relaxed text-text-dim">
           Enter the clinic workspace code to access patient records and real-time dashboards.
         </p>
         <form onSubmit={unlock}>
+          <div className="mb-4 grid gap-4 sm:grid-cols-2">
+            <label className="block text-sm font-medium text-text" htmlFor="workspace-clinic-id">
+              Clinic ID
+              <input
+                id="workspace-clinic-id"
+                className="mt-2 w-full rounded-xl border border-glass-border bg-bg/70 px-4 py-3 text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:opacity-60"
+                autoComplete="organization"
+                value={clinicId}
+                disabled={pending}
+                onChange={event => {
+                  setClinicId(event.target.value);
+                  setError("");
+                }}
+              />
+            </label>
+            <label className="block text-sm font-medium text-text" htmlFor="workspace-user-id">
+              User ID
+              <input
+                id="workspace-user-id"
+                className="mt-2 w-full rounded-xl border border-glass-border bg-bg/70 px-4 py-3 text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:opacity-60"
+                autoComplete="username"
+                value={userId}
+                disabled={pending}
+                onChange={event => {
+                  setUserId(event.target.value);
+                  setError("");
+                }}
+              />
+            </label>
+          </div>
           <label className="mb-2 block text-sm font-medium text-text" htmlFor="workspace-access-code">
             Workspace access code
           </label>
           <input
             id="workspace-access-code"
             className="w-full rounded-xl border border-glass-border bg-bg/70 px-4 py-3 text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:opacity-60"
-            autoFocus
+            autoComplete="current-password"
             type="password"
             value={accessCode}
             aria-describedby={helperId}

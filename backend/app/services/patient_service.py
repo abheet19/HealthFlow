@@ -4,23 +4,29 @@ from datetime import datetime
 import logging
 from app.utils import generate_unique_pid
 
-def get_patients(db: Session):
+def get_patients(db: Session, clinic_id: str):
     try:
-        query = text("SELECT * FROM patient_records ORDER BY pid DESC")
-        result = db.execute(query)
+        query = text(
+            "SELECT * FROM patient_records "
+            "WHERE clinic_id = :clinic_id ORDER BY pid DESC"
+        )
+        result = db.execute(query, {"clinic_id": clinic_id})
         return list(result)
-    except Exception as e:
-        logging.error(f"Error retrieving patients: {str(e)}")
-        raise e
+    except Exception as error:
+        logging.error("Patient list query failed error_type=%s", type(error).__name__)
+        raise
 
-def get_patient_by_id(db: Session, patient_id: str):
+def get_patient_by_id(db: Session, patient_id: str, clinic_id: str):
     try:
-        query = text("SELECT * FROM patient_records WHERE pid = :pid")
-        result = db.execute(query, {"pid": patient_id})
+        query = text(
+            "SELECT * FROM patient_records "
+            "WHERE pid = :pid AND clinic_id = :clinic_id"
+        )
+        result = db.execute(query, {"pid": patient_id, "clinic_id": clinic_id})
         return result.fetchone()
-    except Exception as e:
-        logging.error(f"Error retrieving patient {patient_id}: {str(e)}")
-        raise e
+    except Exception as error:
+        logging.error("Patient lookup failed error_type=%s", type(error).__name__)
+        raise
 
 def create_new_patient_id(db: Session):
     try:
@@ -36,9 +42,9 @@ def create_new_patient_id(db: Session):
                 return new_pid
         
         raise Exception("Failed to generate a unique patient ID")
-    except Exception as e:
-        logging.error(f"Error generating patient ID: {str(e)}")
-        raise e
+    except Exception as error:
+        logging.error("Patient ID generation failed error_type=%s", type(error).__name__)
+        raise
 
 def submit_patient_data(db: Session, flat_data: dict):
     try:
@@ -49,7 +55,7 @@ def submit_patient_data(db: Session, flat_data: dict):
         db.execute(query, flat_data)
         db.commit()
         return True
-    except Exception as e:
+    except Exception as error:
         db.rollback()
-        logging.error(f"Error saving patient data: {str(e)}")
-        raise e
+        logging.error("Patient insert failed error_type=%s", type(error).__name__)
+        raise

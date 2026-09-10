@@ -31,7 +31,10 @@ class ReportService:
                         cropped_stream = crop_image_circle(image, 144)
                         context[key] = InlineImage(doc, cropped_stream, width=Inches(1.5))
                     except Exception as photo_error:
-                        logging.error(f"Error processing patient photo, omitting from report: {str(photo_error)}")
+                        logging.error(
+                            "Patient photo could not be rendered; omitting it error_type=%s",
+                            type(photo_error).__name__,
+                        )
                         context[key] = ""
                 else:
                     context[key] = str(value) if value is not None else ""
@@ -52,5 +55,5 @@ class ReportService:
             
             return doc_io, patient_record.get('name', 'Patient')
         except Exception as e:
-            logging.error(f"Error generating report: {str(e)}")
+            logging.error("Report generation failed error_type=%s", type(e).__name__)
             raise e

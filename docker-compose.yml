@@ -28,6 +28,9 @@ services:
       POSTGRES_PORT: "5432"
       POSTGRES_DB: doctor_reports
       HEALTHFLOW_ACCESS_CODE: ${HEALTHFLOW_ACCESS_CODE:-synthetic-local-test}
+      HEALTHFLOW_DEFAULT_CLINIC_ID: ${HEALTHFLOW_DEFAULT_CLINIC_ID:-demo}
+      HEALTHFLOW_DEFAULT_USER_ID: ${HEALTHFLOW_DEFAULT_USER_ID:-demo-user}
+      HEALTHFLOW_IDENTITIES_JSON: ${HEALTHFLOW_IDENTITIES_JSON:-}
       HEALTHFLOW_REQUIRE_ACCESS_CODE: "true"
       CORS_ORIGINS: http://127.0.0.1:3000,http://localhost:3000,http://127.0.0.1:5179
     depends_on:
@@ -40,6 +43,8 @@ services:
       args:
         VITE_API_URL: http://127.0.0.1:5000
         VITE_SOCKET_URL: http://127.0.0.1:5000
+        VITE_HEALTHFLOW_CLINIC_ID: ${HEALTHFLOW_DEFAULT_CLINIC_ID:-demo}
+        VITE_HEALTHFLOW_USER_ID: ${HEALTHFLOW_DEFAULT_USER_ID:-demo-user}
     container_name: doctor_report_frontend
     ports:
       - "3000:3000"

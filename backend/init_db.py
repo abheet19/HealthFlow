@@ -51,6 +51,7 @@ def init_db():
     create_table_query = """
     CREATE TABLE IF NOT EXISTS patient_records (
         id SERIAL PRIMARY KEY,
+        clinic_id VARCHAR(64) NOT NULL DEFAULT 'demo',
         pid VARCHAR(30) NOT NULL UNIQUE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         name VARCHAR(100),
@@ -147,6 +148,17 @@ def init_db():
     
     with engine.connect() as conn:
         conn.execute(text(create_table_query))
+        # Existing demo databases predate clinic scoping. Keep their rows in
+        # the explicit demo clinic, then index the boundary every patient read
+        # now uses. A production rollout must map existing rows deliberately.
+        conn.execute(text(
+            "ALTER TABLE patient_records "
+            "ADD COLUMN IF NOT EXISTS clinic_id VARCHAR(64) NOT NULL DEFAULT 'demo'"
+        ))
+        conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS idx_patient_records_clinic_id "
+            "ON patient_records (clinic_id)"
+        ))
         conn.commit()
         print("Database table created successfully!")
 
