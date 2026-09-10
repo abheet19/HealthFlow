@@ -220,5 +220,6 @@ are in [the testing artifact](docs/TESTING.md). The current production build kee
 149.91 kB (48.51 kB gzip), then loads the authenticated workspace as a 242.38 kB route chunk
 (79.81 kB gzip) and the selected department on demand. Pinned Lighthouse 13 lab runs against that
 build scored 100 for Performance, Accessibility, Best Practices, and SEO on mobile and desktop;
-automated accessibility does not constitute independent WCAG certification. `npm audit --omit=dev`
-reported zero known production dependency vulnerabilities in this release check.
+automated accessibility does not constitute independent WCAG certification. Production npm audits and the
+patched backend requirements audit reported zero known runtime dependency vulnerabilities; the full
+frontend build/lint toolchain still has eight advisories tracked in the testing artifact.

@@ -1,6 +1,6 @@
 # HealthFlow project memory
 
-> Updated 10 September 2026. This is the compact handoff for an AI or engineer resuming the
+> Updated 11 September 2026. This is the compact handoff for an AI or engineer resuming the
 > repository. Source and executable checks take precedence over prose.
 
 ## Product and safety boundary
@@ -33,9 +33,12 @@ governance, or clinical compliance.
 ## Current verification contract
 
 - Frontend: `npm ci --legacy-peer-deps`, ESLint with zero warnings, TypeScript/Vite production
-  build, and `npm audit --omit=dev`.
-- Backend: pinned Python packages, `pip check`, and 11 tests covering exact identity configuration,
-  realtime clinic/user rooms, invalid events, clinic-bound list/report queries, and DOCX behavior.
+  build, and `npm audit --omit=dev`. Production dependencies are clean; eight advisories remain in
+  the build/lint-only Vite 4/ESLint 8 tree and require a separately tested major toolchain migration.
+- Backend: pinned Python packages, `pip check`, zero known vulnerabilities from `pip-audit`, and 11
+  tests covering exact identity configuration, realtime clinic/user rooms, invalid events,
+  clinic-bound list/report queries, and DOCX behavior. Pillow/python-dotenv pins were advanced after
+  a release audit.
 - Browser: the recorder completes all departments and validates the stored row/DOCX; `npm run
   verify` adds 14 workflow, 17 desktop/320 px navigation, and 12 failure/recovery/accessibility
   checks.
