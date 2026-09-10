@@ -17,7 +17,11 @@ services:
       retries: 20
 
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      args:
+        # Local and CI images expose the exact tested source when the caller supplies it.
+        HEALTHFLOW_REVISION: ${HEALTHFLOW_REVISION:-local-unpinned}
     container_name: doctor_report_backend
     ports:
       - "5000:5000"
@@ -41,6 +45,8 @@ services:
     build:
       context: ./frontend
       args:
+        # Keep the frontend image traceable through the same source identity as the API.
+        HEALTHFLOW_REVISION: ${HEALTHFLOW_REVISION:-local-unpinned}
         VITE_API_URL: http://127.0.0.1:5000
         VITE_SOCKET_URL: http://127.0.0.1:5000
         VITE_HEALTHFLOW_CLINIC_ID: ${HEALTHFLOW_DEFAULT_CLINIC_ID:-demo}

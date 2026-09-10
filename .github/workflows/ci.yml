@@ -58,6 +58,8 @@ jobs:
           npm ci
           npx playwright install --with-deps chromium
       - name: Build and start the production containers
+        env:
+          HEALTHFLOW_REVISION: ${{ github.sha }}
         run: docker compose up --build --detach
       - name: Wait for the database-aware API health probe
         shell: bash
