@@ -89,7 +89,7 @@ The evidence above belongs to its dated run and exact source. It becomes live ev
 - Single-worker Eventlet/Socket.IO topology has no shared broker or demonstrated horizontal behavior; Eventlet migration remains due.
 - The idempotent initializer adds `clinic_id` and maps pre-existing rows to `demo`; it is not a migration framework. No tested production data mapping, backup/restore, or disaster-recovery flow exists; local outage recovery is not failover.
 - DOCX evidence checks package structure/content, not full Office/LibreOffice pagination or cross-suite rendering.
-- Current local candidate is not the older live frontend/API releases.
+- Guarded application release `8ffae57dbec52507a64cac7c22d1fe77827e18ac` passed CI and post-deploy smoke on 10 September 2026. The backend image carries that exact OCI revision; the live frontend files match the exact Fly-configured build byte-for-byte.
 
 ## Reading order
 

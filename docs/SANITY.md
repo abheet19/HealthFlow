@@ -49,6 +49,6 @@ npm run verify
 ## Claims this guide does not establish
 
 - No clinical/compliance claim, SSO/MFA/RBAC, same-clinic patient-workflow isolation, multi-machine Socket.IO, offline conflict handling, or restore proof.
-- The public smoke did not run patient workflows. Current local candidate is not deployed.
+- The public smoke did not run patient workflows. The released UI/API boundary was verified at application commit `8ffae57dbec52507a64cac7c22d1fe77827e18ac`; complete patient workflows remain synthetic local/CI evidence only.
 
 A green local run is evidence for the exact tested tree. Call a feature deployed only after recording `source commit -> CI run -> image/release -> post-deploy smoke` for the same bytes.
