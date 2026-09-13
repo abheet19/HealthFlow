@@ -382,7 +382,7 @@ const DentalDashboard: React.FC = () => {
   };
 
   return (
-    <DashboardShell title="Dental Examination Report">
+    <DashboardShell title="Dental Examination Report" description="Extra-oral exam, FDI-numbered tooth cavity charting, and intra-oral findings.">
       <div className="border-b border-glass-border pb-4 mb-6">
         <h2 className="text-xl font-display font-semibold mb-4 text-text">
           Extra Oral Examination

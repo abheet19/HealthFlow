@@ -61,8 +61,10 @@ const AccessGate = ({ onUnlock }: AccessGateProps) => {
   const helperId = "workspace-code-helper";
 
   return (
-    <main className="min-h-screen grid place-items-center p-4">
-      <section className="w-full max-w-[440px] rounded-2xl border border-glass-border bg-glass p-8 shadow-2xl backdrop-blur-xl animate-fade-in-up">
+    <main className="min-h-screen grid place-items-center p-4 relative overflow-hidden">
+      <div className="pointer-events-none absolute -top-[16%] -right-[10%] h-[50vw] w-[50vw] rounded-full bg-accent/[0.16] blur-[90px]" aria-hidden="true" />
+      <div className="pointer-events-none absolute -bottom-[20%] -left-[12%] h-[50vw] w-[50vw] rounded-full bg-accent-2/[0.12] blur-[90px]" aria-hidden="true" />
+      <section className="relative w-full max-w-[440px] rounded-2xl border border-glass-border bg-glass p-8 shadow-glass backdrop-blur-xl animate-fade-in-up">
         <img className="mb-5 h-14 w-14 rounded-2xl shadow-lg shadow-accent-2/30" src="/brand/mark.svg" alt="" />
         <h1 className="font-display text-4xl font-semibold tracking-tight text-text">HealthFlow</h1>
         <p className="mt-2 mb-7 leading-relaxed text-text-dim">

@@ -15,13 +15,19 @@ import {
   Skeleton,
   useMediaQuery,
 } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
+import { useTheme, alpha } from "@mui/material/styles";
 import { useToast } from "../context/ToastContext";
 import { apiFetch } from "../config/api"; // Import the API URL helper
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload'; // Import download icon
 
-const placeholderImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Crect width='40' height='40' fill='%2312241c'/%3E%3Ccircle cx='20' cy='14' r='7' fill='%2393afa3'/%3E%3Cpath d='M7 38v-6a13 13 0 0 1 26 0v6' fill='%2393afa3'/%3E%3C/svg%3E"; // default placeholder
 const SKELETON_ROWS = 4;
+
+// A rotating set of per-record accent hues (the same family used for
+// department color-coding elsewhere) so rows in a long list stay visually
+// distinct without any single row carrying meaning by its color alone.
+const ROW_HUES = ["--hf-hue-it", "--hf-hue-ent", "--hf-hue-vision", "--hf-hue-general", "--hf-hue-dental"];
+
+const STACK_CHIPS = ["React 18", "TypeScript", "Vite", "MUI", "Socket.IO", "Flask", "Flask-SocketIO", "PostgreSQL 17", "python-docx", "Fly.io"];
 
 interface PatientListItem {
   patientId: string;
@@ -105,49 +111,23 @@ const PatientsList: React.FC = () => {
     }
   };
 
-  // Button styling with increased width
-  const downloadButtonStyle = {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: '0.375rem',
-    transition: 'all 200ms',
-    fontSize: '0.875rem',
-    fontWeight: 'medium',
-    padding: '0.5rem 0.75rem',
-    marginLeft: 'auto', // Add auto left margin
-    marginRight: 'auto', // Add auto right margin
-    marginBottom: isMobile ? '0.5rem' : '0',
-    boxShadow: 'rgba(0, 0, 0, 0.1) 0px 1px 3px 0px, rgba(0, 0, 0, 0.06) 0px 1px 2px 0px',
-    width: isMobile ? '100%' : '120px', // Increased width
-    cursor: 'pointer'
-  };
-
   return (
-    <Box component="main" id="main-content" tabIndex={-1} sx={{ p: 2, backgroundColor: "transparent", minHeight: "100vh" }}>
+    <Box component="section" sx={{ maxWidth: "1180px", mx: "auto" }}>
       <Paper
         elevation={0}
-        className="!bg-glass !backdrop-blur-xl !border !border-glass-border"
-        sx={{
-          p: 2,
-          maxWidth: "1200px",
-          mx: "auto",
-          borderRadius: 2,
-        }}
+        className="!bg-glass !backdrop-blur-xl !border !border-glass-border !shadow-glass"
+        sx={{ p: { xs: 2, sm: 3 }, borderRadius: "16px", mb: 3 }}
       >
-        <Typography
-          variant="h4"
-          component="h1"
-          className="font-display"
-          sx={{
-            textAlign: "center",
-            color: "#E6F5EE",
-            fontWeight: "bold",
-            mb: 2,
-          }}
-        >
-          Patients List
-        </Typography>
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: "flex-end", justifyContent: "space-between", mb: 2.5 }}>
+          <Box>
+            <Typography variant="h4" component="h1" className="font-display" sx={{ fontWeight: 500, color: "text.primary" }}>
+              Patients List
+            </Typography>
+            <Typography sx={{ color: "text.secondary", fontSize: ".86rem", mt: .5, maxWidth: "56ch" }}>
+              Every checkup that IT has fully submitted. The list only reflects what's in the database as of the last Refresh.
+            </Typography>
+          </Box>
+        </Box>
         <Box
           sx={{
             display: "flex",
@@ -163,19 +143,16 @@ const PatientsList: React.FC = () => {
             size="small"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            sx={{ width: isMobile ? "100%" : "250px" }} // Reduced width for non-mobile screens
+            sx={{ width: isMobile ? "100%" : "260px" }}
           />
           <Button
             variant="contained"
             className="!bg-accent-gradient !text-on-accent !font-semibold !shadow-lg !shadow-accent-2/30"
             onClick={() => fetchPatients()}
             disabled={loading}
-            sx={{
-              whiteSpace: "nowrap",
-              width: isMobile ? "100%" : "auto", // Full width on mobile
-            }}
+            sx={{ whiteSpace: "nowrap", width: isMobile ? "100%" : "auto", marginLeft: isMobile ? 0 : "auto" }}
           >
-            {loading ? "Refreshing..." : "Refresh"}
+            {loading ? "Refreshing…" : "Refresh"}
           </Button>
         </Box>
         {/* Add horizontal scrolling for the table */}
@@ -183,30 +160,24 @@ const PatientsList: React.FC = () => {
           <TableContainer
             component={Paper}
             className="!bg-transparent"
-            sx={{ borderRadius: 2, minWidth: "600px", border: "1px solid rgba(255,255,255,0.08)" }}
+            sx={{ borderRadius: 2, minWidth: "600px", border: `1px solid ${theme.palette.divider}` }}
           >
             <Table size="small" aria-label="Synthetic patient records">
               <caption className="sr-only">Synthetic patient records and report downloads</caption>
               <TableHead>
-                <TableRow sx={{ backgroundImage: "linear-gradient(135deg, #5EE6A8, #3ECF8E 55%, #1E9A66)" }}>
-                  <TableCell align="center" sx={{ color: "#04140D", fontWeight: "bold" }}>
+                <TableRow sx={{ backgroundImage: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})` }}>
+                  <TableCell align="center" sx={{ color: theme.palette.primary.contrastText, fontWeight: "bold" }}>
                     Photo
                   </TableCell>
-                  <TableCell align="center" sx={{ color: "#04140D", fontWeight: "bold" }}>Name</TableCell>
-                  <TableCell align="center" sx={{ color: "#04140D", fontWeight: "bold" }}>Division</TableCell>
+                  <TableCell align="center" sx={{ color: theme.palette.primary.contrastText, fontWeight: "bold" }}>Name</TableCell>
+                  <TableCell align="center" sx={{ color: theme.palette.primary.contrastText, fontWeight: "bold" }}>Division</TableCell>
                   {!isMobile && (
-                    <TableCell align="center" sx={{ color: "#04140D", fontWeight: "bold" }}>Roll No</TableCell>
+                    <TableCell align="center" sx={{ color: theme.palette.primary.contrastText, fontWeight: "bold" }}>Roll No</TableCell>
                   )}
-                  <TableCell
-                    align="center"
-                    sx={{ color: "#04140D", fontWeight: "bold" }}
-                  >
+                  <TableCell align="center" sx={{ color: theme.palette.primary.contrastText, fontWeight: "bold" }}>
                     Mobile
                   </TableCell>
-                  <TableCell
-                    align="center"
-                    sx={{ color: "#04140D", fontWeight: "bold" }}
-                  >
+                  <TableCell align="center" sx={{ color: theme.palette.primary.contrastText, fontWeight: "bold" }}>
                     Actions
                   </TableCell>
                 </TableRow>
@@ -220,17 +191,17 @@ const PatientsList: React.FC = () => {
                           variant="circular"
                           width={isMobile ? 30 : 40}
                           height={isMobile ? 30 : 40}
-                          sx={{ mx: "auto", bgcolor: "rgba(94,230,168,0.12)" }}
+                          sx={{ mx: "auto", bgcolor: alpha(theme.palette.primary.main, 0.12) }}
                         />
                       </TableCell>
-                      <TableCell align="center"><Skeleton sx={{ bgcolor: "rgba(94,230,168,0.12)" }} /></TableCell>
-                      <TableCell align="center"><Skeleton sx={{ bgcolor: "rgba(94,230,168,0.12)" }} /></TableCell>
+                      <TableCell align="center"><Skeleton sx={{ bgcolor: alpha(theme.palette.primary.main, 0.12) }} /></TableCell>
+                      <TableCell align="center"><Skeleton sx={{ bgcolor: alpha(theme.palette.primary.main, 0.12) }} /></TableCell>
                       {!isMobile && (
-                        <TableCell align="center"><Skeleton sx={{ bgcolor: "rgba(94,230,168,0.12)" }} /></TableCell>
+                        <TableCell align="center"><Skeleton sx={{ bgcolor: alpha(theme.palette.primary.main, 0.12) }} /></TableCell>
                       )}
-                      <TableCell align="center"><Skeleton sx={{ bgcolor: "rgba(94,230,168,0.12)" }} /></TableCell>
+                      <TableCell align="center"><Skeleton sx={{ bgcolor: alpha(theme.palette.primary.main, 0.12) }} /></TableCell>
                       <TableCell align="center">
-                        <Skeleton variant="rounded" width={120} height={32} sx={{ mx: "auto", bgcolor: "rgba(94,230,168,0.12)" }} />
+                        <Skeleton variant="rounded" width={120} height={32} sx={{ mx: "auto", bgcolor: alpha(theme.palette.primary.main, 0.12) }} />
                       </TableCell>
                     </TableRow>
                   ))}
@@ -238,51 +209,70 @@ const PatientsList: React.FC = () => {
                   <TableRow
                     key={patient.patientId}
                     sx={{
-                      backgroundColor: index % 2 === 0 ? "rgba(255,255,255,0.03)" : "transparent",
+                      backgroundColor: index % 2 === 0 ? alpha(theme.palette.text.primary, 0.03) : "transparent",
                       transition: "background-color 0.3s",
-                      "&:hover": { backgroundColor: "rgba(94,230,168,0.08)" },
+                      "&:hover": { backgroundColor: alpha(theme.palette.primary.main, 0.08) },
                     }}
                   >
                     <TableCell align="center">
-                      <img
-                        src={patient.photo || placeholderImage}
-                        alt={patient.name}
-                        style={{
-                          width: isMobile ? "30px" : "40px", // smaller on mobile
-                          height: isMobile ? "30px" : "40px",
-                          borderRadius: "50%",
-                          objectFit: "cover",
-                          display: "inline-block" // Ensure image is visible on all devices
-                        }}
-                      />
+                      {patient.photo ? (
+                        <img
+                          src={patient.photo}
+                          alt={patient.name}
+                          style={{
+                            width: isMobile ? 30 : 40,
+                            height: isMobile ? 30 : 40,
+                            borderRadius: "50%",
+                            objectFit: "cover",
+                            display: "inline-block",
+                          }}
+                        />
+                      ) : (
+                        <Box
+                          component="span"
+                          sx={{
+                            width: isMobile ? 30 : 40,
+                            height: isMobile ? 30 : 40,
+                            borderRadius: "50%",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontFamily: '"IBM Plex Mono", monospace',
+                            fontWeight: 700,
+                            fontSize: isMobile ? 11 : 13,
+                            color: theme.palette.primary.contrastText,
+                            backgroundColor: `rgb(var(${ROW_HUES[index % ROW_HUES.length]}))`,
+                          }}
+                        >
+                          {patient.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() || "PT"}
+                        </Box>
+                      )}
                     </TableCell>
-                    <TableCell align="center">{patient.name}</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 600 }}>{patient.name}</TableCell>
                     <TableCell align="center">{patient.div}</TableCell>
                     {!isMobile && (
                       <TableCell align="center">{patient.rollNo}</TableCell>
                     )}
-                    <TableCell align="center">{patient.mobile}</TableCell>
+                    <TableCell align="center" className="font-mono">{patient.mobile}</TableCell>
                     <TableCell align="center">
-                      {/* Only Word Document Button */}
-                      <button
+                      <Button
                         onClick={() => handleDownloadReport(patient.patientId, patient.name)}
                         aria-label={`Download Word document for ${patient.name}`}
-                        style={{
-                          ...downloadButtonStyle,
-                          backgroundImage: 'linear-gradient(135deg, #5EE6A8, #3ECF8E 55%, #1E9A66)',
-                          color: '#04140D',
-                        }}
                         title="Download Word Document"
+                        size="small"
+                        variant="contained"
+                        className="!bg-accent-gradient !normal-case"
+                        sx={{ color: theme.palette.primary.contrastText, whiteSpace: "nowrap" }}
+                        startIcon={<CloudDownloadIcon style={{ fontSize: "1rem" }} />}
                       >
-                        <CloudDownloadIcon style={{ fontSize: '1rem', marginRight: '0.5rem' }} />
-                        <span style={{ whiteSpace: 'nowrap' }}>Word Doc</span>
-                      </button>
+                        Word Doc
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
                 {!loading && filteredPatients.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={8} align="center" sx={{ py: 5, color: "#93AFA3" }}>
+                    <TableCell colSpan={8} align="center" sx={{ py: 5, color: "text.secondary" }}>
                       {patients.length === 0
                         ? "No patients registered yet - submissions from the IT dashboard will show up here."
                         : `No patients match "${search}".`}
@@ -292,6 +282,50 @@ const PatientsList: React.FC = () => {
               </TableBody>
             </Table>
           </TableContainer>
+        </Box>
+      </Paper>
+
+      <Paper
+        elevation={0}
+        className="!bg-glass !backdrop-blur-xl !border !border-glass-border !shadow-glass"
+        sx={{ p: { xs: 2, sm: 3 }, borderRadius: "16px" }}
+      >
+        <Typography variant="h6" className="font-display" sx={{ fontWeight: 700, mb: 1.5 }}>About this workspace</Typography>
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 2 }}>
+          {STACK_CHIPS.map(chip => (
+            <Box
+              key={chip}
+              component="span"
+              className="font-mono"
+              sx={{
+                fontSize: ".72rem",
+                color: "text.secondary",
+                bgcolor: "background.paper",
+                border: `1px solid ${theme.palette.divider}`,
+                px: 1, py: .4, borderRadius: "7px",
+              }}
+            >
+              {chip}
+            </Box>
+          ))}
+        </Box>
+        <Typography sx={{ fontSize: ".8rem", color: "text.secondary", lineHeight: 1.7 }}>
+          Synthetic demonstration data only - no real patient, school, employee, or health information.
+          HealthFlow coordinates one school health-camp checkup per clinic: IT, ENT, Vision, General and
+          Dental edit a single shared draft in real time, and only IT's final Submit writes a row to
+          PostgreSQL. It is not an EHR, clinical decision system, role-authorized platform, or
+          compliance-ready product - no SSO, MFA, consent management, or audit trail.
+        </Typography>
+        <Box sx={{ display: "flex", gap: 2.5, flexWrap: "wrap", fontSize: ".82rem", mt: 2 }}>
+          <a href="https://healthflow-abheet19.fly.dev" target="_blank" rel="noopener noreferrer" style={{ color: theme.palette.primary.main, textDecoration: "none" }}>
+            Live workspace ↗
+          </a>
+          <a href="https://github.com/abheet19/HealthFlow" target="_blank" rel="noopener noreferrer" style={{ color: theme.palette.primary.main, textDecoration: "none" }}>
+            Source on GitHub ↗
+          </a>
+          <a href="https://github.com/abheet19" target="_blank" rel="noopener noreferrer" style={{ color: theme.palette.primary.main, textDecoration: "none" }}>
+            More from abheet19 ↗
+          </a>
         </Box>
       </Paper>
     </Box>

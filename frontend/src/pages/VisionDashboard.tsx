@@ -108,7 +108,7 @@ const VisionDashboard: React.FC = () => {
   };
 
   return (
-    <DashboardShell title="Vision Examination Report">
+    <DashboardShell title="Vision Examination Report" description="Right and left eye acuity, colour vision, and squint check.">
       <div className="border-b border-glass-border pb-4 mb-6">
         <h2 className="text-xl font-display font-semibold mb-4 text-text">
           Right Eye

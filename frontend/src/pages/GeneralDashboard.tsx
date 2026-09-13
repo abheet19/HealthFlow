@@ -261,7 +261,7 @@ const GeneralDashboard: React.FC = () => {
   };
 
   return (
-    <DashboardShell title="General Examination Report">
+    <DashboardShell title="General Examination Report" description="Body measurements, systemic exam, past history and vitals.">
       <div className="border-b border-glass-border pb-4 mb-6">
         <h2 className="text-xl font-display font-semibold mb-4 text-text">
           Body Measurements

@@ -4,7 +4,6 @@ import { Button, TextField } from "@mui/material";
 import { PatientContext } from "../context/PatientContext";
 import { apiFetch } from "../config/api"; // Import API helper
 import { useToast } from "../context/ToastContext";
-import DashboardShell from "../components/DashboardShell";
 import LabeledSelect from "../components/LabeledSelect";
 import SubmitButton from "../components/SubmitButton";
 
@@ -387,61 +386,61 @@ const ITDashboard: React.FC = () => {
     showToast("Patient data has been reset", "info");
   };
 
-  const renderDataSummary = () => {
+  // Status & Summary lives in a sticky sidebar next to the intake form (see
+  // the two-column layout below) so it stays visible while filling in the
+  // rest of the form, instead of only appearing once you scroll past Submit.
+  const renderStatusSummary = () => (
+    <>
+      <h4 className="text-xs uppercase tracking-wide text-text-faint font-mono font-semibold mb-3">Status &amp; Summary</h4>
+      <div className="grid grid-cols-2 gap-2 mb-4">
+        {['ENT', 'Vision', 'General', 'Dental'].map(dept => (
+          <div
+            key={dept}
+            className={`p-3 rounded-xl border ${
+              completedDepts.includes(dept.toLowerCase())
+                ? 'bg-success/10 border-success/45 text-text'
+                : 'bg-surface-solid border-glass-border text-text-dim'
+            }`}
+          >
+            <div className="font-semibold text-sm">{dept}</div>
+            <div className={`text-xs ${completedDepts.includes(dept.toLowerCase()) ? 'text-success font-semibold' : 'text-text-faint'}`}>
+              {completedDepts.includes(dept.toLowerCase()) ? 'Completed ✓' : 'Pending…'}
+            </div>
+          </div>
+        ))}
+      </div>
+      <h4 className="text-xs uppercase tracking-wide text-text-faint font-mono font-semibold mb-2">Patient Information</h4>
+      <div className="text-sm text-text-dim flex flex-col gap-1">
+        <p><b className="text-text font-medium">Name:</b> {name || '-'}</p>
+        <p><b className="text-text font-medium">Division:</b> {div || '-'}</p>
+        <p><b className="text-text font-medium">Roll No:</b> {rollNo || '-'}</p>
+        <p><b className="text-text font-medium">Admin No:</b> {adminNo || '-'}</p>
+        <p><b className="text-text font-medium">Gender:</b> {gender || '-'}</p>
+        <p><b className="text-text font-medium">DOB:</b> {dob || '-'}</p>
+        <p><b className="text-text font-medium">Blood Group:</b> {bloodGroup || '-'}</p>
+        <p><b className="text-text font-medium">Mobile:</b> {mobile || '-'}</p>
+        <p><b className="text-text font-medium">Medical Officer:</b> {medicalOfficer || '-'}</p>
+      </div>
+    </>
+  );
+
+  const renderDeptSummaries = () => {
     const departments = [
-      { name: 'Vision', data: patientData.vision },
       { name: 'ENT', data: patientData.ent },
+      { name: 'Vision', data: patientData.vision },
       { name: 'General', data: patientData.general },
       { name: 'Dental', data: patientData.dental }
     ];
 
     return (
-      <div className="mt-6">
-        <h2 className="text-xl font-display font-bold mb-4 text-text">Status & Summary</h2>
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          {['ENT', 'Vision', 'General', 'Dental'].map(dept => (
-            <div
-              key={dept}
-              className={`p-4 rounded-lg border shadow-sm ${
-                completedDepts.includes(dept.toLowerCase())
-                  ? 'bg-success/10 border-success/50 text-text'
-                  : 'bg-white/5 border-glass-border text-text-dim'
-              }`}
-            >
-              <div className="font-medium text-lg">{dept}</div>
-              <div className="text-sm text-text-dim">
-                {completedDepts.includes(dept.toLowerCase())
-                  ? 'Completed ✓'
-                  : 'Pending...'}
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="bg-glass backdrop-blur-xl border border-glass-border rounded-lg shadow-md p-6 mb-6 text-text">
-          <h3 className="text-lg font-display font-semibold mb-4">Patient Information</h3>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <p><span className="font-medium">Name:</span> {name || '-'}</p>
-              <p><span className="font-medium">Division:</span> {div || '-'}</p>
-              <p><span className="font-medium">Roll No:</span> {rollNo || '-'}</p>
-              <p><span className="font-medium">Admin No:</span> {adminNo || '-'}</p>
-            </div>
-            <div>
-              <p><span className="font-medium">Gender:</span> {gender || '-'}</p>
-              <p><span className="font-medium">DOB:</span> {dob || '-'}</p>
-              <p><span className="font-medium">Blood Group:</span> {bloodGroup || '-'}</p>
-              <p><span className="font-medium">Mobile:</span> {mobile || '-'}</p>
-              <p><span className="font-medium">Medical Officer:</span> {medicalOfficer || '-'}</p>
-            </div>
-          </div>
-        </div>
+      <div className="flex flex-col gap-4">
         {departments.map(dept => dept.data && (
-          <div key={dept.name} className="bg-glass backdrop-blur-xl border border-glass-border rounded-lg shadow-md p-6 mb-6 text-text">
-            <h3 className="text-lg font-display font-semibold mb-4">{dept.name} Department Summary</h3>
-            <div className="text-sm grid grid-cols-2 gap-x-4 gap-y-2">
+          <div key={dept.name} className="bg-glass backdrop-blur-xl border border-glass-border shadow-glass rounded-2xl p-5 text-text">
+            <h3 className="text-base font-semibold mb-3">{dept.name} Department Summary</h3>
+            <div className="text-sm grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
               {Object.entries(dept.data).map(([key, value]) => (
                 <div key={key}>
-                  <span className="font-medium">
+                  <span className="font-medium text-text-dim">
                     {key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}:
                   </span>{' '}
                   {value?.toString() || '-'}
@@ -466,7 +465,19 @@ const ITDashboard: React.FC = () => {
   }, []);
 
   return (
-    <DashboardShell title="IT Dashboard" requirePatientId={false}>
+    <div className="max-w-[1180px] mx-auto flex flex-col gap-6 animate-fade-in-up">
+      <div className="flex flex-wrap gap-4 items-end justify-between">
+        <div>
+          <h1 className="text-2xl font-display font-medium text-text">IT Dashboard</h1>
+          <p className="text-text-faint text-sm mt-1 max-w-[56ch]">
+            Register the patient, capture a photo, then hand off — ENT, Vision, General and Dental
+            pick up the moment a patient ID exists. One active draft at a time per clinic.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_280px] items-start">
+      <div className="bg-glass backdrop-blur-xl border border-glass-border shadow-glass rounded-2xl p-6 flex flex-col">
       <div className="border-b border-glass-border pb-4 mb-6">
         <h2 className="text-xl font-display font-semibold mb-4 text-text">
           Basic Information
@@ -725,8 +736,15 @@ const ITDashboard: React.FC = () => {
           </p>
         )}
       </div>
-      {renderDataSummary()}
-    </DashboardShell>
+      </div>
+
+      <aside className="bg-glass backdrop-blur-xl border border-glass-border shadow-glass rounded-2xl p-5 lg:sticky lg:top-0">
+        {renderStatusSummary()}
+      </aside>
+      </div>
+
+      {renderDeptSummaries()}
+    </div>
   );
 };
 
