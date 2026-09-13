@@ -161,9 +161,9 @@ const ENTDashboard: React.FC = () => {
 
   return (
     <DashboardShell title="ENT Examination Report" description="Ear, nose, throat & neck — every field required before Save.">
-      <div className="border-b border-glass-border pb-4 mb-6">
-        <h2 className="text-xl font-display font-semibold mb-4 text-text">Left Ear</h2>
-        <div className="flex flex-wrap gap-2">
+      <div className="hf-form-section">
+        <h2>Left Ear</h2>
+        <div className="hf-field-row">
           <LabeledSelect
             label="Deformity"
             value={leftEarDeformity}
@@ -212,11 +212,11 @@ const ENTDashboard: React.FC = () => {
         </div>
       </div>
 
-      <div className="border-b border-glass-border pb-4 mb-6">
-        <h2 className="text-xl font-display font-semibold mb-4 text-text">
+      <div className="hf-form-section">
+        <h2>
           Right Ear
         </h2>
-        <div className="flex flex-wrap gap-2">
+        <div className="hf-field-row">
           <LabeledSelect
             label="Deformity"
             value={rightEarDeformity}
@@ -265,9 +265,9 @@ const ENTDashboard: React.FC = () => {
         </div>
       </div>
 
-      <div className="border-b border-glass-border pb-4 mb-6">
-        <h2 className="text-xl font-display font-semibold mb-4 text-text">Nose</h2>
-        <div className="flex flex-wrap gap-2">
+      <div className="hf-form-section">
+        <h2>Nose</h2>
+        <div className="hf-field-row">
           <LabeledSelect
             label="Left Obstruction"
             value={leftNoseObstruction}
@@ -307,11 +307,11 @@ const ENTDashboard: React.FC = () => {
         </div>
       </div>
 
-      <div className="border-b border-glass-border pb-4 mb-6">
-        <h2 className="text-xl font-display font-semibold mb-4 text-text">
+      <div className="hf-form-section">
+        <h2>
           Throat & Neck
         </h2>
-        <div className="flex flex-wrap gap-2">
+        <div className="hf-field-row">
           <LabeledSelect
             label="Throat Pain"
             value={throatPain}

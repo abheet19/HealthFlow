@@ -1,11 +1,11 @@
 import * as React from "react";
-import { useState, useContext, useEffect, useRef } from "react";
-import { Button, TextField } from "@mui/material";
+import { useState, useContext, useEffect } from "react";
 import { PatientContext } from "../context/PatientContext";
 import { apiFetch } from "../config/api"; // Import API helper
 import { useToast } from "../context/ToastContext";
 import LabeledSelect from "../components/LabeledSelect";
 import SubmitButton from "../components/SubmitButton";
+import Field from "../components/Field";
 
 interface PatientData {
   patientId?: string;
@@ -48,8 +48,6 @@ const ITDashboard: React.FC = () => {
 
   // Add new state for tracking department completions
   const [completedDepts, setCompletedDepts] = useState<string[]>([]);
-  const [showPhotoPreview, setShowPhotoPreview] = useState<boolean>(false);
-  const photoPreviewRef = useRef<HTMLDivElement>(null);
   const [generatingId, setGeneratingId] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -80,7 +78,6 @@ const ITDashboard: React.FC = () => {
         // If photo was deleted on another device
         setPhoto(null);
         setPhotoBase64("");
-        setShowPhotoPreview(false);
 
         // Reset the file input
         const fileInput = document.getElementById('patient-photo-upload') as HTMLInputElement;
@@ -191,9 +188,6 @@ const ITDashboard: React.FC = () => {
                 photoFileName: file.name || `camera_photo_${new Date().getTime()}.jpg`
               };
 
-              // Show the preview
-              setShowPhotoPreview(true);
-
               // Update patient context, which should trigger socket update
               updateDepartment('it', updatedItData);
             } catch (error) {
@@ -217,7 +211,6 @@ const ITDashboard: React.FC = () => {
         // Clear photo states to prevent partial/bad data
         setPhoto(null);
         setPhotoBase64("");
-        setShowPhotoPreview(false);
 
         // Reset the file input
         const fileInput = document.getElementById('patient-photo-upload') as HTMLInputElement;
@@ -274,7 +267,6 @@ const ITDashboard: React.FC = () => {
     setMedicalOfficer("");
     setPhoto(null);
     setPhotoBase64(""); // Ensure base64 data is cleared
-    setShowPhotoPreview(false); // Ensure photo preview is hidden
 
     // Reset the file input to allow selecting the same file again
     const fileInput = document.getElementById('patient-photo-upload') as HTMLInputElement;
@@ -391,35 +383,31 @@ const ITDashboard: React.FC = () => {
   // rest of the form, instead of only appearing once you scroll past Submit.
   const renderStatusSummary = () => (
     <>
-      <h4 className="text-xs uppercase tracking-wide text-text-faint font-mono font-semibold mb-3">Status &amp; Summary</h4>
-      <div className="grid grid-cols-2 gap-2 mb-4">
-        {['ENT', 'Vision', 'General', 'Dental'].map(dept => (
-          <div
-            key={dept}
-            className={`p-3 rounded-xl border ${
-              completedDepts.includes(dept.toLowerCase())
-                ? 'bg-success/10 border-success/45 text-text'
-                : 'bg-surface-solid border-glass-border text-text-dim'
-            }`}
-          >
-            <div className="font-semibold text-sm">{dept}</div>
-            <div className={`text-xs ${completedDepts.includes(dept.toLowerCase()) ? 'text-success font-semibold' : 'text-text-faint'}`}>
-              {completedDepts.includes(dept.toLowerCase()) ? 'Completed ✓' : 'Pending…'}
+      <h4>Status &amp; Summary</h4>
+      <div className="hf-status-grid">
+        {['ENT', 'Vision', 'General', 'Dental'].map(dept => {
+          const done = completedDepts.includes(dept.toLowerCase());
+          return (
+            <div key={dept} className={`hf-status-tile${done ? ' complete' : ''}`}>
+              <b>{dept}</b>
+              <span>{done ? 'Completed ✓' : 'Pending…'}</span>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
-      <h4 className="text-xs uppercase tracking-wide text-text-faint font-mono font-semibold mb-2">Patient Information</h4>
-      <div className="text-sm text-text-dim flex flex-col gap-1">
-        <p><b className="text-text font-medium">Name:</b> {name || '-'}</p>
-        <p><b className="text-text font-medium">Division:</b> {div || '-'}</p>
-        <p><b className="text-text font-medium">Roll No:</b> {rollNo || '-'}</p>
-        <p><b className="text-text font-medium">Admin No:</b> {adminNo || '-'}</p>
-        <p><b className="text-text font-medium">Gender:</b> {gender || '-'}</p>
-        <p><b className="text-text font-medium">DOB:</b> {dob || '-'}</p>
-        <p><b className="text-text font-medium">Blood Group:</b> {bloodGroup || '-'}</p>
-        <p><b className="text-text font-medium">Mobile:</b> {mobile || '-'}</p>
-        <p><b className="text-text font-medium">Medical Officer:</b> {medicalOfficer || '-'}</p>
+      <div>
+        <h4 style={{ marginBottom: '.4rem' }}>Patient Information</h4>
+        <div style={{ fontSize: '.82rem', color: 'rgb(var(--hf-ink-dim))', display: 'flex', flexDirection: 'column', gap: '.25rem' }}>
+          <p><b className="text-text font-medium">Name:</b> {name || '-'}</p>
+          <p><b className="text-text font-medium">Division:</b> {div || '-'}</p>
+          <p><b className="text-text font-medium">Roll No:</b> {rollNo || '-'}</p>
+          <p><b className="text-text font-medium">Admin No:</b> {adminNo || '-'}</p>
+          <p><b className="text-text font-medium">Gender:</b> {gender || '-'}</p>
+          <p><b className="text-text font-medium">DOB:</b> {dob || '-'}</p>
+          <p><b className="text-text font-medium">Blood Group:</b> {bloodGroup || '-'}</p>
+          <p><b className="text-text font-medium">Mobile:</b> {mobile || '-'}</p>
+          <p><b className="text-text font-medium">Medical Officer:</b> {medicalOfficer || '-'}</p>
+        </div>
       </div>
     </>
   );
@@ -433,17 +421,17 @@ const ITDashboard: React.FC = () => {
     ];
 
     return (
-      <div className="flex flex-col gap-4">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {departments.map(dept => dept.data && (
-          <div key={dept.name} className="bg-glass backdrop-blur-xl border border-glass-border shadow-glass rounded-2xl p-5 text-text">
-            <h3 className="text-base font-semibold mb-3">{dept.name} Department Summary</h3>
-            <div className="text-sm grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+          <div key={dept.name} className="hf-dept-summary-card bg-glass backdrop-blur-xl border border-glass-border shadow-glass">
+            <h3>{dept.name} Department Summary</h3>
+            <div className="hf-dept-summary-grid">
               {Object.entries(dept.data).map(([key, value]) => (
                 <div key={key}>
-                  <span className="font-medium text-text-dim">
+                  <span className="k">
                     {key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}:
-                  </span>{' '}
-                  {value?.toString() || '-'}
+                  </span>
+                  <span className="v">{value?.toString() || '-'}</span>
                 </div>
               ))}
             </div>
@@ -466,281 +454,147 @@ const ITDashboard: React.FC = () => {
 
   return (
     <div className="max-w-[1180px] mx-auto flex flex-col gap-6 animate-fade-in-up">
-      <div className="flex flex-wrap gap-4 items-end justify-between">
+      <div className="hf-screen-head">
         <div>
-          <h1 className="text-2xl font-display font-medium text-text">IT Dashboard</h1>
-          <p className="text-text-faint text-sm mt-1 max-w-[56ch]">
+          <h1>IT Dashboard</h1>
+          <p>
             Register the patient, capture a photo, then hand off — ENT, Vision, General and Dental
             pick up the moment a patient ID exists. One active draft at a time per clinic.
           </p>
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_280px] items-start">
-      <div className="bg-glass backdrop-blur-xl border border-glass-border shadow-glass rounded-2xl p-6 flex flex-col">
-      <div className="border-b border-glass-border pb-4 mb-6">
-        <h2 className="text-xl font-display font-semibold mb-4 text-text">
-          Basic Information
-        </h2>
-        <div className="flex flex-wrap gap-4">
-          <TextField
-            label="Name"
-            variant="outlined"
-            size="small"
-            className="w-full sm:w-64"
-            value={name}
-            onChange={(e) => handleInputChange('name', e.target.value)}
-          />
-          <TextField
-            label="DIV"
-            variant="outlined"
-            size="small"
-            className="w-full sm:w-64"
-            value={div}
-            onChange={(e) => handleInputChange('div', e.target.value)}
-          />
-          <TextField
-            label="Roll No"
-            variant="outlined"
-            size="small"
-            className="w-full sm:w-64"
-            value={rollNo}
-            onChange={(e) => handleInputChange('rollNo', e.target.value)}
-          />
-          <TextField
-            label="Admin No"
-            variant="outlined"
-            size="small"
-            className="w-full sm:w-64"
-            value={adminNo}
-            onChange={(e) => handleInputChange('adminNo', e.target.value)}
-          />
-        </div>
-      </div>
-      <div className="border-b border-glass-border pb-4 mb-6">
-        <h2 className="text-xl font-display font-semibold mb-4 text-text">
-          Family & Contact Details
-        </h2>
-        <div className="flex flex-wrap gap-4">
-          <TextField
-            label="Father's Name"
-            variant="outlined"
-            size="small"
-            className="w-full sm:w-64"
-            value={fatherName}
-            onChange={(e) => handleInputChange('fatherName', e.target.value)}
-          />
-          <TextField
-            label="Mother's Name"
-            variant="outlined"
-            size="small"
-            className="w-full sm:w-64"
-            value={motherName}
-            onChange={(e) => handleInputChange('motherName', e.target.value)}
-          />
-          <TextField
-            label="Mobile"
-            variant="outlined"
-            size="small"
-            className="w-full sm:w-64"
-            value={mobile}
-            onChange={(e) => handleInputChange('mobile', e.target.value)}
-          />
-        </div>
-      </div>
-      <div className="border-b border-glass-border pb-4 mb-6">
-        <h2 className="text-xl font-display font-semibold mb-4 text-text">
-          Additional Details
-        </h2>
-        <div className="flex flex-wrap gap-4">
-          <TextField
-            label="DOB"
-            type="date"
-            InputLabelProps={{ shrink: true }}
-            variant="outlined"
-            size="small"
-            className="w-full sm:w-64"
-            value={dob}
-            onChange={(e) => handleInputChange('dob', e.target.value)}
-          />
-          <LabeledSelect
-            label="Gender"
-            value={gender}
-            onChange={(v) => handleInputChange('gender', v)}
-            options={["Male", "Female", "Other"]}
-          />
-          <LabeledSelect
-            label="Blood Group"
-            value={bloodGroup}
-            onChange={(v) => handleInputChange('bloodGroup', v)}
-            options={["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-", "NA"]}
-          />
-          <TextField
-            label="Medical Officer"
-            variant="outlined"
-            size="small"
-            className="w-full sm:w-64"
-            value={medicalOfficer}
-            onChange={(e) => handleInputChange('medicalOfficer', e.target.value)}
-          />
-          <div className="w-full sm:w-64 flex flex-col">
-            <input
-              id="patient-photo-upload"
-              type="file"
-              accept="image/*"
-              required
-              capture="environment"
-              onChange={handlePhotoChange}
-              className="hidden" // Hide the native input
-            />
-            <div className="flex items-center">
-              <label
-                htmlFor="patient-photo-upload"
-                className={`flex items-center justify-center px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 text-sm ${
-                  photo
-                  ? 'bg-success/10 border border-success/60 text-success hover:bg-success/20 flex-grow'
-                  : 'bg-accent-gradient text-on-accent hover:brightness-110 shadow-sm'
-                }`}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 mr-1.5 ${photo ? 'text-success' : 'text-on-accent'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  {photo ?
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /> :
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                  }
-                </svg>
-                <span className="font-medium whitespace-nowrap">
-                  {photo ? 'Photo Uploaded' : 'Upload Photo'}
-                </span>
-              </label>
-              {photo && (
-                <button
-                  type="button"
-                  aria-label="Delete patient photo"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setPhoto(null);
-                    setPhotoBase64("");
-                    setShowPhotoPreview(false);
-
-                    // Update context to remove the photo, which will trigger the broadcast
-                    updateDepartment("it", {
-                      ...patientData.it,
-                      photo: undefined,
-                      photoFileName: undefined
-                    });
-
-                    // Reset the file input
-                    const fileInput = document.getElementById('patient-photo-upload') as HTMLInputElement;
-                    if (fileInput) fileInput.value = '';
-                  }}
-                  className="ml-2 p-1.5 bg-white/10 hover:bg-white/20 text-text-dim rounded-full flex items-center justify-center transition-colors"
-                  title="Delete photo (will be removed from all devices)"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
-              )}
+      <div className="hf-it-layout">
+        <div className="hf-form-card bg-glass backdrop-blur-xl border border-glass-border shadow-glass">
+          <div className="hf-form-section">
+            <h2>Basic Information</h2>
+            <div className="hf-field-row">
+              <Field label="Name" value={name} onChange={(v) => handleInputChange('name', v)} placeholder="Full name" />
+              <Field label="DIV" value={div} onChange={(v) => handleInputChange('div', v)} placeholder="e.g. 7-B" />
+              <Field label="Roll No" value={rollNo} onChange={(v) => handleInputChange('rollNo', v)} />
+              <Field label="Admin No" value={adminNo} onChange={(v) => handleInputChange('adminNo', v)} />
             </div>
-            {photo && (
-              <div className="mt-1 flex items-center text-xs">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1 text-success flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span className="text-text-dim truncate max-w-[180px]">
-                  {photo.name}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setShowPhotoPreview(prev => !prev)}
-                  className="ml-2 text-accent hover:brightness-110 underline"
-                >
-                  {showPhotoPreview ? 'Hide Preview' : 'Preview'}
-                </button>
-              </div>
-            )}
-            {/* Photo preview section */}
-            {showPhotoPreview && photoBase64 && (
-              <div
-                className="mt-3 border border-glass-border p-1 rounded bg-surface shadow-sm relative"
-                ref={photoPreviewRef}
-              >
-                <img
-                  src={`data:image/jpeg;base64,${photoBase64}`}
-                  alt="Patient Photo Preview"
-                  className="w-full max-h-[200px] object-contain"
-                />
-                <button
-                  type="button"
-                  aria-label="Close patient photo preview"
-                  onClick={() => setShowPhotoPreview(false)}
-                  className="absolute top-1 right-1 bg-surface border border-glass-border rounded-full p-1 shadow-sm"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-text-dim" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-                <div className="text-xs text-center text-text-dim py-1">
-                  Photo will appear on all connected devices
+          </div>
+
+          <div className="hf-form-section">
+            <h2>Family &amp; Contact Details</h2>
+            <div className="hf-field-row">
+              <Field label="Father's Name" value={fatherName} onChange={(v) => handleInputChange('fatherName', v)} />
+              <Field label="Mother's Name" value={motherName} onChange={(v) => handleInputChange('motherName', v)} />
+              <Field label="Mobile" value={mobile} onChange={(v) => handleInputChange('mobile', v)} />
+            </div>
+          </div>
+
+          <div className="hf-form-section">
+            <h2>Additional Details</h2>
+            <div className="hf-field-row">
+              <Field label="DOB" type="date" value={dob} onChange={(v) => handleInputChange('dob', v)} />
+              <LabeledSelect
+                label="Gender"
+                value={gender}
+                onChange={(v) => handleInputChange('gender', v)}
+                options={["Male", "Female", "Other"]}
+              />
+              <LabeledSelect
+                label="Blood Group"
+                value={bloodGroup}
+                onChange={(v) => handleInputChange('bloodGroup', v)}
+                options={["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-", "NA"]}
+              />
+              <Field label="Medical Officer" value={medicalOfficer} onChange={(v) => handleInputChange('medicalOfficer', v)} />
+            </div>
+
+            <div className="hf-photo-widget" style={{ marginTop: '1rem' }}>
+              <label className="hf-photo-label">Patient Photo</label>
+              <input
+                id="patient-photo-upload"
+                type="file"
+                accept="image/*"
+                required
+                capture="environment"
+                onChange={handlePhotoChange}
+                className="hidden"
+              />
+              <div className="hf-photo-row">
+                <div className="hf-photo-thumb">
+                  {photoBase64 ? (
+                    <img src={`data:image/jpeg;base64,${photoBase64}`} alt="Patient" />
+                  ) : (
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth={1.6} style={{ color: 'rgb(var(--hf-ink-faint))' }}>
+                      <circle cx="12" cy="8" r="3.4" />
+                      <path d="M4.5 20c0-4 3.4-6.6 7.5-6.6s7.5 2.6 7.5 6.6" />
+                    </svg>
+                  )}
+                </div>
+                <div className="hf-photo-actions">
+                  <label htmlFor="patient-photo-upload" className="hf-btn hf-btn-ghost hf-btn-sm" style={{ cursor: 'pointer' }}>
+                    {photo ? 'Change photo' : 'Upload Photo'}
+                  </label>
+                  {photo && (
+                    <button
+                      type="button"
+                      className="hf-btn hf-btn-ghost hf-btn-sm danger"
+                      aria-label="Delete patient photo"
+                      title="Delete photo (will be removed from all devices)"
+                      onClick={() => {
+                        setPhoto(null);
+                        setPhotoBase64("");
+                        updateDepartment("it", {
+                          ...patientData.it,
+                          photo: undefined,
+                          photoFileName: undefined,
+                        });
+                        const fileInput = document.getElementById('patient-photo-upload') as HTMLInputElement;
+                        if (fileInput) fileInput.value = '';
+                      }}
+                    >
+                      Delete photo
+                    </button>
+                  )}
                 </div>
               </div>
-            )}
+              <p className="hf-photo-note">
+                Resized and compressed client-side to a JPEG data URL, then broadcast live to every
+                connected device — synthetic-only, never a real photo.
+              </p>
+            </div>
           </div>
-        </div>
-      </div>
-      <div className="mb-6">
-        {patientData.patientId ? (
-          <div className="border border-glass-border p-3 rounded-lg bg-white/5 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div className="flex flex-wrap items-center">
-                <span className="text-sm font-medium text-text-dim mr-2 whitespace-nowrap">Patient ID:</span>
-                <div className="w-full sm:w-auto mt-1 sm:mt-0">
-                  <span className="inline-block text-sm font-mono bg-black/30 text-text px-2 py-1 rounded border border-glass-border select-all overflow-hidden text-ellipsis max-w-full break-all">
+
+          <div className="hf-form-section">
+            {patientData.patientId ? (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '.75rem', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', flexWrap: 'wrap', minWidth: 0 }}>
+                  <span style={{ fontSize: '.73rem', color: 'rgb(var(--hf-ink-dim))', textTransform: 'uppercase', letterSpacing: '.06em' }}>Patient ID</span>
+                  <span className="hf-pt-id" style={{ fontSize: '.84rem', color: 'rgb(var(--hf-ink))', background: 'var(--hf-surface-hi)', border: '1px solid var(--hf-border)', borderRadius: 8, padding: '.25rem .5rem', wordBreak: 'break-all' }}>
                     {patientData.patientId}
                   </span>
                 </div>
+                <button type="button" className="hf-btn hf-btn-ghost hf-btn-sm danger" onClick={handleClearPatientId}>
+                  Reset All Data
+                </button>
               </div>
-              <Button
-                variant="outlined"
-                color="error"
-                size="small"
-                onClick={handleClearPatientId}
-                className="whitespace-nowrap mt-2 sm:mt-0"
-              >
-                Reset All Data
-              </Button>
-            </div>
+            ) : (
+              <button type="button" className="hf-btn hf-btn-ghost" onClick={generatePatientId} disabled={generatingId}>
+                {generatingId ? "Generating…" : "Register Patient"}
+              </button>
+            )}
           </div>
-        ) : (
-          <Button
-            variant="outlined"
-            onClick={generatePatientId}
-            disabled={generatingId}
-            className="mb-4"
-          >
-            {generatingId ? "Generating..." : "Register Patient"}
-          </Button>
-        )}
-      </div>
-      <div className="flex flex-col items-center mt-6 gap-2">
-        <SubmitButton
-          onClick={handleFinalSubmit}
-          loading={submitting}
-          disabled={!patientData.patientId}
-        >
-          Submit
-        </SubmitButton>
-        {!patientData.patientId && (
-          <p className="text-xs text-text-dim">
-            Register the patient above to get a Patient ID before submitting.
-          </p>
-        )}
-      </div>
-      </div>
 
-      <aside className="bg-glass backdrop-blur-xl border border-glass-border shadow-glass rounded-2xl p-5 lg:sticky lg:top-0">
-        {renderStatusSummary()}
-      </aside>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '.5rem' }}>
+            <SubmitButton onClick={handleFinalSubmit} loading={submitting} disabled={!patientData.patientId}>
+              Submit
+            </SubmitButton>
+            {!patientData.patientId && (
+              <p className="hf-required-note">
+                Register the patient above to get a Patient ID before submitting.
+              </p>
+            )}
+          </div>
+        </div>
+
+        <aside className="hf-summary-card bg-glass backdrop-blur-xl border border-glass-border shadow-glass lg:sticky lg:top-0">
+          {renderStatusSummary()}
+        </aside>
       </div>
 
       {renderDeptSummaries()}

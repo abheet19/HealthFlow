@@ -1,5 +1,4 @@
 import * as React from "react";
-import { Button, CircularProgress } from "@mui/material";
 
 interface SubmitButtonProps {
   onClick: () => void;
@@ -7,12 +6,16 @@ interface SubmitButtonProps {
   disabled?: boolean;
   children: React.ReactNode;
   className?: string;
+  /** Full-width up to a 320px cap, matching the IT dashboard's Submit. */
+  block?: boolean;
 }
 
 /**
- * The gradient "Save"/"Submit" button repeated identically across all five
- * dashboards. Adds a real loading state (a spinner + disabled button) so a
- * pending backend call is visible instead of the button just sitting there.
+ * The gradient "Save"/"Submit" button repeated across all five dashboards,
+ * rendered as the artifact's `.btn.btn-primary` (cyan→amber gradient, 10px
+ * radius, cyan-tinted lift shadow) instead of a MUI <Button>. Keeps the real
+ * loading state - a spinner + disabled button so a pending backend call is
+ * visible instead of the button just sitting there.
  */
 const SubmitButton: React.FC<SubmitButtonProps> = ({
   onClick,
@@ -20,24 +23,25 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({
   disabled = false,
   children,
   className = "",
+  block = true,
 }) => (
-  <Button
-    variant="contained"
-    color="primary"
+  <button
+    type="button"
+    className={`hf-btn hf-btn-primary ${className}`}
+    style={block ? { width: "100%", maxWidth: 320 } : undefined}
     onClick={onClick}
     disabled={disabled || loading}
     aria-busy={loading}
-    className={`w-full sm:w-64 bg-accent-gradient hover:brightness-110 text-on-accent font-semibold shadow-lg shadow-accent-2/30 ${className}`}
   >
     {loading ? (
       <>
-        <CircularProgress aria-hidden="true" size={20} sx={{ color: "#04140D" }} />
+        <span className="hf-spinner" aria-hidden="true" />
         <span className="sr-only">Saving</span>
       </>
     ) : (
       children
     )}
-  </Button>
+  </button>
 );
 
 export default SubmitButton;

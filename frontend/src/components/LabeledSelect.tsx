@@ -1,41 +1,44 @@
 import * as React from "react";
-import { FormControl, InputLabel, Select, MenuItem } from "@mui/material";
 
 interface LabeledSelectProps {
   label: string;
   value: string;
   onChange: (value: string) => void;
   options: string[];
+  /** Placeholder shown while nothing is chosen (matches the artifact's "Select…"). */
+  placeholder?: string;
   className?: string;
 }
 
 /**
- * The FormControl + InputLabel + Select + MenuItem boilerplate every
- * dashboard's `dropdown()` helper rebuilt from scratch. Field-name mapping
- * and side effects (resetting a description field, etc.) stay in each
- * dashboard's own onChange callback - only the mechanical markup moved here.
+ * The `.field` select primitive from the artifact: the same uppercase
+ * micro-label + 9px solid-surface control as <Field>, with a custom chevron
+ * so it reads as one system instead of a default Material <Select>. Field-name
+ * mapping and side effects (resetting a description field, etc.) stay in each
+ * dashboard's own onChange callback - only the markup moved here.
  */
 const LabeledSelect: React.FC<LabeledSelectProps> = ({
   label,
   value,
   onChange,
   options,
-  className = "w-full sm:w-64",
-}) => (
-  <FormControl variant="outlined" size="small" className={className}>
-    <InputLabel>{label}</InputLabel>
-    <Select
-      label={label}
-      value={value}
-      onChange={(e) => onChange(e.target.value as string)}
-    >
-      {options.map((opt) => (
-        <MenuItem key={opt} value={opt}>
-          {opt}
-        </MenuItem>
-      ))}
-    </Select>
-  </FormControl>
-);
+  placeholder = "Select…",
+  className = "",
+}) => {
+  const id = React.useId();
+  return (
+    <div className={`hf-field${className ? " " + className : ""}`}>
+      <label htmlFor={id}>{label}</label>
+      <select id={id} value={value} onChange={(e) => onChange(e.target.value)}>
+        <option value="">{placeholder}</option>
+        {options.map((opt) => (
+          <option key={opt} value={opt}>
+            {opt}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+};
 
 export default LabeledSelect;

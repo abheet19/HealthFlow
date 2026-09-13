@@ -61,23 +61,28 @@ const AccessGate = ({ onUnlock }: AccessGateProps) => {
   const helperId = "workspace-code-helper";
 
   return (
-    <main className="min-h-screen grid place-items-center p-4 relative overflow-hidden">
-      <div className="pointer-events-none absolute -top-[16%] -right-[10%] h-[50vw] w-[50vw] rounded-full bg-accent/[0.16] blur-[90px]" aria-hidden="true" />
-      <div className="pointer-events-none absolute -bottom-[20%] -left-[12%] h-[50vw] w-[50vw] rounded-full bg-accent-2/[0.12] blur-[90px]" aria-hidden="true" />
-      <section className="relative w-full max-w-[440px] rounded-2xl border border-glass-border bg-glass p-8 shadow-glass backdrop-blur-xl animate-fade-in-up">
-        <img className="mb-5 h-14 w-14 rounded-2xl shadow-lg shadow-accent-2/30" src="/brand/mark.svg" alt="" />
-        <h1 className="font-display text-4xl font-semibold tracking-tight text-text">HealthFlow</h1>
-        <p className="mt-2 mb-7 leading-relaxed text-text-dim">
+    <main className="hf-login">
+      <div className="hf-ambient" aria-hidden="true" />
+      <section className="hf-access-card bg-glass backdrop-blur-xl border border-glass-border shadow-glass animate-fade-in-up">
+        <div className="hf-brand-row">
+          <div className="hf-brand-mark" aria-hidden="true" />
+          <div>
+            <div className="hf-brand-word">HealthFlow</div>
+            <div className="hf-brand-tag font-mono">school health-camp workspace</div>
+          </div>
+        </div>
+        <h1>Open a clinic workspace</h1>
+        <p className="hf-sub">
           Enter the clinic workspace code to access patient records and real-time dashboards.
         </p>
-        <form onSubmit={unlock}>
-          <div className="mb-4 grid gap-4 sm:grid-cols-2">
-            <label className="block text-sm font-medium text-text" htmlFor="workspace-clinic-id">
-              Clinic ID
+        <form className="hf-access-fields" onSubmit={unlock}>
+          <div className="hf-access-fields-row">
+            <div className="hf-field">
+              <label htmlFor="workspace-clinic-id">Clinic ID</label>
               <input
                 id="workspace-clinic-id"
-                className="mt-2 w-full rounded-xl border border-glass-border bg-bg/70 px-4 py-3 text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:opacity-60"
                 autoComplete="organization"
+                spellCheck={false}
                 value={clinicId}
                 disabled={pending}
                 onChange={event => {
@@ -85,13 +90,13 @@ const AccessGate = ({ onUnlock }: AccessGateProps) => {
                   setError("");
                 }}
               />
-            </label>
-            <label className="block text-sm font-medium text-text" htmlFor="workspace-user-id">
-              User ID
+            </div>
+            <div className="hf-field">
+              <label htmlFor="workspace-user-id">User ID</label>
               <input
                 id="workspace-user-id"
-                className="mt-2 w-full rounded-xl border border-glass-border bg-bg/70 px-4 py-3 text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:opacity-60"
                 autoComplete="username"
+                spellCheck={false}
                 value={userId}
                 disabled={pending}
                 onChange={event => {
@@ -99,39 +104,40 @@ const AccessGate = ({ onUnlock }: AccessGateProps) => {
                   setError("");
                 }}
               />
-            </label>
+            </div>
           </div>
-          <label className="mb-2 block text-sm font-medium text-text" htmlFor="workspace-access-code">
-            Workspace access code
-          </label>
-          <input
-            id="workspace-access-code"
-            className="w-full rounded-xl border border-glass-border bg-bg/70 px-4 py-3 text-text outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:opacity-60"
-            autoComplete="current-password"
-            type="password"
-            value={accessCode}
-            aria-describedby={helperId}
-            aria-invalid={Boolean(error)}
-            disabled={pending}
-            onChange={event => {
-              setAccessCode(event.target.value);
-              setError("");
-            }}
-          />
-          <p
-            id={helperId}
-            className={`mt-2 min-h-5 text-sm ${error ? "text-danger" : "text-text-dim"}`}
-            role={error ? "alert" : undefined}
-          >
-            {error || "The code is kept only for this browser session."}
-          </p>
+          <div className="hf-field">
+            <label htmlFor="workspace-access-code">Workspace access code</label>
+            <input
+              id="workspace-access-code"
+              autoComplete="current-password"
+              type="password"
+              spellCheck={false}
+              value={accessCode}
+              aria-describedby={helperId}
+              aria-invalid={Boolean(error)}
+              disabled={pending}
+              onChange={event => {
+                setAccessCode(event.target.value);
+                setError("");
+              }}
+            />
+          </div>
           <button
-            className="mt-4 w-full rounded-xl bg-accent-gradient px-4 py-3 font-semibold text-on-accent shadow-lg shadow-accent-2/20 transition hover:-translate-y-0.5 hover:shadow-accent-2/30 focus:outline-none focus:ring-2 focus:ring-accent disabled:cursor-wait disabled:opacity-60 disabled:hover:translate-y-0 motion-reduce:transform-none"
+            className="hf-btn hf-btn-primary"
+            style={{ width: "100%", marginTop: ".3rem" }}
             disabled={pending}
             type="submit"
           >
             {pending ? "Checking code…" : "Open workspace"}
           </button>
+          <p
+            id={helperId}
+            className={`hf-status-line${error ? " bad" : ""}`}
+            role={error ? "alert" : "status"}
+          >
+            {error || "The code is kept only for this browser session."}
+          </p>
         </form>
       </section>
     </main>

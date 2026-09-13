@@ -44,62 +44,66 @@ const DashboardShell: React.FC<DashboardShellProps> = ({
   const renderEmptyState = () => {
     if (connectionStatus === "connecting") {
       return (
-        <div className="text-center p-8 flex flex-col items-center gap-3" role="status" aria-live="polite">
-          <div className="h-8 w-8 rounded-full border-2 border-accent/30 border-t-accent animate-spin" aria-hidden="true" />
-          <h2 className="text-xl font-display text-text-dim">Connecting to HealthFlow…</h2>
-          <p className="text-sm text-text-faint">Syncing with the realtime server</p>
+        <div className="hf-empty-state connecting" role="status" aria-live="polite">
+          <div className="hf-estate-spinner" aria-hidden="true" />
+          <h3>Connecting to HealthFlow…</h3>
+          <p>Syncing with the realtime server</p>
         </div>
       );
     }
 
     if (connectionStatus === "error") {
       return (
-        <div className="text-center p-8 flex flex-col items-center gap-3" role="alert">
-          <div className="h-10 w-10 rounded-full bg-danger/10 border border-danger/50 flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-danger" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="hf-empty-state conn-error" role="alert">
+          <div className="hf-estate-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3.75m0 3.75h.008v.008H12v-.008zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h2 className="text-xl font-display text-danger">Connection lost</h2>
-          <p className="text-sm text-text-dim">
-            Couldn't reach the HealthFlow server. Check your connection - it will keep retrying automatically.
+          <h3>Connection lost</h3>
+          <p>
+            Couldn't reach the HealthFlow server. Check your connection — it will keep retrying automatically.
           </p>
         </div>
       );
     }
 
     return (
-      <div className="text-center p-8 flex flex-col items-center gap-3 border border-dashed border-border-hi rounded-xl">
-        <div className="h-10 w-10 rounded-full bg-white/5 border border-glass-border flex items-center justify-center">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-text-dim" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div className="hf-empty-state">
+        <div className="hf-estate-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
         </div>
-        <h2 className="text-xl font-display text-text-dim">{waitingMessage}</h2>
-        <p className="text-sm text-text-faint max-w-xs">Register a patient on the IT dashboard, or press ⌘K to jump to one.</p>
+        <h3>{waitingMessage}</h3>
+        <p>Register a patient on the IT dashboard, or press ⌘K to jump to one.</p>
       </div>
     );
   };
 
   return (
-    <div key={title} className="app-screen max-w-[1180px] mx-auto flex flex-col gap-6 animate-fade-in-up">
-      <div>
-        <h1 className="text-2xl font-display font-medium text-text">{title}</h1>
-        {description && <p className="text-text-faint text-sm mt-1 max-w-[56ch]">{description}</p>}
+    <div key={title} className="max-w-[1180px] mx-auto flex flex-col gap-6 animate-fade-in-up">
+      <div className="hf-screen-head">
+        <div>
+          <h1>{title}</h1>
+          {description && <p>{description}</p>}
+        </div>
       </div>
 
       {requirePatientId && hasPatient && (
-        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-glass-border bg-glass backdrop-blur-xl shadow-glass px-5 py-3">
-          {patientData.it?.name && <b className="font-display text-lg font-medium text-text">{patientData.it.name}</b>}
-          <span className="font-mono text-xs text-text-faint">
-            {patientData.patientId}
-            {patientData.it?.div ? ` · ${patientData.it.div}` : ""}
-            {patientData.it?.rollNo ? ` · Roll ${patientData.it.rollNo}` : ""}
-          </span>
+        <div className="hf-patient-banner bg-glass backdrop-blur-xl border border-glass-border shadow-glass">
+          <div className="who">
+            {patientData.it?.name && <b>{patientData.it.name}</b>}
+            <span className="pid">
+              {patientData.patientId}
+              {patientData.it?.div ? ` · ${patientData.it.div}` : ""}
+              {patientData.it?.rollNo ? ` · Roll ${patientData.it.rollNo}` : ""}
+            </span>
+          </div>
         </div>
       )}
 
-      <div className="bg-glass backdrop-blur-xl border border-glass-border shadow-glass rounded-2xl p-6 w-full">
+      <div className="hf-form-card bg-glass backdrop-blur-xl border border-glass-border shadow-glass w-full">
         {requirePatientId && !hasPatient ? renderEmptyState() : children}
       </div>
     </div>

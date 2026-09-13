@@ -1,5 +1,4 @@
 import * as React from "react";
-import { Button } from "@mui/material";
 import { Link } from "react-router-dom";
 import DashboardShell from "../components/DashboardShell";
 
@@ -10,22 +9,12 @@ const NotFoundPage: React.FC = () => (
         This HealthFlow address does not match a department or patient workflow.
       </p>
       <div className="mt-6 flex flex-wrap gap-3">
-        <Button
-          component={Link}
-          to="/it"
-          variant="contained"
-          className="!normal-case !bg-accent-gradient !text-on-accent !font-semibold"
-        >
+        <Link to="/it" className="hf-btn hf-btn-primary">
           Return to IT
-        </Button>
-        <Button
-          component={Link}
-          to="/patients"
-          variant="outlined"
-          className="!normal-case"
-        >
+        </Link>
+        <Link to="/patients" className="hf-btn hf-btn-ghost">
           View patients
-        </Button>
+        </Link>
       </div>
     </div>
   </DashboardShell>

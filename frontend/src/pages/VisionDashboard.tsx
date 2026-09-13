@@ -1,12 +1,12 @@
 import * as React from "react";
 import { useState, useContext, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { TextField } from "@mui/material";
 import { PatientContext } from "../context/PatientContext";
 import { useToast } from "../context/ToastContext";
 import DashboardShell from "../components/DashboardShell";
 import LabeledSelect from "../components/LabeledSelect";
 import SubmitButton from "../components/SubmitButton";
+import Field from "../components/Field";
 
 const VisionDashboard: React.FC = () => {
   const [reVision, setReVision] = useState("6/6");
@@ -109,20 +109,17 @@ const VisionDashboard: React.FC = () => {
 
   return (
     <DashboardShell title="Vision Examination Report" description="Right and left eye acuity, colour vision, and squint check.">
-      <div className="border-b border-glass-border pb-4 mb-6">
-        <h2 className="text-xl font-display font-semibold mb-4 text-text">
+      <div className="hf-form-section">
+        <h2>
           Right Eye
         </h2>
-        <div className="flex flex-wrap gap-2">
-          <TextField
+        <div className="hf-field-row">
+          <Field
             label="Vision"
-            variant="outlined"
-            size="small"
-            className="w-full sm:w-64"
             value={reVision}
-            onChange={(e) => {
-              setReVision(e.target.value);
-              handleInputChange('re_vision', e.target.value);
+            onChange={(v) => {
+              setReVision(v);
+              handleInputChange('re_vision', v);
             }}
           />
           <LabeledSelect
@@ -146,18 +143,15 @@ const VisionDashboard: React.FC = () => {
         </div>
       </div>
 
-      <div className="border-b border-glass-border pb-4 mb-6">
-        <h2 className="text-xl font-display font-semibold mb-4 text-text">Left Eye</h2>
-        <div className="flex flex-wrap gap-2">
-          <TextField
+      <div className="hf-form-section">
+        <h2>Left Eye</h2>
+        <div className="hf-field-row">
+          <Field
             label="Vision"
-            variant="outlined"
-            size="small"
-            className="w-full sm:w-64"
             value={leVision}
-            onChange={(e) => {
-              setLeVision(e.target.value);
-              handleInputChange('le_vision', e.target.value);
+            onChange={(v) => {
+              setLeVision(v);
+              handleInputChange('le_vision', v);
             }}
           />
           <LabeledSelect

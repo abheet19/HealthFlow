@@ -1,12 +1,12 @@
 import * as React from "react";
 import { useState, useContext, useEffect } from "react";
-import { TextField } from "@mui/material";
 import { PatientContext } from "../context/PatientContext";
 import { useLocation } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
 import DashboardShell from "../components/DashboardShell";
 import LabeledSelect from "../components/LabeledSelect";
 import SubmitButton from "../components/SubmitButton";
+import Field from "../components/Field";
 
 const GeneralDashboard: React.FC = () => {
   const { showToast } = useToast();
@@ -178,18 +178,17 @@ const GeneralDashboard: React.FC = () => {
     return "Obesity Class III";
   };
 
-  // Function to get the color scheme for BMI category badge
-  const getBMICategoryStyle = (bmiValue: string): { bg: string, text: string } => {
-    if (!bmiValue) return { bg: "bg-gray-100", text: "text-gray-800" };
-
+  // BMI category badge tone, mapped onto the shared glass tokens (cyan /
+  // good / amber / critical) via the .hf-bmi-chip modifier classes rather
+  // than the off-theme Tailwind pastel palette the mockup never uses.
+  const getBMICategoryTone = (bmiValue: string): string => {
+    if (!bmiValue) return "tone-muted";
     const bmiNum = parseFloat(bmiValue);
-
-    if (bmiNum < 18.5) return { bg: "bg-blue-100", text: "text-blue-800" }; // Underweight - blue
-    if (bmiNum < 25) return { bg: "bg-green-100", text: "text-green-800" }; // Normal weight - green
-    if (bmiNum < 30) return { bg: "bg-yellow-100", text: "text-yellow-800" }; // Overweight - yellow
-    if (bmiNum < 35) return { bg: "bg-orange-100", text: "text-orange-800" }; // Obesity Class I - orange
-    if (bmiNum < 40) return { bg: "bg-red-100", text: "text-red-800" }; // Obesity Class II - light red
-    return { bg: "bg-red-200", text: "text-red-900" }; // Obesity Class III - darker red
+    if (bmiNum < 18.5) return "tone-cyan"; // Underweight
+    if (bmiNum < 25) return "tone-good"; // Normal weight
+    if (bmiNum < 30) return "tone-amber"; // Overweight
+    if (bmiNum < 35) return "tone-amber"; // Obesity Class I
+    return "tone-critical"; // Obesity Class II / III
   };
 
   // Modify the handleInputChange function to prevent updates when values haven't changed
@@ -262,61 +261,50 @@ const GeneralDashboard: React.FC = () => {
 
   return (
     <DashboardShell title="General Examination Report" description="Body measurements, systemic exam, past history and vitals.">
-      <div className="border-b border-glass-border pb-4 mb-6">
-        <h2 className="text-xl font-display font-semibold mb-4 text-text">
+      <div className="hf-form-section">
+        <h2>
           Body Measurements
         </h2>
-        <div className="flex flex-wrap gap-4">
-          <TextField
+        <div className="hf-field-row">
+          <Field
             label="Height (cm)"
-            variant="outlined"
-            size="small"
-            className="w-full sm:w-64"
             value={height}
-            onChange={(e) => {
-              setHeight(e.target.value);
-              handleInputChange('height', e.target.value);
+            onChange={(v) => {
+              setHeight(v);
+              handleInputChange('height', v);
             }}
             placeholder="Enter height in cm"
           />
-          <TextField
+          <Field
             label="Weight (kg)"
-            variant="outlined"
-            size="small"
-            className="w-full sm:w-64"
             value={weight}
-            onChange={(e) => {
-              setWeight(e.target.value);
-              handleInputChange('weight', e.target.value);
+            onChange={(v) => {
+              setWeight(v);
+              handleInputChange('weight', v);
             }}
             placeholder="Enter weight in kg"
           />
-          <div className="w-full sm:w-64 relative">
-            <TextField
-              label="BMI"
-              variant="outlined"
-              size="small"
-              fullWidth
-              value={bmi}
-              InputProps={{
-                readOnly: true,
-                endAdornment: bmi ? (
-                  <span className={`px-3 py-0.5 rounded ml-1 min-w-[120px] text-center font-medium text-xs ${getBMICategoryStyle(bmi).bg} ${getBMICategoryStyle(bmi).text}`}>
-                    {getBMICategory(bmi)}
-                  </span>
-                ) : null,
-              }}
-              helperText="Automatically calculated"
-            />
-          </div>
+          <Field
+            label="BMI"
+            value={bmi}
+            readOnly
+            hint="Automatically calculated"
+            endAdornment={
+              bmi ? (
+                <span className={`hf-bmi-chip ${getBMICategoryTone(bmi)}`}>
+                  {getBMICategory(bmi)}
+                </span>
+              ) : null
+            }
+          />
         </div>
       </div>
 
-      <div className="border-b border-glass-border pb-4 mb-6">
-        <h2 className="text-xl font-display font-semibold mb-4 text-text">
+      <div className="hf-form-section">
+        <h2>
           General Cleanliness
         </h2>
-        <div className="flex flex-wrap items-center gap-4 mb-2">
+        <div className="hf-field-row mb-3">
           <LabeledSelect
             label="Nails"
             value={nails}
@@ -331,20 +319,18 @@ const GeneralDashboard: React.FC = () => {
             options={["No Abnormality", "Abnormality"]}
           />
           {nails === "Abnormality" && (
-            <TextField
+            <Field
               label="Nails Abnormality Description"
-              variant="outlined"
-              size="small"
-              className="flex-1 min-w-[300px]"
+              wide
               value={nailsDesc}
-              onChange={(e) => {
-                setNailsDesc(e.target.value);
-                handleInputChange('nails_desc', e.target.value);
+              onChange={(v) => {
+                setNailsDesc(v);
+                handleInputChange('nails_desc', v);
               }}
             />
           )}
         </div>
-        <div className="flex flex-wrap items-center gap-4 mb-2">
+        <div className="hf-field-row mb-3">
           <LabeledSelect
             label="Hair"
             value={hair}
@@ -359,20 +345,18 @@ const GeneralDashboard: React.FC = () => {
             options={["No Abnormality", "Abnormality"]}
           />
           {hair === "Abnormality" && (
-            <TextField
+            <Field
               label="Hair Abnormality Description"
-              variant="outlined"
-              size="small"
-              className="flex-1 min-w-[300px]"
+              wide
               value={hairDesc}
-              onChange={(e) => {
-                setHairDesc(e.target.value);
-                handleInputChange('hair_desc', e.target.value);
+              onChange={(v) => {
+                setHairDesc(v);
+                handleInputChange('hair_desc', v);
               }}
             />
           )}
         </div>
-        <div className="flex flex-wrap items-center gap-4">
+        <div className="hf-field-row">
           <LabeledSelect
             label="Skin"
             value={skin}
@@ -387,24 +371,22 @@ const GeneralDashboard: React.FC = () => {
             options={["No Abnormality", "Abnormality"]}
           />
           {skin === "Abnormality" && (
-            <TextField
+            <Field
               label="Skin Abnormality Description"
-              variant="outlined"
-              size="small"
-              className="flex-1 min-w-[300px]"
+              wide
               value={skinDesc}
-              onChange={(e) => {
-                setSkinDesc(e.target.value);
-                handleInputChange('skin_desc', e.target.value);
+              onChange={(v) => {
+                setSkinDesc(v);
+                handleInputChange('skin_desc', v);
               }}
             />
           )}
         </div>
       </div>
 
-      <div className="border-b border-glass-border pb-4 mb-4">
-        <h2 className="text-xl font-semibold mb-2 text-text">Figure, Allergy & Abdomen</h2>
-        <div className="flex flex-wrap items-center gap-4 mb-2">
+      <div className="hf-form-section">
+        <h2>Figure, Allergy & Abdomen</h2>
+        <div className="hf-field-row mb-3">
           <LabeledSelect
             label="Anemia/Figure"
             value={anemiaFigure}
@@ -451,7 +433,7 @@ const GeneralDashboard: React.FC = () => {
             options={["Present", "Absent"]}
           />
         </div>
-        <div className="flex flex-wrap items-center gap-4">
+        <div className="hf-field-row">
           <LabeledSelect
             label="Allergy"
             value={allergy}
@@ -466,24 +448,22 @@ const GeneralDashboard: React.FC = () => {
             options={["No", "YES"]}
           />
           {allergy === "YES" && (
-            <TextField
+            <Field
               label="Allergy Description"
-              variant="outlined"
-              size="small"
-              className="flex-1 min-w-[300px]"
+              wide
               value={allergyDesc}
-              onChange={(e) => {
-                setAllergyDesc(e.target.value);
-                handleInputChange('allergy_desc', e.target.value);
+              onChange={(v) => {
+                setAllergyDesc(v);
+                handleInputChange('allergy_desc', v);
               }}
             />
           )}
         </div>
       </div>
 
-      <div className="border-b border-glass-border pb-4 mb-4">
-        <h2 className="text-xl font-semibold mb-2 text-text">Central Nervous System</h2>
-        <div className="flex flex-wrap items-center gap-4 mb-2">
+      <div className="hf-form-section">
+        <h2>Central Nervous System</h2>
+        <div className="hf-field-row mb-3">
           <LabeledSelect
             label="Conscious"
             value={cnsConscious}
@@ -530,7 +510,7 @@ const GeneralDashboard: React.FC = () => {
             options={["Yes", "No"]}
           />
         </div>
-        <div className="flex flex-wrap items-center gap-4">
+        <div className="hf-field-row">
           <LabeledSelect
             label="Speech"
             value={cnsSpeech}
@@ -545,24 +525,22 @@ const GeneralDashboard: React.FC = () => {
             options={["Normal", "Abnormal"]}
           />
           {cnsSpeech === "Abnormal" && (
-            <TextField
+            <Field
               label="Speech Abnormality Description"
-              variant="outlined"
-              size="small"
-              className="flex-1 min-w-[300px]"
+              wide
               value={cnsSpeechDesc}
-              onChange={(e) => {
-                setCnsSpeechDesc(e.target.value);
-                handleInputChange('cns_speech_desc', e.target.value);
+              onChange={(v) => {
+                setCnsSpeechDesc(v);
+                handleInputChange('cns_speech_desc', v);
               }}
             />
           )}
         </div>
       </div>
 
-      <div className="border-b border-glass-border pb-4 mb-4">
-        <h2 className="text-xl font-semibold mb-2 text-text">Past History</h2>
-        <div className="flex flex-wrap gap-2">
+      <div className="hf-form-section">
+        <h2>Past History</h2>
+        <div className="hf-field-row">
           <LabeledSelect
             label="Medical"
             value={pastMedical}
@@ -584,121 +562,77 @@ const GeneralDashboard: React.FC = () => {
         </div>
       </div>
 
-      <h2 className="text-2xl font-bold mb-4 text-text">Vitals Examination Report</h2>
+      <h2 className="hf-subhead">Vitals Examination Report</h2>
 
-      <div className="border-b border-glass-border pb-4 mb-4">
-        <h2 className="text-xl font-semibold mb-2 text-text">Vital Signs</h2>
-        <div className="flex flex-wrap gap-4">
-          <div className="w-full sm:w-64 relative">
-            <TextField
-              label="BP"
-              variant="outlined"
-              size="small"
-              fullWidth
-              value={bp}
-              onChange={(e) => {
-                setBp(e.target.value);
-                handleInputChange('bp', e.target.value);
-              }}
-            />
-            <button
-              type="button"
-              aria-label="Set BP to not applicable"
-              aria-pressed={bp === "NA"}
-              className="absolute right-1 top-1/2 transform -translate-y-1/2 px-2 py-1 text-xs border border-glass-border rounded hover:bg-white/10 text-text-dim"
-              onClick={() => {
-                const newValue = bp === "NA" ? "" : "NA";
-                setBp(newValue);
-                handleInputChange('bp', newValue);
-              }}
-            >
-              NA
-            </button>
-          </div>
-          <div className="w-full sm:w-64 relative">
-            <TextField
-              label="Pulse"
-              variant="outlined"
-              size="small"
-              fullWidth
-              value={pulse}
-              onChange={(e) => {
-                setPulse(e.target.value);
-                handleInputChange('pulse', e.target.value);
-              }}
-            />
-            <button
-              type="button"
-              aria-label="Set pulse to not applicable"
-              aria-pressed={pulse === "NA"}
-              className="absolute right-1 top-1/2 transform -translate-y-1/2 px-2 py-1 text-xs border border-glass-border rounded hover:bg-white/10 text-text-dim"
-              onClick={() => {
-                const newValue = pulse === "NA" ? "" : "NA";
-                setPulse(newValue);
-                handleInputChange('pulse', newValue);
-              }}
-            >
-              NA
-            </button>
-          </div>
+      <div className="hf-form-section">
+        <h2>Vital Signs</h2>
+        <div className="hf-field-row">
+          <Field
+            label="BP"
+            value={bp}
+            onChange={(v) => {
+              setBp(v);
+              handleInputChange('bp', v);
+            }}
+            na
+            naActive={bp === "NA"}
+            onToggleNa={() => {
+              const newValue = bp === "NA" ? "" : "NA";
+              setBp(newValue);
+              handleInputChange('bp', newValue);
+            }}
+          />
+          <Field
+            label="Pulse"
+            value={pulse}
+            onChange={(v) => {
+              setPulse(v);
+              handleInputChange('pulse', v);
+            }}
+            na
+            naActive={pulse === "NA"}
+            onToggleNa={() => {
+              const newValue = pulse === "NA" ? "" : "NA";
+              setPulse(newValue);
+              handleInputChange('pulse', newValue);
+            }}
+          />
         </div>
       </div>
 
-      <div className="border-b border-glass-border pb-4 mb-4">
-        <h2 className="text-xl font-semibold mb-2 text-text">Circumferences</h2>
-        <div className="flex flex-wrap gap-4">
-          <div className="w-full sm:w-64 relative">
-            <TextField
-              label="Hip"
-              variant="outlined"
-              size="small"
-              fullWidth
-              value={hip}
-              onChange={(e) => {
-                setHip(e.target.value);
-                handleInputChange('hip', e.target.value);
-              }}
-            />
-            <button
-              type="button"
-              aria-label="Set hip circumference to not applicable"
-              aria-pressed={hip === "NA"}
-              className="absolute right-1 top-1/2 transform -translate-y-1/2 px-2 py-1 text-xs border border-glass-border rounded hover:bg-white/10 text-text-dim"
-              onClick={() => {
-                const newValue = hip === "NA" ? "" : "NA";
-                setHip(newValue);
-                handleInputChange('hip', newValue);
-              }}
-            >
-              NA
-            </button>
-          </div>
-          <div className="w-full sm:w-64 relative">
-            <TextField
-              label="Waist"
-              variant="outlined"
-              size="small"
-              fullWidth
-              value={waist}
-              onChange={(e) => {
-                setWaist(e.target.value);
-                handleInputChange('waist', e.target.value);
-              }}
-            />
-            <button
-              type="button"
-              aria-label="Set waist circumference to not applicable"
-              aria-pressed={waist === "NA"}
-              className="absolute right-1 top-1/2 transform -translate-y-1/2 px-2 py-1 text-xs border border-glass-border rounded hover:bg-white/10 text-text-dim"
-              onClick={() => {
-                const newValue = waist === "NA" ? "" : "NA";
-                setWaist(newValue);
-                handleInputChange('waist', newValue);
-              }}
-            >
-              NA
-            </button>
-          </div>
+      <div className="hf-form-section">
+        <h2>Circumferences</h2>
+        <div className="hf-field-row">
+          <Field
+            label="Hip"
+            value={hip}
+            onChange={(v) => {
+              setHip(v);
+              handleInputChange('hip', v);
+            }}
+            na
+            naActive={hip === "NA"}
+            onToggleNa={() => {
+              const newValue = hip === "NA" ? "" : "NA";
+              setHip(newValue);
+              handleInputChange('hip', newValue);
+            }}
+          />
+          <Field
+            label="Waist"
+            value={waist}
+            onChange={(v) => {
+              setWaist(v);
+              handleInputChange('waist', v);
+            }}
+            na
+            naActive={waist === "NA"}
+            onToggleNa={() => {
+              const newValue = waist === "NA" ? "" : "NA";
+              setWaist(newValue);
+              handleInputChange('waist', newValue);
+            }}
+          />
         </div>
       </div>
 

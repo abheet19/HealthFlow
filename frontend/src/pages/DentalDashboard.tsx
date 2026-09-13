@@ -1,12 +1,12 @@
 import * as React from "react";
 import { useState, useContext, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { TextField } from "@mui/material";
 import { PatientContext } from "../context/PatientContext";
 import { useToast } from "../context/ToastContext";
 import DashboardShell from "../components/DashboardShell";
 import LabeledSelect from "../components/LabeledSelect";
 import SubmitButton from "../components/SubmitButton";
+import Field from "../components/Field";
 
 // Improved tooth selector component with better click handling
 const ToothSelector: React.FC<{
@@ -33,9 +33,9 @@ const ToothSelector: React.FC<{
   };
 
   return (
-    <div className="flex flex-col space-y-1">
-      <span id={groupLabelId} className="font-medium text-sm text-text">{label}:</span>
-      <div className="grid grid-cols-8 gap-1 sm:grid-cols-8 md:grid-cols-8" role="group" aria-labelledby={groupLabelId}>
+    <div className="hf-tooth-group">
+      <h3 id={groupLabelId}>{label}</h3>
+      <div className="hf-tooth-grid" role="group" aria-labelledby={groupLabelId}>
         {options.map((num) => (
           <button
             key={num}
@@ -46,11 +46,7 @@ const ToothSelector: React.FC<{
               e.stopPropagation(); // Stop event propagation
               toggleSelection(num);
             }}
-            className={`border rounded px-1 py-1 text-center text-xs transition-colors ${
-              selected.includes(num)
-                ? "bg-accent-gradient text-on-accent border-transparent"
-                : "bg-white/5 border-glass-border text-text-dim hover:bg-white/10"
-            }`}
+            className="hf-tooth-btn"
           >
             {num}
           </button>
@@ -383,56 +379,46 @@ const DentalDashboard: React.FC = () => {
 
   return (
     <DashboardShell title="Dental Examination Report" description="Extra-oral exam, FDI-numbered tooth cavity charting, and intra-oral findings.">
-      <div className="border-b border-glass-border pb-4 mb-6">
-        <h2 className="text-xl font-display font-semibold mb-4 text-text">
+      <div className="hf-form-section">
+        <h2>
           Extra Oral Examination
         </h2>
-        <div className="flex flex-wrap gap-4">
+        <div className="hf-field-row">
           <LabeledSelect
             label="Extra-Oral"
             value={extraOral}
             onChange={handleDropdownChange("Extra-Oral", setExtraOral)}
             options={["No Abnormality", "Abnormality"]}
           />
-          <div className="w-full sm:w-64 relative">
-            <TextField
-              label="Dental Remarks"
-              variant="outlined"
-              size="small"
-              fullWidth
-              value={dentalRemarks}
-              onChange={(e) => {
-                setDentalRemarks(e.target.value);
-                handleInputChange("dental_remarks", e.target.value);
-              }}
-            />
-            <button
-              type="button"
-              aria-label="Set dental remarks to not applicable"
-              aria-pressed={dentalRemarks === "NA"}
-              className="absolute right-1 top-1/2 transform -translate-y-1/2 px-2 py-1 text-xs border border-glass-border rounded hover:bg-white/10 text-text-dim"
-              onClick={() => {
-                const newValue = dentalRemarks === "NA" ? "" : "NA";
-                setDentalRemarks(newValue);
-                handleInputChange("dental_remarks", newValue);
-              }}
-            >
-              NA
-            </button>
-          </div>
+          <Field
+            label="Dental Remarks"
+            wide
+            value={dentalRemarks}
+            onChange={(v) => {
+              setDentalRemarks(v);
+              handleInputChange("dental_remarks", v);
+            }}
+            na
+            naActive={dentalRemarks === "NA"}
+            onToggleNa={() => {
+              const newValue = dentalRemarks === "NA" ? "" : "NA";
+              setDentalRemarks(newValue);
+              handleInputChange("dental_remarks", newValue);
+            }}
+          />
         </div>
       </div>
 
-      <div className="border-b border-glass-border pb-4 mb-6">
-        <h2 className="text-xl font-display font-semibold mb-4 text-text">
+      <div className="hf-form-section">
+        <h2>
           Intra Oral Examination
         </h2>
         <div className="flex flex-col gap-4">
           <div>
-            <h3 className="text-lg font-medium mb-2 text-text-dim">
+            <h3 className="text-sm uppercase tracking-wide font-semibold mb-2 text-text-dim">
               Tooth Cavity (Permanent Teeth)
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="hf-tooth-groups">
               <ToothSelector
                 label="Permanent Group 1"
                 options={["18", "17", "16", "15", "14", "13", "12", "11"]}
@@ -473,10 +459,10 @@ const DentalDashboard: React.FC = () => {
           </div>
 
           <div>
-            <h3 className="text-lg font-medium mb-2 text-text-dim">
+            <h3 className="text-sm uppercase tracking-wide font-semibold mb-2 text-text-dim">
               Tooth Cavity (Primary Teeth)
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="hf-tooth-groups">
               <ToothSelector
                 label="Primary Group 1"
                 options={["55", "54", "53", "52", "51"]}
@@ -516,7 +502,7 @@ const DentalDashboard: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="hf-field-row">
             <LabeledSelect label="Plaque" value={plaque} onChange={handleDropdownChange("Plaque", setPlaque)} options={["Present", "Absent"]} />
             <LabeledSelect label="Gum Inflammation" value={gumInflammation} onChange={handleDropdownChange("Gum Inflammation", setGumInflammation)} options={["Present", "Absent"]} />
             <LabeledSelect label="Stains" value={stains} onChange={handleDropdownChange("Stains", setStains)} options={["Present", "Absent"]} />
