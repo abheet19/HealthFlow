@@ -29,6 +29,11 @@ interface PatientData {
   dental?: Record<string, any>;
 }
 
+const formatSummaryLabel = (key: string) => key
+  .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+  .replace(/_/g, ' ')
+  .replace(/\b\w/g, character => character.toUpperCase());
+
 const ITDashboard: React.FC = () => {
   const [name, setName] = useState("");
   const [div, setDiv] = useState("");
@@ -426,10 +431,12 @@ const ITDashboard: React.FC = () => {
           <div key={dept.name} className="hf-dept-summary-card hf-glass">
             <h3>{dept.name} Department Summary</h3>
             <div className="hf-dept-summary-grid">
-              {Object.entries(dept.data).map(([key, value]) => (
+              {Object.entries(dept.data)
+                .filter(([key]) => key !== 'isSubmitted')
+                .map(([key, value]) => (
                 <div key={key}>
                   <span className="k">
-                    {key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}:
+                    {formatSummaryLabel(key)}:
                   </span>
                   <span className="v">{value?.toString() || '-'}</span>
                 </div>
