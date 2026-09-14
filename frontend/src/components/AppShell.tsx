@@ -197,7 +197,7 @@ const AppShell: React.FC<AppShellProps> = ({ children }) => {
           </button>
           <div className="hf-crumb"><b>{crumb}</b></div>
           <div style={{ flex: 1 }} />
-          <button type="button" className={conn.className} title="Live Socket.IO connection to the HealthFlow server">
+          <button type="button" className={conn.className} title="Live connection to the HealthFlow server">
             <span className="hf-dot" /> {conn.label}
           </button>
           <button

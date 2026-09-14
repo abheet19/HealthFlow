@@ -220,8 +220,8 @@ const PatientsList: React.FC = () => {
         <p className="hf-disclaimer">
           Synthetic demonstration data only — no real patient, school, employee, or health information.
           HealthFlow coordinates one school health-camp checkup per clinic: IT, ENT, Vision, General and
-          Dental edit a single shared draft in real time, and only IT's final Submit writes a row to
-          PostgreSQL. It is not an EHR, clinical decision system, role-authorized platform, or
+          Dental edit a single shared draft in real time, and only IT's final Submit saves the completed
+          record. It is not an EHR, clinical decision system, role-authorized platform, or
           compliance-ready product — no SSO, MFA, consent management, or audit trail.
         </p>
         <div style={{ display: "flex", gap: ".9rem", flexWrap: "wrap", fontSize: ".82rem" }}>

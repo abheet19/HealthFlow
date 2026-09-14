@@ -47,7 +47,7 @@ const DashboardShell: React.FC<DashboardShellProps> = ({
         <div className="hf-empty-state connecting" role="status" aria-live="polite">
           <div className="hf-estate-spinner" aria-hidden="true" />
           <h3>Connecting to HealthFlow…</h3>
-          <p>Syncing with the realtime server</p>
+          <p>Syncing with the clinic in real time</p>
         </div>
       );
     }

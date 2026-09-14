@@ -554,8 +554,8 @@ const ITDashboard: React.FC = () => {
                 </div>
               </div>
               <p className="hf-photo-note">
-                Resized and compressed client-side to a JPEG data URL, then broadcast live to every
-                connected device — synthetic-only, never a real photo.
+                Resized on your device, then shared live to every connected station — demo photos only,
+                never a real patient.
               </p>
             </div>
           </div>
