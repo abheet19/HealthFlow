@@ -66,9 +66,9 @@ const CRUMB: Record<string, string> = {
 };
 
 const CONNECTION_COPY: Record<string, { label: string; className: string }> = {
-  connected: { label: "Clinic synced", className: "hf-pill done live" },
-  connecting: { label: "Connecting…", className: "hf-pill progress" },
-  error: { label: "Connection lost", className: "hf-pill bad" },
+  connected: { label: "Clinic synced", className: "hf-pill sync done live" },
+  connecting: { label: "Connecting…", className: "hf-pill sync progress" },
+  error: { label: "Connection lost", className: "hf-pill sync bad" },
 };
 
 interface AppShellProps {

@@ -91,7 +91,7 @@ const DashboardShell: React.FC<DashboardShellProps> = ({
       </div>
 
       {requirePatientId && hasPatient && (
-        <div className="hf-patient-banner bg-glass backdrop-blur-xl border border-glass-border shadow-glass">
+        <div className="hf-patient-banner hf-glass">
           <div className="who">
             {patientData.it?.name && <b>{patientData.it.name}</b>}
             <span className="pid">
@@ -103,7 +103,7 @@ const DashboardShell: React.FC<DashboardShellProps> = ({
         </div>
       )}
 
-      <div className="hf-form-card bg-glass backdrop-blur-xl border border-glass-border shadow-glass w-full">
+      <div className="hf-form-card hf-glass w-full">
         {requirePatientId && !hasPatient ? renderEmptyState() : children}
       </div>
     </div>

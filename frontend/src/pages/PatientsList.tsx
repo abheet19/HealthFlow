@@ -210,7 +210,7 @@ const PatientsList: React.FC = () => {
         </table>
       </div>
 
-      <div className="bg-glass backdrop-blur-xl border border-glass-border shadow-glass" style={{ padding: "1.2rem 1.3rem", borderRadius: 16, display: "flex", flexDirection: "column", gap: ".9rem" }}>
+      <div className="hf-glass" style={{ padding: "1.2rem 1.3rem", borderRadius: 16, display: "flex", flexDirection: "column", gap: ".9rem" }}>
         <h3 style={{ fontSize: "1rem", fontFamily: "var(--font-display, serif)" }} className="font-display font-medium text-text">About this workspace</h3>
         <div className="hf-stack-chips">
           {STACK_CHIPS.map((chip) => (

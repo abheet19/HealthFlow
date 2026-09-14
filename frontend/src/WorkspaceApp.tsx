@@ -1,6 +1,5 @@
 import * as React from "react";
 import { ThemeProvider } from "@mui/material/styles";
-import CssBaseline from "@mui/material/CssBaseline";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import AppShell from "./components/AppShell";
 import { PatientProvider } from "./context/PatientContext";
@@ -18,18 +17,18 @@ const Dental = React.lazy(() => import("./pages/DentalDashboard"));
 const PatientsList = React.lazy(() => import("./pages/PatientsList"));
 const NotFoundPage = React.lazy(() => import("./pages/NotFoundPage"));
 
-// Builds the MUI theme from the shared light/dark mode so every MUI
-// component (TextField, Select, Table, Snackbar, ...) follows the same
-// toggle that drives the CSS-variable-based glass chrome.
+// Builds the MUI theme from the shared light/dark mode so any MUI component
+// follows the same toggle that drives the CSS-variable-based glass chrome.
+// NOTE: we deliberately do NOT render <CssBaseline/>. Its body typography is
+// injected as *unlayered* CSS, which always beats Tailwind's `@layer base`
+// body rule (cascade layers lose to unlayered CSS regardless of order), so it
+// was silently forcing MUI's 16px/1.5 onto the body instead of the design
+// artifact's 15.5px/1.55. Tailwind's own Preflight already provides the box
+// model / margin resets, so dropping CssBaseline restores the design rhythm.
 const MuiThemeBridge: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { mode } = useThemeMode();
   const theme = React.useMemo(() => buildTheme(mode), [mode]);
-  return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      {children}
-    </ThemeProvider>
-  );
+  return <ThemeProvider theme={theme}>{children}</ThemeProvider>;
 };
 
 function WorkspaceApp() {

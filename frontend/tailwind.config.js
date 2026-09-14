@@ -58,7 +58,9 @@ export default {
         // Display (Newsreader serif) + body (Manrope) + mono (IBM Plex Mono) -
         // the same three-family type system used across the ecosystem.
         display: ['"Newsreader"', '"Iowan Old Style"', "Georgia", "serif"],
-        body: ["Manrope", '"Segoe UI"', "system-ui", "sans-serif"],
+        // Match the design artifact's body stack verbatim (-apple-system before
+        // Segoe UI, no system-ui) so the computed font-family is identical.
+        body: ["Manrope", "-apple-system", '"Segoe UI"', "sans-serif"],
         mono: ['"IBM Plex Mono"', "ui-monospace", '"SFMono-Regular"', "Menlo", "monospace"],
       },
       backgroundImage: {

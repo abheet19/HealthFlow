@@ -63,7 +63,7 @@ const AccessGate = ({ onUnlock }: AccessGateProps) => {
   return (
     <main className="hf-login">
       <div className="hf-ambient" aria-hidden="true" />
-      <section className="hf-access-card bg-glass backdrop-blur-xl border border-glass-border shadow-glass animate-fade-in-up">
+      <section className="hf-access-card hf-glass animate-fade-in-up">
         <div className="hf-brand-row">
           <div className="hf-brand-mark" aria-hidden="true" />
           <div>

@@ -78,7 +78,7 @@ export const buildTheme = (mode: ThemeMode): Theme => {
       borderRadius: 12,
     },
     typography: {
-      fontFamily: '"Manrope", "Segoe UI", system-ui, sans-serif',
+      fontFamily: '"Manrope", -apple-system, "Segoe UI", sans-serif',
       h1: { fontFamily: '"Newsreader", "Iowan Old Style", Georgia, serif' },
       h2: { fontFamily: '"Newsreader", "Iowan Old Style", Georgia, serif' },
       h3: { fontFamily: '"Newsreader", "Iowan Old Style", Georgia, serif' },

@@ -423,7 +423,7 @@ const ITDashboard: React.FC = () => {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {departments.map(dept => dept.data && (
-          <div key={dept.name} className="hf-dept-summary-card bg-glass backdrop-blur-xl border border-glass-border shadow-glass">
+          <div key={dept.name} className="hf-dept-summary-card hf-glass">
             <h3>{dept.name} Department Summary</h3>
             <div className="hf-dept-summary-grid">
               {Object.entries(dept.data).map(([key, value]) => (
@@ -465,7 +465,7 @@ const ITDashboard: React.FC = () => {
       </div>
 
       <div className="hf-it-layout">
-        <div className="hf-form-card bg-glass backdrop-blur-xl border border-glass-border shadow-glass">
+        <div className="hf-form-card hf-glass">
           <div className="hf-form-section">
             <h2>Basic Information</h2>
             <div className="hf-field-row">
@@ -592,7 +592,7 @@ const ITDashboard: React.FC = () => {
           </div>
         </div>
 
-        <aside className="hf-summary-card bg-glass backdrop-blur-xl border border-glass-border shadow-glass lg:sticky lg:top-0">
+        <aside className="hf-summary-card hf-glass lg:sticky lg:top-0">
           {renderStatusSummary()}
         </aside>
       </div>

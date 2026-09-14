@@ -138,7 +138,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onClose }) => {
   return (
     <div className="hf-cmdk-overlay" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div
-        className="hf-cmdk-box bg-glass backdrop-blur-xl border border-glass-border shadow-glass"
+        className="hf-cmdk-box hf-glass"
         role="dialog"
         aria-modal="true"
         aria-label="Jump to"

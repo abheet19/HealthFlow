@@ -1,54 +1,83 @@
-import React, { createContext, useContext, useState } from "react";
-import { Snackbar, Alert } from "@mui/material";
+import React, { createContext, useCallback, useContext, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+
+type Severity = "success" | "error" | "info" | "warning";
+
+interface ToastItem {
+  id: number;
+  message: string;
+  severity: Severity;
+  persistent: boolean;
+  leaving: boolean;
+}
 
 interface ToastContextProps {
-  showToast: (message: string, severity?: "success" | "error" | "info" | "warning", persistent?: boolean) => void;
+  showToast: (message: string, severity?: Severity, persistent?: boolean) => void;
   hideToast: () => void;
 }
 
 const ToastContext = createContext<ToastContextProps | undefined>(undefined);
 
+const VISIBLE_MS = 3400;
+const LEAVE_MS = 260;
+
+// Maps MUI-era severities onto the design artifact's glass toast tones:
+// success -> `.ok` (good), error -> `.err` (critical), info/warning -> the
+// neutral frosted glass pill (ink text) so nothing renders as default Material.
+const toneClass = (severity: Severity): string =>
+  severity === "success" ? "ok" : severity === "error" ? "err" : "";
+
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [open, setOpen] = useState(false);
-  const [toastMessage, setToastMessage] = useState("");
-  const [severity, setSeverity] = useState<"success" | "error" | "info" | "warning">("info");
-  const [isPersistent, setIsPersistent] = useState(false);
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const nextId = useRef(1);
 
-  const showToast = (
-    message: string, 
-    sev: "success" | "error" | "info" | "warning" = "info",
-    persistent: boolean = false
-  ) => {
-    setToastMessage(message);
-    setSeverity(sev);
-    setIsPersistent(persistent);
-    setOpen(true);
-  };
+  const remove = useCallback((id: number) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
 
-  const hideToast = () => {
-    setOpen(false);
-  };
+  const dismiss = useCallback(
+    (id: number) => {
+      // Play the leave transition, then unmount.
+      setToasts(prev => prev.map(t => (t.id === id ? { ...t, leaving: true } : t)));
+      window.setTimeout(() => remove(id), LEAVE_MS);
+    },
+    [remove],
+  );
 
-  const handleClose = (_event?: React.SyntheticEvent | Event, reason?: string) => {
-    if (reason === "clickaway") return;
-    if (!isPersistent) {
-      setOpen(false);
-    }
-  };
+  const showToast = useCallback(
+    (message: string, severity: Severity = "info", persistent = false) => {
+      const id = nextId.current++;
+      setToasts(prev => [...prev, { id, message, severity, persistent, leaving: false }]);
+      if (!persistent) {
+        window.setTimeout(() => dismiss(id), VISIBLE_MS);
+      }
+    },
+    [dismiss],
+  );
+
+  const hideToast = useCallback(() => {
+    setToasts(prev => prev.map(t => ({ ...t, leaving: true })));
+    window.setTimeout(() => setToasts([]), LEAVE_MS);
+  }, []);
 
   return (
     <ToastContext.Provider value={{ showToast, hideToast }}>
       {children}
-      <Snackbar
-        open={open}
-        autoHideDuration={isPersistent ? null : 3000}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-        onClose={handleClose}
-      >
-        <Alert onClose={isPersistent ? undefined : handleClose} severity={severity} variant="filled" sx={{ width: "100%" }}>
-          {toastMessage}
-        </Alert>
-      </Snackbar>
+      {createPortal(
+        <div className="hf-toast-stack" aria-live="polite">
+          {toasts.map(t => (
+            <div
+              key={t.id}
+              className={`hf-glass hf-toast ${toneClass(t.severity)}${t.leaving ? " leaving" : ""}`.trim()}
+              role={t.severity === "error" ? "alert" : "status"}
+              onClick={() => dismiss(t.id)}
+            >
+              {t.message}
+            </div>
+          ))}
+        </div>,
+        document.body,
+      )}
     </ToastContext.Provider>
   );
 };

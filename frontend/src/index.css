@@ -121,7 +121,10 @@
 
 @layer base {
   body {
-    @apply bg-bg bg-app-glow bg-no-repeat text-text font-body min-h-screen;
+    /* No body-level glow: the design artifact keeps the body a flat --bg and
+       confines the ambient cyan/amber wash to the login screen (see
+       .hf-ambient in AccessGate). */
+    @apply bg-bg text-text font-body min-h-screen;
     /* Artifact base rhythm: 15.5px / 1.55 so the dense department forms read
        at the same size as the design mockup rather than MUI's 16px/1.5. */
     font-size: 15.5px;
@@ -163,6 +166,22 @@
   .animate-fade-in-up {
     animation: none;
   }
+}
+
+/* ==========================================================================
+   Canonical glass surface. Mirrors the design artifact's `.glass` recipe
+   1:1 (token-driven) so every frosted card/panel/pill is identical. Replaces
+   the older `bg-glass backdrop-blur-xl border border-glass-border shadow-glass`
+   utility combo, whose `backdrop-blur-xl` emitted only `blur(20px)` and so
+   dropped the artifact's `saturate(150%)`. Keeping this in one place means the
+   blur+saturate and the inset highlight can never drift apart again.
+   ========================================================================== */
+.hf-glass {
+  background: var(--hf-surface);
+  border: 1px solid var(--hf-border);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 18px 50px -28px var(--hf-shadow);
 }
 
 /* ==========================================================================
@@ -216,7 +235,7 @@
 .hf-nav-item {
   display: flex; align-items: center; gap: .65rem; width: 100%; text-align: left;
   background: none; border: 1px solid transparent; color: rgb(var(--hf-ink-dim));
-  font-size: .86rem; padding: .56rem .6rem; border-radius: 9px; cursor: pointer;
+  font-size: .86rem; padding: .56rem .6rem; border-radius: 9px; cursor: pointer; line-height: normal;
 }
 .hf-nav-item:hover { background: var(--hf-surface); color: rgb(var(--hf-ink)); }
 .hf-nav-item[aria-current="page"] { background: rgb(var(--hf-accent) / .14); color: rgb(var(--hf-accent)); }
@@ -263,8 +282,10 @@
   display: inline-flex; align-items: center; gap: .4rem; font-size: .73rem; font-weight: 600;
   padding: .27rem .6rem; border-radius: 999px; border: 1px solid var(--hf-border);
   color: rgb(var(--hf-ink-dim)); background: rgb(var(--hf-surface-solid)); white-space: nowrap;
-  appearance: none; cursor: default; font-family: inherit;
+  appearance: none; cursor: default; font-family: inherit; line-height: normal;
 }
+/* Topbar connection status pill carries the mono face in the artifact. */
+.hf-pill.sync { font-family: theme('fontFamily.mono'); }
 .hf-pill .hf-dot { width: 6px; height: 6px; border-radius: 50%; flex: none; background: currentColor; }
 .hf-pill.live .hf-dot { animation: hf-dot-pulse 2s ease-in-out infinite; }
 .hf-pill.done { color: rgb(var(--hf-good)); border-color: rgb(var(--hf-good) / .45); background: rgb(var(--hf-good) / .14); }
@@ -274,7 +295,7 @@
 .hf-cmdk-trigger {
   display: flex; align-items: center; gap: .5rem; background: rgb(var(--hf-surface-solid));
   border: 1px solid var(--hf-border); color: rgb(var(--hf-ink-faint)); border-radius: 9px;
-  padding: .42rem .55rem .42rem .7rem; cursor: pointer; font-size: .78rem; width: 100%;
+  padding: .42rem .55rem .42rem .7rem; cursor: pointer; font-size: .78rem; width: 100%; line-height: normal;
 }
 .hf-cmdk-trigger:hover { border-color: var(--hf-border-hi); color: rgb(var(--hf-ink-dim)); }
 .hf-cmdk-trigger kbd { font-family: theme('fontFamily.mono'); font-size: .68rem; border: 1px solid var(--hf-border-hi); border-radius: 5px; padding: .05rem .35rem; }
@@ -293,7 +314,7 @@
 .hf-cmdk-group { font-size: .68rem; text-transform: uppercase; letter-spacing: .06em; color: rgb(var(--hf-ink-faint)); padding: .5rem .6rem .2rem; }
 .hf-cmdk-item {
   display: flex; align-items: center; gap: .7rem; padding: .6rem .7rem; border-radius: 9px;
-  cursor: pointer; font-size: .86rem; color: rgb(var(--hf-ink-dim)); border: none; background: none; width: 100%; text-align: left;
+  cursor: pointer; font-size: .86rem; color: rgb(var(--hf-ink-dim)); border: none; background: none; width: 100%; text-align: left; line-height: normal;
 }
 .hf-cmdk-item:hover, .hf-cmdk-item[data-active="true"] { background: rgb(var(--hf-accent) / .14); color: rgb(var(--hf-accent)); }
 .hf-cmdk-item .hf-cmdk-meta { margin-left: auto; font-size: .72rem; color: rgb(var(--hf-ink-faint)); font-family: theme('fontFamily.mono'); }
@@ -343,7 +364,7 @@
   appearance: none; border: none; cursor: pointer; border-radius: 10px; font-weight: 600; font-size: .86rem;
   padding: .62rem 1.05rem; display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
   transition: transform .12s ease, box-shadow .12s ease, filter .12s ease, border-color .12s ease, background .12s ease, color .12s ease;
-  white-space: nowrap; min-height: 38px; font-family: inherit; text-decoration: none;
+  white-space: nowrap; min-height: 38px; font-family: inherit; text-decoration: none; line-height: normal;
 }
 .hf-btn:active { transform: translateY(1px); }
 .hf-btn-primary {
@@ -367,7 +388,7 @@
 .hf-field label { font-size: .73rem; color: rgb(var(--hf-ink-dim)); text-transform: uppercase; letter-spacing: .06em; }
 .hf-field input, .hf-field select, .hf-field textarea {
   background: rgb(var(--hf-surface-solid)); border: 1px solid var(--hf-border); color: rgb(var(--hf-ink));
-  border-radius: 9px; padding: .6rem .7rem; font-size: .9rem; width: 100%; transition: border-color .15s ease; font-family: inherit;
+  border-radius: 9px; padding: .6rem .7rem; font-size: .9rem; width: 100%; transition: border-color .15s ease; font-family: inherit; line-height: normal;
 }
 .hf-field select { appearance: none; -webkit-appearance: none; cursor: pointer;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2393b0b6' stroke-width='2' stroke-linecap='round'><path d='M6 9l6 6 6-6'/></svg>");
@@ -506,6 +527,26 @@
 .hf-access-fields-row { display: grid; grid-template-columns: 1fr 1fr; gap: .85rem; }
 .hf-status-line { font-family: theme('fontFamily.mono'); font-size: .78rem; color: rgb(var(--hf-ink-faint)); min-height: 1.1rem; margin-top: .9rem; }
 .hf-status-line.bad { color: rgb(var(--hf-critical)); }
+
+/* ---- toasts (glass pills, bottom-right) ---- */
+/* Replaces MUI's Snackbar/Alert with the design artifact's frosted `.toast`
+   pills so notifications match the rest of the glass chrome exactly. */
+.hf-toast-stack {
+  position: fixed; bottom: 1.2rem; right: 1.2rem; display: flex; flex-direction: column;
+  gap: .5rem; z-index: 90; max-width: 340px;
+}
+.hf-toast {
+  padding: .7rem .95rem; border-radius: 11px; font-size: .83rem; color: rgb(var(--hf-ink));
+  animation: hf-toast-in .22s ease both;
+}
+.hf-toast.ok { border-color: color-mix(in srgb, rgb(var(--hf-good)) 45%, var(--hf-border)); background: rgb(var(--hf-good) / .14); color: rgb(var(--hf-good)); }
+.hf-toast.err { border-color: color-mix(in srgb, rgb(var(--hf-critical)) 45%, var(--hf-border)); background: rgb(var(--hf-critical) / .14); color: rgb(var(--hf-critical)); }
+.hf-toast.leaving { opacity: 0; transform: translateY(6px); transition: opacity .25s ease, transform .25s ease; }
+@keyframes hf-toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .hf-toast { animation-duration: .001ms; }
+  .hf-toast.leaving { transition-duration: .001ms; }
+}
 
 @media (max-width: 640px) {
   .hf-field-row .hf-field { flex: 1 1 100%; }
