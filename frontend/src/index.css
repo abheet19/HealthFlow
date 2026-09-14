@@ -398,6 +398,25 @@
 .hf-field textarea { resize: vertical; min-height: 3.6rem; line-height: 1.5; }
 .hf-field .hf-hint { font-size: .74rem; color: rgb(var(--hf-ink-faint)); }
 .hf-field input[readonly] { color: rgb(var(--hf-ink-dim)); cursor: default; }
+
+/* The public sample must be mechanically read-only as well as server-refused.
+   Keep page layout intact while the fieldset disables every form control below
+   the route shell; navigation and theme controls remain available in chrome. */
+.hf-demo-read-only-surface {
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.hf-read-only-notice {
+  margin: 0 0 1rem;
+  padding: .75rem 1rem;
+  border: 1px solid var(--hf-border);
+  border-radius: .75rem;
+  color: rgb(var(--hf-ink-dim));
+  background: var(--hf-surface-hi);
+  font-size: .86rem;
+}
 .hf-field.with-na { position: relative; }
 .hf-field.with-na input { padding-right: 3.1rem; }
 .hf-na-btn {

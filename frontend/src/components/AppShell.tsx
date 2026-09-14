@@ -227,7 +227,14 @@ const AppShell: React.FC<AppShellProps> = ({ children }) => {
         </header>
 
         <main id="main-content" tabIndex={-1} className="hf-screen-area">
-          {children}
+          {demo && (
+            <p id="hf-demo-read-only" className="hf-read-only-notice" role="status">
+              Sample workspace: viewing synthetic data only. Editing, uploads, and submissions are disabled.
+            </p>
+          )}
+          <fieldset className="hf-demo-read-only-surface" disabled={demo} aria-describedby={demo ? "hf-demo-read-only" : undefined}>
+            {children}
+          </fieldset>
         </main>
       </div>
 
