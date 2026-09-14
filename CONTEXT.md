@@ -198,3 +198,147 @@ Use `docs/SANITY.md` in the repository, or `09_SANITY_CHECK.md` in the Study Pac
 3. Treat workflow rooms, ownership, durable drafts, revisions, and reconnect behavior as required before any same-clinic concurrent-visit claim.
 4. Change schema/forms/mapping/report/tests atomically and test rollback-safe transactions.
 5. Map frontend, API, database migration, source, and rollback separately; do not deploy without authorization.
+
+## Annotated core code + knowledge graph
+
+This section lets an interview-assist AI explain the *actual* HealthFlow source on screen: what each module owns, how data and control flow, and — for the three load-bearing pieces (clinic-scoped Socket.IO broadcast, the transactional final Submit, and the frontend per-field patch merge) — the real code with line-by-line commentary. Everything below quotes real file/function names; nothing is invented.
+
+### Knowledge graph / structure summary
+
+Two independent flows share one authenticated identity (clinic + user + secret). **Fast path** (Socket.IO): every department's keystrokes fan out to the same clinic's other tabs as *draft* patches — never persisted. **Slow path** (HTTP): only IT's final Submit writes one durable row transactionally. The server, not the client payload, decides which room an event reaches.
+
+```mermaid
+flowchart TD
+    subgraph FE["Frontend — React / TypeScript / Vite"]
+        AG["AccessGate.tsx<br/>stores clinic/user/secret"]:::gate
+        PC["PatientContext.tsx<br/>Socket.IO client + shared draft<br/>per-field merge on every event"]:::state
+        DEP["5 dept dashboards<br/>IT / ENT / Vision / General / Dental"]:::ui
+        IT["ITDashboard.handleFinalSubmit<br/>bundles all 5 sections + pid"]:::ui
+    end
+    subgraph BE["Backend — Flask / Flask-SocketIO / SQLAlchemy"]
+        AR["access.py<br/>WorkspaceAccessRegistry (fail-closed)<br/>derives clinic_room / user_room"]:::auth
+        RT["realtime.py<br/>emit_to_clinic → server-owned room<br/>validates every payload"]:::rt
+        RO["routes.py /api/submit_patient<br/>validate → transform → tag clinic_id"]:::http
+        PS["patient_service.submit_patient_data<br/>single INSERT, commit/rollback"]:::svc
+        RS["report_service.generate_word_report<br/>docxtpl + process_teeth_data"]:::svc
+    end
+    DB[("PostgreSQL<br/>patient_records (clinic_id-scoped)")]:::db
+
+    AG -->|handshake auth| AR
+    DEP -->|updateDepartment| PC
+    PC -->|"departmentUpdate / photoUpdate (socket.emit)"| RT
+    AR -.authenticates.-> RT
+    RT -->|"broadcast to clinic_room, include_self=false"| PC
+    IT -->|"POST combinedData"| RO
+    AR -.before_request auth.-> RO
+    RO --> PS --> DB
+    DB --> RS -->|".docx stream"| DEP
+
+    classDef gate fill:#1E9A66,stroke:#5EE6A8,color:#fff;
+    classDef state fill:#0f4f8b,stroke:#5aa9ff,color:#fff;
+    classDef ui fill:#243b53,stroke:#7fa8d0,color:#fff;
+    classDef auth fill:#8a3b00,stroke:#ffab5e,color:#fff;
+    classDef rt fill:#5b2a86,stroke:#c79bf0,color:#fff;
+    classDef http fill:#0b6e6e,stroke:#5ee6d0,color:#fff;
+    classDef svc fill:#7a1f4b,stroke:#f08bbd,color:#fff;
+    classDef db fill:#333,stroke:#999,color:#fff;
+```
+
+**One-line-per-file index (the files that matter):**
+
+| File | Owns |
+| --- | --- |
+| `backend/app/access.py` | `WorkspaceAccessRegistry` — fail-closed credential check (constant-time `hmac.compare_digest`); `WorkspaceIdentity` derives `clinic_room`/`user_room` from the *authenticated* triple, so rooms are server-owned. |
+| `backend/app/realtime.py` | Socket.IO handlers; `emit_to_clinic` sends only to `identity.clinic_room`; every event payload is shape-validated; `departmentUpdate`/`photoUpdate` use `include_self=False`. |
+| `backend/server.py` | App factory: eventlet monkey-patch, CORS/Socket.IO origins, `before_request` HTTP auth (`protect_patient_api`), `/health` DB probe in eventlet tpool, idempotent `init_db()` at import. |
+| `backend/app/routes.py` | HTTP contracts; `/api/submit_patient` validates 5 depts + `dob`, transforms sections to flat columns, tags `clinic_id`; `/api/generate_report` streams the DOCX. |
+| `backend/app/services/patient_service.py` | DB access; `submit_patient_data` = one parameterized INSERT with `commit()`/`rollback()`; `create_new_patient_id` retries for a unique PID. |
+| `backend/app/services/report_service.py` | `ReportService.generate_word_report` fills `template.docx` via docxtpl. |
+| `backend/app/utils.py` | `transform_*` (section dict → DB columns), `translate_record` (row → frontend), `process_teeth_data`, `validate_fields`. |
+| `backend/init_db.py` | Idempotent schema: `CREATE TABLE IF NOT EXISTS patient_records` + additive `ADD COLUMN IF NOT EXISTS clinic_id`. |
+| `frontend/src/context/PatientContext.tsx` | Socket.IO client + the shared in-session draft; per-field functional-merge on every inbound event; `updateDepartment` emits patches (photo split from field patches). |
+| `frontend/src/pages/ITDashboard.tsx` | `handleFinalSubmit` — gates on all 5 sections, bundles `combinedData`, POSTs to `/api/submit_patient`. |
+| `frontend/src/config/api.ts` | `getWorkspaceCredentials`, `SOCKET_URL`, `apiFetch` (adds the `X-HealthFlow-*` headers). |
+
+### Excerpt 1 — clinic-scoped Socket.IO broadcast (`backend/app/realtime.py`)
+
+The security crux of the fast path: a connected client can send any payload, but **it can never choose whose room the event lands in** — the room is read from the server-side identity keyed on the socket's `request.sid`.
+
+```python
+def emit_to_clinic(event, payload=None, *, include_self=True):
+    identity = current_identity()                 # identities[request.sid] — set at connect, not from the payload
+    if identity is None:
+        return {"error": "Authenticated realtime session required."}  # fail closed: no identity ⇒ nothing is emitted
+    emit(event, payload, to=identity.clinic_room, # 'to' is ALWAYS the server-derived room "clinic:<id>"…
+         include_self=include_self)               # …the client's message body has no say in the destination
+    return {"ok": True}                            # ack back to just the sender (Socket.IO callback)
+
+@socketio.on("connect")
+def connect(auth):
+    identity = access_registry.authenticate(       # verify the exact clinic/user/secret triple in the handshake
+        auth.get("accessCode"), auth.get("clinicId"), auth.get("userId"))
+    if identity is None:
+        return False                               # reject the socket entirely — no room, no events
+    identities[request.sid] = identity             # bind identity to THIS connection id
+    join_room(identity.clinic_room)                # membership is derived, not requested
+
+@socketio.on("departmentUpdate")
+def department_update(data):
+    if not isinstance(data, dict) or not data or not set(data).issubset(_DEPARTMENTS):
+        return {"error": "Invalid department update."}   # reject unknown keys before broadcasting
+    if any(v is not None and not isinstance(v, dict) for v in data.values()):
+        return {"error": "Department values must be objects or null."}  # null = reset; dict = patch
+    return emit_to_clinic("departmentUpdate", data, include_self=False)  # echo to peers only, never back to sender
+```
+
+*What an interviewer might ask:* **"How do you stop one clinic's draft edits leaking into another clinic over the socket?"** — Rooms are never taken from client input. At `connect` the handshake is authenticated and the socket is bound (`identities[request.sid] = identity`) and `join_room`-ed to `clinic:<id>`; every broadcast goes `to=identity.clinic_room`. Even a malicious client that forges a `clinicId` in an event body is ignored, because `emit_to_clinic` reads the room from the server-side identity, not the payload. `include_self=False` prevents a client's own echo from clobbering its newer local state. Trade-off: identity lives in a per-process `dict`, so this correctness holds only on a single Eventlet worker; horizontal scale-out needs a shared Socket.IO broker (a documented gap).
+
+### Excerpt 2 — the transactional final Submit (`backend/app/services/patient_service.py`)
+
+The slow path's durability crux. Draft broadcasts are never written; only this function persists, and it is all-or-nothing.
+
+```python
+def submit_patient_data(db: Session, flat_data: dict):
+    try:
+        columns = ", ".join(flat_data.keys())              # column list built from the flattened dict…
+        values = ", ".join([":"+k for k in flat_data.keys()])  # …matching :named bind params (never string-interpolated values)
+        query = text(f"INSERT INTO patient_records ({columns}) VALUES ({values})")
+        db.execute(query, flat_data)                       # values passed separately ⇒ parameterized, injection-safe
+        db.commit()                                        # one transaction: the whole cross-department row or nothing
+        return True
+    except Exception as error:
+        db.rollback()                                      # any failure (e.g. duplicate pid) leaves NO partial row
+        logging.error("Patient insert failed error_type=%s", type(error).__name__)  # log the TYPE only — never the patient payload
+        raise                                              # re-raise so routes.py maps IntegrityError→409, else→500
+```
+
+*What an interviewer might ask:* **"Why build the INSERT string from `flat_data.keys()` — isn't that SQL injection?"** — No. Only the *column names* (fixed, code-controlled keys produced by the `transform_*` functions) are interpolated; every *value* is a `:named` bind parameter passed as the second arg to `db.execute`, so user data is never concatenated into SQL. The single `commit()`/`rollback()` makes the five-section record atomic — a duplicate `pid` raises `IntegrityError`, the row is rolled back, and `routes.py` turns it into a clean `409` instead of a half-written patient. Complexity is O(number of columns) for one round-trip; the real trade-off is that dynamic column lists must stay in lockstep with the schema and the `transform_*` mappers (the "change schema/forms/mapping/report/tests atomically" invariant).
+
+### Excerpt 3 — the frontend per-field patch merge (`frontend/src/context/PatientContext.tsx`)
+
+The concurrency crux without a CRDT: inbound socket events are merged field-by-field via a functional state update, so a local edit and a remote echo compose instead of overwriting.
+
+```js
+newSocket.on('departmentUpdate', (updatedData) => {
+  setPatientData(prev => {                         // functional update: read the LATEST state, not a stale closure
+    const result = { ...prev, timestamp: Date.now() };
+    Object.entries(updatedData).forEach(([dept, data]) => {   // walk only the departments present in THIS patch
+      if (data === undefined || data === null) {
+        result[dept] = undefined;                  // null/undefined = the peer reset that section
+      } else {
+        const prevDeptData = prev[dept] || {};
+        // Standard merge: keep every existing field, overlay only the keys in the incoming patch
+        result[dept] = {
+          ...(typeof prevDeptData === 'object' ? prevDeptData : {}),  // fields the peer didn't touch survive
+          ...(typeof data === 'object' ? data : {})                  // incoming keys win for the fields they carry
+        };
+      }
+    });
+    return result;                                 // a partial patch never clobbers untouched fields
+  });
+});
+```
+
+(Dental `tooth_cavity_permanent` / `tooth_cavity_primary` get an extra explicit merge branch in the same handler so the tooth-selection maps are replaced wholesale rather than shallow-spread. On the send side, `updateDepartment` splits the large base64 `photo` into `photoUpdate`/`photoDelete` events so an image never rides on a keystroke's `departmentUpdate`.)
+
+*What an interviewer might ask:* **"Two stations edit the same patient at once — how do you avoid one wiping the other, and why isn't this a CRDT?"** — Two mechanisms. (1) `setPatientData(prev => …)` is a *functional* update, so each event merges against React's freshest state rather than a value captured when the listener was registered — this removes the lost-update race an earlier debounced whole-object write had. (2) The merge is shallow-per-department and only over the keys actually present in the patch, so fields the peer didn't send are preserved. It is deliberately *not* a CRDT: there's still one active draft per clinic, no offline op-log, and no reconnect replay, so concurrent conflicting writes to the *same field* are last-writer-wins by arrival order. That's the honest boundary — good enough for one in-flight patient per clinic, and the documented next step (workflow rooms + durable op-log) is what a true multi-patient concurrent design would need.
