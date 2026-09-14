@@ -198,13 +198,18 @@ const AppShell: React.FC<AppShellProps> = ({ children }) => {
           </button>
           <div className="hf-crumb"><b>{crumb}</b></div>
           <div style={{ flex: 1 }} />
+          {/* Under 640px the pill's full label left the route title ~30px of
+              room, so it wrapped word-by-word and was painted under the pill.
+              The label collapses to screen-reader-only there; the dot, colour
+              and title keep the status visible and the sidebar still spells
+              out the workspace in full. */}
           {demo ? (
             <span className="hf-pill sync done live" title="Isolated sample workspace — synthetic data, no writes are saved">
-              <span className="hf-dot" /> {DEMO_WORKSPACE_LABEL}
+              <span className="hf-dot" /> <span className="max-sm:sr-only">{DEMO_WORKSPACE_LABEL}</span>
             </span>
           ) : (
             <button type="button" className={conn.className} title="Live connection to the HealthFlow server">
-              <span className="hf-dot" /> {conn.label}
+              <span className="hf-dot" /> <span className="max-sm:sr-only">{conn.label}</span>
             </button>
           )}
           <button

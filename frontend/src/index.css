@@ -457,7 +457,10 @@
 .hf-dept-summary-card h3 { font-size: 1rem; margin: 0 0 .7rem; font-family: theme('fontFamily.body'); font-weight: 700; color: rgb(var(--hf-ink)); }
 .hf-dept-summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: .4rem 1.2rem; font-size: .8rem; color: rgb(var(--hf-ink)); }
 .hf-dept-summary-grid .k { color: rgb(var(--hf-ink-faint)); }
-.hf-dept-summary-grid .v { font-weight: 600; margin-left: .3rem; }
+/* Tooth-cavity lists are long comma-joined FDI numbers with no natural break
+   opportunity; without this they widen the grid track past the card and hand
+   the whole screen area a horizontal scrollbar (worst on phones). */
+.hf-dept-summary-grid .v { font-weight: 600; margin-left: .3rem; overflow-wrap: anywhere; }
 
 /* ---- patient banner ---- */
 .hf-patient-banner { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: space-between; padding: .9rem 1.2rem; border-radius: 15px; }
