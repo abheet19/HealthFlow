@@ -1,5 +1,6 @@
 > [!IMPORTANT]
-> **Demonstration workspace only.** HealthFlow validates a configured clinic ID, user ID, and secret before its API or realtime channel can be used, then scopes stored rows, reports, and Socket.IO events to the authenticated clinic. It is for synthetic demonstration records only: do **not** enter real patient, school, employee, or health information. These configured credentials are not SSO, MFA, roles, consent, audit, retention, an encryption program, or a clinical compliance review.
+> **Demonstration workspace only.** HealthFlow validates a configured clinic ID, user ID, and secret before its API or realtime channel can be used, then scopes stored rows, reports, and Socket.IO events to the authenticated clinic. It is for **synthetic** demonstration records only: do **not** enter real patient, school, employee, or health information. These configured credentials are not SSO, MFA, roles, consent, audit, retention, an encryption program, or a clinical compliance review.
+
 <div align="center">
 
 <br>
@@ -8,137 +9,183 @@
 
 # 🩺 &nbsp;H E A L T H F L O W
 
-### **One patient, five departments, one report.**
+### **One patient. Five departments. One report. In real time.**
 
-A clinic health-checkup workflow — IT intake, ENT, Vision, General and Dental — collected on<br>
-five live dashboards and stitched into a single formatted `.docx` report.
+A school health-camp checkup runs across five stations — IT intake, ENT, Vision, General and Dental.
+HealthFlow puts each on its own **glass dashboard**, keeps them in lock-step over a **clinic-scoped
+WebSocket**, and stitches the finished checkup into a single formatted `.docx` report — no paper, no
+manual reconciliation.
 
 <br>
 
-![React](https://img.shields.io/badge/React-18-3ECF8E?style=for-the-badge&logo=react&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-1E9A66?style=for-the-badge&logo=typescript&logoColor=white)
-![Flask](https://img.shields.io/badge/Flask-Python-5EE6A8?style=for-the-badge&logo=flask&logoColor=0A0D0B)
-![Postgres](https://img.shields.io/badge/PostgreSQL-database-3ECF8E?style=for-the-badge&logo=postgresql&logoColor=white)
+![React](https://img.shields.io/badge/React_18-0B0E11?style=for-the-badge&logo=react&logoColor=5EE6A8)
+![TypeScript](https://img.shields.io/badge/TypeScript_5-0B0E11?style=for-the-badge&logo=typescript&logoColor=3ECF8E)
+![Vite](https://img.shields.io/badge/Vite-0B0E11?style=for-the-badge&logo=vite&logoColor=5EE6A8)
+![Tailwind](https://img.shields.io/badge/Tailwind-0B0E11?style=for-the-badge&logo=tailwindcss&logoColor=3ECF8E)
+![Flask](https://img.shields.io/badge/Flask_·_Socket.IO-0B0E11?style=for-the-badge&logo=flask&logoColor=5EE6A8)
+![Postgres](https://img.shields.io/badge/PostgreSQL_17-0B0E11?style=for-the-badge&logo=postgresql&logoColor=3ECF8E)
+![Fly.io](https://img.shields.io/badge/Fly.io-0B0E11?style=for-the-badge&logo=flydotio&logoColor=5EE6A8)
+<br>
 ![CI](https://github.com/abheet19/HealthFlow/actions/workflows/ci.yml/badge.svg)
-![Status](https://img.shields.io/badge/status-personal_project-8a94a6?style=for-the-badge)
+![Lighthouse](https://img.shields.io/badge/Lighthouse-100_×_4-3ECF8E?style=flat-square&logo=lighthouse&logoColor=white)
+![Status](https://img.shields.io/badge/status-personal_project-8a94a6?style=flat-square)
 
 <br>
 
-<sub>A personal project by <b><a href="https://github.com/abheet19">Abheet</a></b>.</sub>
+### ▶ &nbsp;[**Try the live demo →**](https://healthflow-abheet19.fly.dev)
 
-<br><br>
+<sub>Clinic **`demo`** · User **`demo-user`** · Access code **`healthflow-demo-2026`** &nbsp;•&nbsp; synthetic data only</sub>
 
-![HealthFlow demo](docs/demo/healthflow-demo.gif)
+<br>
 
-<sub>Two independent browser contexts, recorded against an isolated local PostgreSQL stack: IT registers a patient, the department<br>
-tab picks them up over the WebSocket, all four departments report in, and the <code>.docx</code> falls out the end.</sub>
+![HealthFlow demo reel](docs/media/healthflow-demo.gif)
+
+<sub><b>Recorded against the live deployment.</b> Unlock the clinic AccessGate → register a patient (a real
+server-generated ID) → jump with the ⌘K command palette → fill the dense vitals surface → switch dashboards.<br>
+▶ <a href="docs/media/healthflow-reel.mp4">Watch the crisp 60&nbsp;fps MP4</a> · <sub>A personal project by <b><a href="https://github.com/abheet19">Abheet</a></b>.</sub></sub>
 
 </div>
 
-> [!NOTE]
-> **Live service: [healthflow-abheet19.fly.dev](https://healthflow-abheet19.fly.dev).**
-> Release status is established by matching the tested Git commit to both Fly releases and rerunning
-> the public health/access smoke. The frontend publishes that commit at `/release.json`; the API
-> publishes it in `/health`, so a mismatched two-service release fails verification. The local path
-> below remains the supported synthetic demo setup.
-
 ---
 
-## What this does
+## 💡 The problem
 
 A clinic checkup normally means five departments filling out paper forms for the same patient and
-someone reconciling all of it by hand afterwards. HealthFlow puts each department on its own
-dashboard — IT registers the patient and takes their photo, ENT/Vision/General/Dental each fill in
-their own exam fields — all reading and writing the clinic's current in-flight record over a
-clinic-scoped WebSocket room, so authenticated tabs in that clinic stay in sync. Once every
-department has submitted, IT's final submit
-bundles all five sections into one call, the backend stores it in Postgres, and a formatted `.docx`
-report is generated from a template and made available for download from the patients list.
+someone reconciling all of it by hand afterwards — slow, error-prone, and impossible to hand off
+mid-visit.
+
+## ✅ What HealthFlow does
+
+Each department gets its own dashboard that reads and writes the clinic's **current in-flight record**
+over a clinic-scoped Socket.IO room, so every authenticated tab in that clinic stays in sync as the
+patient moves station to station. IT registers the patient and takes their photo; ENT / Vision /
+General / Dental each fill their own exam fields; the IT desk's status tiles light up as each
+department reports in. Once all five sections validate, IT's **final submit** bundles them into one
+call, the backend persists it to PostgreSQL in a single transaction, and a formatted `.docx` report
+is generated from a template and offered from the patients list.
 
 ---
 
+## 🎬 Demo
+
+| The clinic AccessGate | IT intake + live status tiles |
+|---|---|
+| ![AccessGate](docs/media/shot-access-gate.png) | ![IT intake](docs/media/shot-it-intake.png) |
+
+| General — dense vitals surface | Dental — permanent/primary tooth grid |
+|---|---|
+| ![General vitals](docs/media/shot-general-vitals.png) | ![Dental](docs/media/shot-dental.png) |
+
+**Walk the flow yourself** on [the live site](https://healthflow-abheet19.fly.dev) with the demo
+credentials above:
+
+1. **Unlock** — clinic `demo`, user `demo-user`, code `healthflow-demo-2026` → *Open workspace*.
+2. **IT** — *Register Patient* mints a server-side ID; fill the intake and the right-rail summary fills live.
+3. **⌘K** (or *Jump to…*) — the command palette jumps you to any department, the active draft, or *Lock*.
+4. **General / Dental / ENT / Vision** — height + weight auto-compute **BMI**; every field patch broadcasts instantly.
+5. **Patients List** — search the clinic's rows and download the generated **Word report**.
+
+> The live machines auto-stop when idle (Fly scale-to-zero), so the first request after a quiet spell
+> cold-starts for a few seconds — the reel's capture script waits for `/health` before recording.
+
+---
+
+## 🏗 Architecture
 
 ```mermaid
 flowchart LR
-  IT[Intake tab] <-->|authenticated clinic-room events| S[Socket.IO relay]
-  D[Four department tabs] <-->|field patches| S
-  IT -->|final combined submission| F[Flask API]
-  F --> P[(PostgreSQL)]
-  P --> W[DOCX template renderer]
-  W --> R[Downloadable report]
+  subgraph Browser["🖥️ Browser — React 18 · TypeScript · Vite"]
+    GATE["AccessGate<br>(code-split shell)"]
+    SHELL["AppShell<br>sidebar · topbar · ⌘K palette"]
+    CTX["PatientProvider<br>shared draft state"]
+    GATE --> SHELL --> CTX
+  end
+
+  subgraph API["⚙️ Flask · Flask-SocketIO · SQLAlchemy"]
+    AUTH["Exact credential registry<br>→ server-derived clinic/user rooms"]
+    ROUTES["HTTP: validate · persist · report"]
+    RELAY["Socket.IO relay<br>clinic-scoped rooms"]
+  end
+
+  DB[("🗄️ PostgreSQL 17<br>clinic-tagged rows")]
+  DOCX["📄 docxtpl / python-docx<br>template renderer"]
+
+  CTX -->|"field patches (WebSocket)"| RELAY
+  RELAY -->|"echo to same-clinic peers only"| CTX
+  CTX -->|"final combined submit (HTTPS)"| ROUTES
+  AUTH -.authenticates every request + handshake.-> ROUTES
+  AUTH -.-> RELAY
+  ROUTES -->|"one transaction"| DB
+  DB --> DOCX --> ROUTES -->|"downloadable report"| CTX
+
+  classDef browser fill:#0d2b1e,stroke:#3ECF8E,stroke-width:2px,color:#E6F5EE;
+  classDef api fill:#0b2233,stroke:#38bdf8,stroke-width:2px,color:#E6F5EE;
+  classDef store fill:#2a1e33,stroke:#c084fc,stroke-width:2px,color:#F3E8FF;
+  classDef doc fill:#33230b,stroke:#f59e0b,stroke-width:2px,color:#FFF7E6;
+  class GATE,SHELL,CTX browser;
+  class AUTH,ROUTES,RELAY api;
+  class DB store;
+  class DOCX doc;
 ```
 
-Draft changes synchronize before the final database commit. Different clinics are isolated, but
-each clinic still has one shared active draft. See [testing and limitations](docs/TESTING.md) before
-assuming simultaneous patient workflows, role authorization, or clinical readiness.
+Draft changes synchronize over the socket **before** the final database commit. Different clinics are
+fully isolated; each clinic still has **one shared active draft** (this is deliberate — see
+[testing & limitations](docs/TESTING.md) before assuming simultaneous patient workflows, role
+authorization, or clinical readiness).
+
+---
+
+## 🧠 System design — the interesting engineering
+
+**Server-derived tenancy (the trust boundary).** Every HTTP request and the Socket.IO handshake carry
+the same `clinic / user / secret` triple. The server authenticates the **exact configured triple** and
+then *derives the room names itself* from the authenticated connection — event payloads can never
+choose their own room. So a department event reaches peers in the same clinic and **only** that clinic,
+and list/report/insert queries are bound to the authenticated clinic rather than trusting any
+client-supplied scope. Backend regressions prove a same-clinic peer receives an event while the sender
+and a second clinic receive zero, and that a cross-clinic report lookup returns `404`.
+
+**Draft broadcasts ≠ commits.** Field edits emit as **immediate per-field patches** over the socket
+(an earlier debounced full-object write was removed because it could clobber rapid edits). Those
+patches only mutate the shared session draft. Persistence happens exactly once: IT's final submit maps
+one coherent five-section draft to a single PostgreSQL row inside **one transaction**, after all five
+sections validate.
+
+**Document generation.** The stored record fills a `.docx` template via `docxtpl`/`python-docx`; CI
+asserts the package structure and content of the generated report, not just that a file came back.
+
+**Code-split first paint.** The public AccessGate ships as a tiny locked entry chunk; Material UI, the
+Socket.IO client, and the department routes load only *after* the code validates — the authenticated
+`WorkspaceApp` and each department are separate Vite chunks. Pinned Lighthouse lab runs score
+**100 / 100 / 100 / 100** on mobile and desktop.
+
+**The redesigned glass workspace.** The UI is a hand-built **dark-glass design system**, not default
+Material: one clinical **emerald/mint** hue carried across three depths (`#5EE6A8 → #3ECF8E → #1E9A66`)
+over a near-black ground, blurred glass panels, and custom `Field` / `LabeledSelect` primitives so all
+five dashboards read as one instrument. A persistent `AppShell` provides the department sidebar
+(collapsing to an off-canvas drawer under 880 px), the live **“Clinic synced”** connection pill, a
+light/dark toggle, and a **⌘K / Ctrl-K command palette** for jump-to-anywhere navigation — screens, the
+active patient draft, and *Lock*.
+
+**Operational signals without patient payloads.** Every response carries an `X-Request-ID` and
+`Server-Timing`; logs record only method, path, status and duration — never codes, bodies, photos, or
+patient fields. `/health` runs a real `SELECT 1` (bounded by an Eventlet timeout) before reporting ready.
+
+---
 
 ## 🛠 Tech stack
 
 | Layer | Technology |
 |---|---|
-| **Frontend** | React 18, TypeScript, Vite, Tailwind CSS, MUI (Material UI), Socket.IO client |
-| **Backend** | Python 3.12, Flask, Flask-SocketIO, SQLAlchemy, python-docx |
-| **Database** | PostgreSQL |
-| **Containerization** | Docker, Docker Compose (frontend + backend + PostgreSQL 17) |
-| **Operations** | Fly.io, GitHub Actions CI, database-aware health check, request IDs and Server-Timing |
+| **Frontend** | React 18, TypeScript, Vite, Tailwind CSS, custom glass component system (`AppShell`, `DashboardShell`, `Field`, `LabeledSelect`, ⌘K `CommandPalette`), Socket.IO client — MUI retained only for toasts + the theme bridge |
+| **Backend** | Python 3.12, Flask, Flask-SocketIO (Eventlet), SQLAlchemy, `docxtpl` / `python-docx` |
+| **Database** | PostgreSQL 17 |
+| **Packaging** | Docker, Docker Compose (frontend + backend + PostgreSQL) |
+| **Operations** | Fly.io (two apps: static frontend + API), GitHub Actions CI, DB-aware `/health`, request IDs & `Server-Timing`, `/release.json` SHA pinning |
 
 ---
 
-## 🎨 Design
-
-Dark glass throughout, with its own accent family rather than a generic dashboard blue: a
-**clinical emerald/mint gradient** (`#5EE6A8 → #3ECF8E → #1E9A66`) over a near-black ground
-(`#0A0D0B`), with soft mint-tinted glass panels and `#E6F5EE` body text. One green hue carried
-across three depths — light highlight, mid accent, deep forest edge — rather than a second hue
-bolted on, so the five dashboards read as one clinical instrument instead of five separate forms.
-
-A shared `DashboardShell` component carries that look consistently across all five department
-pages: the same glass card, the same "waiting for a patient ID" empty state, the same patient
-header, so a style change only has to happen in one place.
-
----
-
-## 🖼 Screenshots
-
-Captured from the current application with synthetic records on an isolated local PostgreSQL stack.
-
-| IT dashboard (patient intake) | Dental dashboard (shared-workflow waiting state) |
-|---|---|
-| ![IT dashboard](docs/screenshots/it-dashboard.png) | ![Dental dashboard waiting for a workflow](docs/screenshots/dental-dashboard.png) |
-
-![Patients list](docs/screenshots/patients-list.png)
-
-<details>
-<summary>Mobile navigation (390 px verified viewport)</summary>
-
-![Mobile navigation drawer](docs/screenshots/mobile-navigation.png)
-
-</details>
-
----
-
-## Key features
-
-- **Clinic-scoped real-time sync** — authenticated Socket.IO clients join server-derived clinic and
-  user rooms; department events reach peers in the same clinic and cannot select another room.
-- **Five department dashboards** — IT, ENT, Vision, General and Dental, each with its own required
-  fields and validation, sharing one patient context.
-- **Automated `.docx` report generation** — once a patient's record is complete, a formatted Word
-  report is generated from a template and downloadable from the patients list.
-- **Consistent feedback UX** — loading states while data is fetched, empty-state messaging when a
-  department has no patients yet, and success/error toasts surfaced consistently across all five
-  dashboards.
-- **Bounded browser payload** — department pages are loaded as route chunks, so opening one station
-  does not download every other form up front.
-- **Operational signals without patient payloads** — API responses carry a correlation ID and
-  `Server-Timing`; logs record only method, path, status and duration. `/health` checks PostgreSQL
-  before reporting ready.
-- **Keyboard and phone-width access** — a skip link, named controls, exposed toggle state, one main
-  landmark and page heading per route, and every navigation destination are automatically checked at 320 px.
-
----
-
-## 🚀 Running it locally
+## 🚀 Quick start
 
 **With Docker (recommended — brings up Postgres too):**
 
@@ -149,17 +196,17 @@ cp .env.example .env
 docker compose up --build
 ```
 
-Open `http://127.0.0.1:3000` and use clinic `demo`, user `demo-user`, and the
-local synthetic code `synthetic-local-test`. Override `HEALTHFLOW_DB_PASSWORD`,
-the default identity, and `HEALTHFLOW_ACCESS_CODE` in an untracked `.env`, or
-configure an exact `HEALTHFLOW_IDENTITIES_JSON` clinic/user map. Never reuse
-deployment secrets or real records in this demo stack.
+Open `http://127.0.0.1:3000` and sign in with clinic **`demo`**, user **`demo-user`**, and the local
+synthetic code **`synthetic-local-test`**. Override `HEALTHFLOW_DB_PASSWORD`, the default identity, and
+`HEALTHFLOW_ACCESS_CODE` in an untracked `.env`, or configure an exact `HEALTHFLOW_IDENTITIES_JSON`
+clinic→user→secret map. Never reuse deployment secrets or real records in this demo stack.
 
 Follow [the usage guide](docs/USAGE.md) for the department sequence, keyboard/mobile controls, and
 failure recovery. To enable the repository's dependency-free pre-commit gate in a clone, run
 `git config core.hooksPath .githooks` once after installing the pinned frontend/backend dependencies.
 
-**Without Docker:**
+<details>
+<summary><b>Without Docker</b></summary>
 
 ```bash
 # Backend
@@ -178,48 +225,62 @@ npm ci
 npm run dev
 ```
 
+</details>
+
 ---
 
-## Project layout
+## ✨ Key features
+
+- **Clinic-scoped real-time sync** — authenticated Socket.IO clients join **server-derived** clinic and user rooms; department events reach same-clinic peers and can't select another room.
+- **Five department dashboards** — IT, ENT, Vision, General and Dental, each with its own required fields and validation, sharing one patient context.
+- **⌘K command palette** — jump to any screen, the active patient draft, or lock the workspace, from anywhere.
+- **Automated `.docx` reports** — a formatted Word report is generated from a template and downloadable from the patients list.
+- **Live-computed vitals** — height + weight auto-compute BMI with a category chip; per-field patches broadcast instantly.
+- **Bounded browser payload** — the AccessGate, workspace, and each department are separate route chunks.
+- **Operational signals, zero patient payloads** — correlation IDs, `Server-Timing`, DB-aware `/health`.
+- **Keyboard & phone-width access** — skip link, named controls, exposed toggle state, one main landmark + heading per route, every destination checked at 320 px.
+
+---
+
+## 📁 Project layout
 
 ```
 HealthFlow/
-├── .github/    Source checks and full synthetic Docker acceptance in CI
+├── .github/     Source checks + full synthetic Docker acceptance in CI
 ├── backend/     Flask API, Socket.IO server, docx report generation
-├── frontend/    React + TypeScript + Vite + Tailwind + MUI
-├── tools/       Demo recorder (not part of the app build)
+├── frontend/    React + TypeScript + Vite + Tailwind + glass component system
+├── tools/       Demo/reel recorders + browser verifiers (not part of the app build)
+├── docs/        Usage, testing, media (reel + stills)
 └── docker-compose.yml
 ```
 
 ---
 
-## 🎬 Regenerating the demo GIF
+## 🎬 Regenerating the demo reel
 
-The GIF at the top is a Playwright script driving two independent browser
-contexts against an isolated local stack, so the right-hand pane only ever changes because something
-actually arrived over the WebSocket. Re-record it whenever the UI changes:
+The reel at the top is a Playwright script driving the **live** deployment through the real showcase
+flow, captured to `.webm`, then interpolated by ffmpeg to a smooth **60 fps** MP4 plus a looping GIF:
 
 ```bash
 cd tools
 npm install
 npx playwright install chromium
-BASE_URL=http://127.0.0.1:3000 API_URL=http://127.0.0.1:5000 node record-demo.mjs
-python build-gif.py # composites the panes -> docs/demo/healthflow-demo.gif
-BASE_URL=http://127.0.0.1:3000 npm run verify
+# Targets the live site by default; override with HEALTHFLOW_URL / _API_URL / _ACCESS_CODE.
+# ffmpeg is auto-detected (PATH, then the winget path); or set FFMPEG=/path/to/ffmpeg.
+node capture-reel60.mjs
+# → docs/media/healthflow-reel.mp4 (1280×800, 60 fps, ~1.4 MB)
+# → docs/media/healthflow-demo.gif (~680 px, looping, ~4 MB)
 ```
 
-`record-demo.mjs` should run against a local stack and registers a synthetic patient named
-**Demo Patient** and runs the full five-department flow. `build-gif.py` takes `--width`, `--colors`
-and `--tempo` if you need to trade size against length. The scripts use local Chrome on Windows,
-Playwright Chromium in Linux CI, or the browser at `CHROME_PATH` when set.
+`record-demo.mjs` remains the older **local-only** two-context recorder (it rejects remote URLs and
+writes a synthetic `Demo Patient` row); `capture-reel60.mjs` is the live-site reel used above.
 
-> The recorder rejects remote frontend URLs. Use a disposable local database and never record against deployed patient records.
+The latest measured checks, exact commands, deployment model and known limits are in
+[the testing artifact](docs/TESTING.md). Production npm audits and the patched backend requirements
+audit reported zero known runtime dependency vulnerabilities; the full frontend build/lint toolchain
+still has advisories tracked in the testing artifact.
 
-The latest measured checks, exact commands, deployment model and known limits
-are in [the testing artifact](docs/TESTING.md). The current production build keeps the locked gate at
-149.91 kB (48.51 kB gzip), then loads the authenticated workspace as a 242.38 kB route chunk
-(79.81 kB gzip) and the selected department on demand. Pinned Lighthouse 13 lab runs against that
-build scored 100 for Performance, Accessibility, Best Practices, and SEO on mobile and desktop;
-automated accessibility does not constitute independent WCAG certification. Production npm audits and the
-patched backend requirements audit reported zero known runtime dependency vulnerabilities; the full
-frontend build/lint toolchain still has eight advisories tracked in the testing artifact.
+> [!NOTE]
+> **Release integrity.** A release is proven by mapping one exact Git commit through GitHub CI, both Fly
+> releases, and a post-deploy health/access smoke. The frontend publishes that commit at `/release.json`
+> and the API at `/health`, so a mismatched two-service release fails verification.
