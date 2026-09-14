@@ -109,6 +109,7 @@ The evidence above belongs to its dated run and exact source. It becomes live ev
 
 ## Trending terms explained (for an external assistant)
 
+- **HealthFlow (the core concept, in plain words)** — HealthFlow is a web app for running one school health-camp checkup as a live, shared workflow. A single child is examined at five stations (IT intake, ENT, Vision, General, Dental); instead of five paper forms reconciled by hand, each station gets its own browser dashboard, all five dashboards edit **one shared draft of that patient in real time**, and when the checkup is complete a single button saves it to a database and produces a downloadable Word report. It is deliberately a **demonstration** of that workflow and the engineering behind it (real-time sync + per-clinic isolation), not a real medical/EHR product, and must only ever hold synthetic data.
 - **Multi-tenancy / tenant isolation** — one deployment serves many clinics; each clinic's data and realtime events are walled off from every other. Here the "tenant" is the clinic, and isolation is enforced server-side, not by the client.
 - **Server-derived rooms** — a Socket.IO "room" is a named group of connections. HealthFlow derives the room name from the *authenticated* connection, so a malicious client cannot ask to join or broadcast to another clinic's room by editing a payload. Contrast with "client-declared rooms", which are a common tenancy bug.
 - **Fail-closed auth** — if credentials are missing, wrong, or the identity map has no exact match, access is denied (not granted with reduced scope). The exact `clinic/user/secret` triple must match a configured identity.
@@ -122,6 +123,20 @@ The evidence above belongs to its dated run and exact source. It becomes live ev
 - **`docxtpl` / template rendering** — a Jinja-in-Word templating library; structured record data fills placeholders in `template.docx` to produce the downloadable report.
 - **Eventlet** — a green-thread concurrency library Flask-SocketIO uses; the blocking `SELECT 1` health probe runs through `eventlet.tpool` under a timeout so a slow DB cannot hang the worker.
 - **Glassmorphism / design system** — the "glass" look (blurred translucent panels) plus reusable primitives (`Field`, `LabeledSelect`, `DashboardShell`) and CSS-variable tokens, so five screens read as one instrument.
+- **SPA (Single-Page Application)** — the frontend is one JavaScript app that swaps views client-side (via `react-router-dom`) instead of loading a fresh HTML page per screen; combined with code splitting so each department view downloads on demand.
+- **React / component state / Context** — React renders UI from state. `PatientProvider` is a React **Context** that holds the one shared draft and the single Socket.IO connection, so any department component can read/update the same patient without prop-drilling.
+- **Socket.IO / WebSocket** — Socket.IO is a library over the WebSocket protocol (with fallbacks) giving a persistent, bidirectional, event-named channel between browser and server; here it carries `departmentUpdate`, `photoUpdate`, `newPatientId`, and `resetPatientData` events. Contrast with HTTP request/response.
+- **Flask / Flask-SocketIO** — Flask is the Python web framework serving the HTTP API; Flask-SocketIO adds the Socket.IO server on the same app, run under an Eventlet worker in production.
+- **SQLAlchemy / ORM / parameterized SQL** — SQLAlchemy is the Python database toolkit used here mostly via `text()` SQL with **bound parameters** (`:clinic_id`), which prevents SQL injection by never string-concatenating user input into queries.
+- **Transaction (`commit`/`rollback`)** — a group of database writes that either all succeed or all undo. The final insert commits once; on any failure it rolls back, so a half-saved checkup can't exist.
+- **Vite** — the frontend build tool/dev server; it emits the code-split production chunks (small gate entry, lazy `WorkspaceApp`, lazy department routes) and bakes public `VITE_*` config at build time.
+- **CORS (Cross-Origin Resource Sharing)** — browser security rule controlling which web origins may call the API. The backend allow-lists the frontend origins (configurable via `CORS_ORIGINS`) and permits the preflight `OPTIONS` request before authentication so custom headers can be sent.
+- **Gunicorn / Nginx** — production process model: Gunicorn runs the Flask/Socket.IO app with one Eventlet worker (see `entrypoint.sh`); Nginx serves the static Vite build. They are separate Fly apps.
+- **`sessionStorage` vs `localStorage`** — both are per-browser key/value stores. HealthFlow keeps the credential triple and draft in **`sessionStorage`** (tab-scoped, not shared between tabs/windows, cleared on Lock), which is why two windows act as independent stations.
+- **Idempotent initializer** — `init_db.py` can run repeatedly without harm (`CREATE TABLE IF NOT EXISTS`, `ADD COLUMN IF NOT EXISTS`). It is a safe startup step, explicitly **not** a versioned migration framework.
+- **BMI (Body Mass Index)** — weight(kg) / height(m)². Computed live in the General dashboard from height+weight and shown with a category chip; a domain example of derived, validated form state.
+- **Lighthouse** — Google's automated web-quality lab audit (Performance, Accessibility, Best Practices, SEO). Pinned lab runs score 100×4; it is a lab sample, not field data or a WCAG certification.
+- **Cold start / scale-to-zero** — see Scale-to-zero above; the first request after idle waits for a Fly machine to boot, which the tooling absorbs by polling `/health`.
 
 ## Likely interview questions and answers
 
@@ -148,6 +163,21 @@ Release integrity maps one Git SHA through CI, both Fly releases, and a post-dep
 
 **Q. What would you build next / what are the known gaps?**
 Workflow (per-visit) rooms with ownership so multiple patients per clinic can be in flight; a durable draft/op log with offline replay and reconnect merge; a shared Socket.IO broker to move off the single-worker Eventlet topology; and a real migration/backup/restore/rollback story (the current initializer is idempotent, not a migration framework).
+
+**Q. Walk through exactly what happens when IT clicks Submit.**
+The IT client bundles all five section drafts plus `patientId` and `captured_date` into one POST to `/api/submit_patient`. The route checks each of the five departments is present and non-empty, validates that `name` is filled and `dob` parses as a real `YYYY-MM-DD` date (a blank HTML date input would otherwise fail at the Postgres `DATE` column with a raw 500), transforms each section dict into flat DB columns, tags the row with the authenticated `clinic_id`, and `patient_service.submit_patient_data` inserts it inside one transaction. A duplicate `pid` surfaces as a clean 409; any other error rolls back and returns a generic 500.
+
+**Q. How does the client keep fast concurrent edits from clobbering each other without a CRDT?**
+Every Socket.IO handler in `PatientContext` uses a functional state update (`setPatientData(prev => …)`) and merges only the keys present in the incoming patch, so a local edit and a remote echo compose instead of overwriting. Field patches (`departmentUpdate`) are also separated from photo events so a large base64 image never rides on a keystroke. This is intentionally *not* a CRDT — there is still one active draft per clinic and no offline replay — but it removes the specific race an earlier debounced whole-object write had.
+
+**Q. Why is BMI computed in an effect that depends only on height and weight?**
+The BMI `useEffect` in `GeneralDashboard` writes both `bmi` and `patientData.general`. If it also depended on those, its own write would re-trigger it and loop. Depending only on `[height, weight]` (with an eslint-disable and a comment explaining why) is the correct, deliberate fix — a good example of understanding React's effect dependency model rather than fighting it.
+
+**Q. How is the Word report generated, and how is it resilient?**
+`report_service.generate_word_report` loads `template.docx` (a `docxtpl`/Jinja-in-Word template), fills placeholders from the stored row, expands teeth data into per-quadrant selected/remaining lists via `process_teeth_data`, decodes and circle-crops the photo, then renders and streams the `.docx`. A photo that can't be decoded is caught and dropped so the rest of the medical report still renders, and two regression tests assert real content (vision acuity isn't confused with colour-blindness; a corrupt photo still yields a valid document).
+
+**Q. Why keep MUI at all if the UI is a custom design system?**
+The department forms are hand-built glass primitives (`Field`, `LabeledSelect`, `DashboardShell`) driven by CSS variables. MUI survives only for the toast snackbar and as a `ThemeProvider` bridge so any residual MUI component follows the same light/dark toggle. Keeping MUI out of the critical first-paint path (it loads inside the lazy `WorkspaceApp` chunk, not the AccessGate) is part of how first paint stays fast.
 
 ## Reading order
 
