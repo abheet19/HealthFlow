@@ -29,7 +29,16 @@ interface PatientData {
   dental?: Record<string, any>;
 }
 
-const formatSummaryLabel = (key: string) => key
+const SUMMARY_LABELS: Record<string, string> = {
+  bmi: 'BMI',
+  bp: 'BP',
+  le_color_blindness: 'Left Eye Color Blindness',
+  le_vision: 'Left Eye Vision',
+  re_color_blindness: 'Right Eye Color Blindness',
+  re_vision: 'Right Eye Vision',
+};
+
+const formatSummaryLabel = (key: string) => SUMMARY_LABELS[key] ?? key
   .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
   .replace(/_/g, ' ')
   .replace(/\b\w/g, character => character.toUpperCase());

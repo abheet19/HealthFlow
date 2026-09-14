@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useState, useEffect, useCallback } from "react";
 import { useToast } from "../context/ToastContext";
-import { apiFetch } from "../config/api"; // Import the API URL helper
+import { apiFetch, isDemoMode } from "../config/api"; // Import the API URL helper
 
 const SKELETON_ROWS = 4;
 
@@ -101,8 +101,9 @@ const PatientsList: React.FC = () => {
         <div>
           <h1>Patients List</h1>
           <p>
-            Every synthetic checkup that IT has fully submitted. The list only reflects what's in the
-            database as of the last Refresh.
+            {isDemoMode()
+              ? "Three fixed synthetic examples from this isolated sample workspace. Nothing here is stored or refreshed from the clinic database."
+              : "Every synthetic checkup that IT has fully submitted. The list reflects the clinic database as of the last Refresh."}
           </p>
         </div>
         <div className="hf-actions">
