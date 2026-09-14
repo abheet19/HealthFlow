@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify, send_file, current_app, g
 from app.config import get_db
+from app.demo import demo_patient_list, demo_patient_record
 from app.services import patient_service, report_service
 from app.utils import (
     transform_it, transform_ent, transform_vision,
@@ -15,6 +16,10 @@ api_routes = Blueprint('api', __name__, url_prefix='/api')
 
 @api_routes.route('/patients', methods=['GET'])
 def get_patients():
+    # Read-only sample workspace: serve in-memory synthetic records and never
+    # touch the database or any real clinic's data.
+    if getattr(g, "demo_mode", False):
+        return jsonify(patients=demo_patient_list()), 200
     db = get_db()
     try:
         patients = patient_service.get_patients(db, g.workspace_identity.clinic_id)
@@ -124,7 +129,25 @@ def generate_report():
     patient_id = request.args.get("patientId")
     if not patient_id:
         return jsonify({"error": "patientId query parameter is required."}), 400
-    
+
+    # Read-only sample workspace: build the Word report from the in-memory
+    # synthetic record. No database access, no real patient data.
+    if getattr(g, "demo_mode", False):
+        record = demo_patient_record(patient_id)
+        if not record:
+            return jsonify({"error": "Patient record not found."}), 404
+        try:
+            doc_io, patient_name = report_service.ReportService.generate_word_report(None, record)
+            return send_file(
+                doc_io,
+                as_attachment=True,
+                download_name=f"{patient_name}.docx",
+                mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            )
+        except Exception as error:
+            logging.error("Demo report request failed error_type=%s", type(error).__name__)
+            return jsonify({"error": "Failed to generate report."}), 500
+
     db = get_db()
     try:
         record = patient_service.get_patient_by_id(

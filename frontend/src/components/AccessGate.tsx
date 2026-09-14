@@ -2,6 +2,7 @@ import { FormEvent, useState } from "react";
 import {
   DEFAULT_CLINIC_ID,
   DEFAULT_USER_ID,
+  enterDemoMode,
   getApiUrl,
   saveWorkspaceCredentials,
 } from "../config/api";
@@ -56,6 +57,13 @@ const AccessGate = ({ onUnlock }: AccessGateProps) => {
     } finally {
       setPending(false);
     }
+  };
+
+  const startDemo = () => {
+    // One click into an isolated, read-only sample workspace: no account, no
+    // real data. The backend serves synthetic records and refuses every write.
+    enterDemoMode();
+    onUnlock();
   };
 
   const helperId = "workspace-code-helper";
@@ -139,6 +147,22 @@ const AccessGate = ({ onUnlock }: AccessGateProps) => {
             {error || "The code is kept only for this browser session."}
           </p>
         </form>
+
+        <div className="hf-access-demo">
+          <span className="hf-access-or">No code? See the workflow first</span>
+          <button
+            type="button"
+            className="hf-btn hf-btn-ghost"
+            style={{ width: "100%" }}
+            disabled={pending}
+            onClick={startDemo}
+          >
+            View read-only demo
+          </button>
+          <p className="hf-status-line">
+            Opens an isolated sample workspace with synthetic data. Nothing is saved.
+          </p>
+        </div>
       </section>
     </main>
   );

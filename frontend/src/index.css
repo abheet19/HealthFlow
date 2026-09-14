@@ -528,6 +528,11 @@
 .hf-status-line { font-family: theme('fontFamily.mono'); font-size: .78rem; color: rgb(var(--hf-ink-faint)); min-height: 1.1rem; margin-top: .9rem; }
 .hf-status-line.bad { color: rgb(var(--hf-critical)); }
 
+/* ---- read-only demo entry on the access card ---- */
+.hf-access-demo { margin-top: 1.15rem; padding-top: 1.15rem; border-top: 1px solid var(--hf-border); display: flex; flex-direction: column; gap: .55rem; }
+.hf-access-demo .hf-status-line { margin-top: .1rem; }
+.hf-access-or { font-family: theme('fontFamily.mono'); font-size: .72rem; letter-spacing: .04em; text-transform: uppercase; color: rgb(var(--hf-ink-faint)); text-align: center; }
+
 /* ---- toasts (glass pills, bottom-right) ---- */
 /* Replaces MUI's Snackbar/Alert with the design artifact's frosted `.toast`
    pills so notifications match the rest of the glass chrome exactly. */

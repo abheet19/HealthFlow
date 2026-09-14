@@ -1,6 +1,6 @@
 import { createContext, useState, useEffect, ReactNode } from "react";
 import io from 'socket.io-client';
-import { getWorkspaceCredentials, SOCKET_URL } from "../config/api";
+import { getWorkspaceCredentials, isDemoMode, SOCKET_URL } from "../config/api";
 
 // Define dental data structure
 interface DentalData {
@@ -82,6 +82,13 @@ export const PatientProvider = ({ children }: { children: ReactNode }) => {
 
   // WebSocket initialization
   useEffect(() => {
+    // The read-only sample workspace never opens a realtime connection: it has
+    // no server credentials and broadcasts nothing. The seeded synthetic draft
+    // already populates every department, so there is nothing to sync.
+    if (isDemoMode()) {
+      setConnectionStatus('connected');
+      return;
+    }
     const credentials = getWorkspaceCredentials();
     const newSocket = io(SOCKET_URL, {
       reconnection: true,

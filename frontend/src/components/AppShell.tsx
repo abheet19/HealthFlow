@@ -3,7 +3,7 @@ import { useContext, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { PatientContext } from "../context/PatientContext";
 import { useThemeMode } from "../context/ThemeModeContext";
-import { clearAccessCode, getWorkspaceCredentials } from "../config/api";
+import { clearAccessCode, DEMO_WORKSPACE_LABEL, getWorkspaceCredentials, isDemoMode } from "../config/api";
 import CommandPalette from "./CommandPalette";
 
 const ICONS = {
@@ -89,6 +89,7 @@ const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const { connectionStatus } = useContext(PatientContext);
   const { mode, toggleMode } = useThemeMode();
   const credentials = getWorkspaceCredentials();
+  const demo = isDemoMode();
 
   useEffect(() => {
     setSidebarOpen(false);
@@ -132,11 +133,11 @@ const AppShell: React.FC<AppShellProps> = ({ children }) => {
           </div>
         </div>
 
-        <div className="hf-clinic-row" title="Sign in with a different clinic via Lock">
+        <div className="hf-clinic-row" title={demo ? "Isolated read-only sample workspace" : "Sign in with a different clinic via Lock"}>
           <span className="hf-ws-dot" />
           <span style={{ minWidth: 0 }}>
-            <b>Clinic {credentials.clinicId}</b>
-            <span className="hf-ws-sub">{credentials.userId}</span>
+            <b>{demo ? "Sample workspace" : `Clinic ${credentials.clinicId}`}</b>
+            <span className="hf-ws-sub">{demo ? "read-only demo" : credentials.userId}</span>
           </span>
         </div>
 
@@ -197,9 +198,15 @@ const AppShell: React.FC<AppShellProps> = ({ children }) => {
           </button>
           <div className="hf-crumb"><b>{crumb}</b></div>
           <div style={{ flex: 1 }} />
-          <button type="button" className={conn.className} title="Live connection to the HealthFlow server">
-            <span className="hf-dot" /> {conn.label}
-          </button>
+          {demo ? (
+            <span className="hf-pill sync done live" title="Isolated sample workspace — synthetic data, no writes are saved">
+              <span className="hf-dot" /> {DEMO_WORKSPACE_LABEL}
+            </span>
+          ) : (
+            <button type="button" className={conn.className} title="Live connection to the HealthFlow server">
+              <span className="hf-dot" /> {conn.label}
+            </button>
+          )}
           <button
             type="button"
             className="hf-icon-btn"

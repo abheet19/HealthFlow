@@ -17,6 +17,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from app.routes import api_routes
 from app.config import engine
 from app.access import WorkspaceAccessRegistry
+from app.demo import DEMO_IDENTITY, DEMO_READONLY_MESSAGE, is_demo_requested
 from app.realtime import register_realtime_handlers
 from sqlalchemy import text
 
@@ -100,7 +101,22 @@ def protect_patient_api():
         return None
     identity = _authenticate_http_request()
     if identity is not None:
+        # Real, authenticated workspace: unchanged behaviour. A demo header is
+        # ignored here, so a legitimate user is never downgraded to read-only.
         g.workspace_identity = identity
+        g.demo_mode = False
+        return None
+    # Only *after* real authentication has failed do we consider the isolated,
+    # read-only sample workspace. It uses a reserved identity that is not in the
+    # credential registry, so it can never reach a real clinic's data, and it
+    # never weakens the real access model above.
+    if is_demo_requested(request.headers):
+        if request.method not in ("GET", "HEAD"):
+            # Enforce read-only server-side: any write/submit in demo context is
+            # refused before it can reach persistence, regardless of the UI.
+            return jsonify({"error": DEMO_READONLY_MESSAGE, "demo": True}), 403
+        g.workspace_identity = DEMO_IDENTITY
+        g.demo_mode = True
         return None
     if _public_access_is_required() and not access_registry.has_credentials:
         return jsonify({"error": "HealthFlow is not enabled for public access."}), 503
