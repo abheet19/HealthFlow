@@ -1,6 +1,6 @@
 # HealthFlow — sanity, acceptance, and release guide
 
-> Snapshot: 10 September 2026 IST. Run this against disposable or synthetic data. Save the branch, commit, complete dirty-path list, command, exit code, environment, and artifact hashes with every result.
+> Snapshot: 15 September 2026 IST. Run mutable flows against disposable or synthetic local data. Save the branch, commit, complete dirty-path list, command, exit code, environment, and artifact hashes with every result.
 
 ## Before running
 
@@ -28,6 +28,7 @@ evidence. Enable the versioned local gate once with `git config core.hooksPath .
 ## Product sanity checklist
 
 - [ ] Gate rejects incomplete/wrong clinic credentials; HTTP and Socket.IO refuse mismatched clients; lock clears clinic/user/secret/draft state.
+- [ ] Public **View read-only demo** opens three fixed synthetic examples without a credential; every route disables write/upload/submit/download controls, sends no mutation request, and Lock clears the sample session.
 - [ ] Two same-clinic contexts share one synthetic ID through real Socket.IO; rapid edits and reset behave deterministically.
 - [ ] A three-client probe delivers a draft event to a same-clinic peer and never to another clinic; event payloads cannot select rooms.
 - [ ] Patient list/report access is bound to the authenticated clinic; a cross-clinic report lookup returns 404.
@@ -41,7 +42,7 @@ evidence. Enable the versioned local gate once with `git config core.hooksPath .
 ## Retained evidence for the current candidate
 
 - Exact CI stack: five departments, 62 frame pairs, 14 workflow + 17 navigation + 12 resilience/accessibility checks, one synthetic row, and an inspected DOCX.
-- Backend: 11/11 tests; live Socket.IO sender/same-clinic/other-clinic delivery counts `0/1/0`; each clinic listed only its own synthetic row and cross-clinic report returned 404.
+- Backend: 15/15 tests; live Socket.IO sender/same-clinic/other-clinic delivery counts `0/1/0`; each clinic listed only its own synthetic row, cross-clinic report returned 404, and the isolated sample is fixed/read-only.
 - `docs/TESTING.md`, `docs/verification/`, and the backend regressions retain repository evidence; regenerate `public-smoke-results.json` for each release.
 
 ## Release sequence

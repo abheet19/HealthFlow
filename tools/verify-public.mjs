@@ -16,6 +16,8 @@ const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
 const errors = [];
 const httpFailures = [];
 const checks = [];
+const unsafeDemoMutations = [];
+let demoStarted = false;
 
 await page.addInitScript(() => {
   window.__healthflowLayoutShift = 0;
@@ -34,11 +36,16 @@ page.on("console", message => {
 page.on("response", response => {
   if (response.status() >= 400) httpFailures.push({ status: response.status(), url: response.url() });
 });
+page.on("request", request => {
+  if (demoStarted && /^(POST|PUT|PATCH|DELETE)$/i.test(request.method())) {
+    unsafeDemoMutations.push({ method: request.method(), url: request.url() });
+  }
+});
 
 try {
   const response = await page.goto(frontend, { waitUntil: "networkidle", timeout: 45_000 });
   assert.equal(response?.status(), 200);
-  await page.getByRole("heading", { name: "HealthFlow", exact: true }).waitFor();
+  await page.getByRole("heading", { name: "Open a clinic workspace", exact: true }).waitFor();
   await page.getByLabel("Workspace access code").waitFor();
   checks.push("public frontend serves the access gate");
 
@@ -97,6 +104,41 @@ try {
   checks.push("12-request bounded health probe stays below the 5s p95 release budget");
 
   await page.screenshot({ path: `${evidence}/public-access-gate.png`, fullPage: true });
+  demoStarted = true;
+  await page.getByRole("button", { name: "View read-only demo", exact: true }).click();
+  await page.getByText("Sample workspace: viewing synthetic data only. Editing, uploads, and submissions are disabled.").waitFor();
+  assert.equal(await page.evaluate(() => sessionStorage.getItem("healthflow-access-code")), null);
+  assert.equal(await page.getByLabel("Name", { exact: true }).inputValue(), "Aarav Sample");
+  checks.push("credential-free public sample opens with a clearly labelled synthetic draft");
+
+  for (const [label, path, heading] of [
+    ["IT", "/it", "IT Dashboard"],
+    ["ENT", "/ent", "ENT Examination Report"],
+    ["Vision", "/vision", "Vision Examination Report"],
+    ["General", "/general", "General Examination Report"],
+    ["Dental", "/dental", "Dental Examination Report"],
+    ["Patients List", "/patients", "Patients List"],
+  ]) {
+    await page.getByRole("link", { name: label, exact: true }).click();
+    await page.getByRole("heading", { name: heading, exact: true }).waitFor();
+    assert.equal(new URL(page.url()).pathname, path);
+    assert.equal(await page.locator("#main-content fieldset").evaluate(element => element.disabled), true);
+    assert.equal(
+      await page.locator("#main-content button, #main-content input, #main-content select, #main-content textarea").evaluateAll(elements => elements.filter(element => !element.matches(":disabled")).length),
+      0,
+    );
+  }
+  await page.getByText("Ishaan Sample", { exact: true }).waitFor();
+  assert.equal(await page.locator("tbody tr").count(), 3);
+  assert.deepEqual(unsafeDemoMutations, []);
+  await page.screenshot({ path: `${evidence}/public-read-only-demo.png`, fullPage: true });
+  checks.push("all six public sample routes are mechanically read-only and issue no mutation request");
+
+  await page.getByRole("button", { name: "Lock", exact: true }).click();
+  await page.getByRole("heading", { name: "Open a clinic workspace", exact: true }).waitFor();
+  assert.equal(await page.evaluate(() => sessionStorage.getItem("healthflow-demo")), null);
+  checks.push("Lock clears the sample session and returns to the access gate");
+
   await page.setViewportSize({ width: 320, height: 720 });
   await page.reload({ waitUntil: "networkidle" });
   await page.getByLabel("Workspace access code").waitFor();

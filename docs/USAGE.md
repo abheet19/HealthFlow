@@ -6,6 +6,13 @@ demo; it is not SSO, role authorization, consent, audit, retention, or clinical 
 
 ## Start and unlock
 
+For the public showcase, open `https://healthflow-abheet19.fly.dev` and choose **View read-only demo**.
+It uses a fixed synthetic draft and three fixed list records, stores no access code, opens no realtime
+socket, and disables all writes, uploads, submissions, refreshes, and report downloads. Use **Lock**
+to clear the sample session.
+
+For the complete mutable synthetic workflow:
+
 1. Follow the Docker setup in the repository `README.md` and wait for
    `http://127.0.0.1:5000/health` to return HTTP 200.
 2. Open `http://127.0.0.1:3000`. The disposable Compose defaults are clinic `demo`, user
@@ -33,7 +40,8 @@ another tab.
 
 - Press `Tab` after a page load to reach **Skip to main content**. Every action is keyboard
   reachable and labeled; selected teeth and N/A controls expose pressed state.
-- At phone widths, use **Open navigation menu**. All six destinations are verified at 320 px. The
+- At phone widths, use **Open navigation menu**; close it with the visible close control, Escape,
+  or by choosing a destination. All six destinations are verified at 320 px. The
   Patients table scrolls inside its own region instead of widening the page.
 - If access validation or patient loading fails, keep the synthetic values and retry **Open
   workspace** or **Refresh**. HealthFlow does not store a failed access code.

@@ -72,13 +72,13 @@ try {
 
   await page.getByRole("button", { name: "Open navigation menu" }).click();
   await page.keyboard.press("Escape");
-  await page.locator(".MuiDrawer-root").waitFor({ state: "detached" });
+  await page.locator(".hf-sidebar.open").waitFor({ state: "detached" });
   checks.push("mobile navigation closes with Escape");
 
   for (const [label, path] of routes) {
     await page.getByRole("button", { name: "Open navigation menu" }).click();
     await page.getByRole("link", { name: label, exact: true }).last().click();
-    await page.locator(".MuiDrawer-root").waitFor({ state: "detached" });
+    await page.locator(".hf-sidebar.open").waitFor({ state: "detached" });
     await expectRoute(path);
     assert.equal(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),

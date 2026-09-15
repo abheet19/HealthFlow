@@ -48,7 +48,7 @@ const PHOTO = path.join(HERE, "assets", "demo-patient.jpg");
 
 // Each pane is captured at 640x800 CSS pixels at 2x, giving a 1280x1600 PNG.
 // Two panes composite to 2560x1600, which build-gif.py downsamples to ~1000px
-// wide - a supersample, so the small MUI label text stays crisp in the GIF.
+// wide - a supersample, so the small field labels stay crisp in the GIF.
 const PANE = { width: 640, height: 800 };
 const SCALE = 2;
 
@@ -113,12 +113,12 @@ async function burst(count, gapMs = 90, hold = 1) {
 }
 
 const labelled = (page, label) =>
-  page.locator(".MuiFormControl-root").filter({
-    has: page.locator(`label:text-is(${JSON.stringify(label)})`),
-  });
+  page.locator(".hf-field").filter({
+    has: page.getByText(label, { exact: true }),
+  }).first();
 
 /**
- * Type into a MUI TextField at a human-readable speed, filming as it goes.
+ * Type into a labelled text field at a human-readable speed, filming as it goes.
  *
  * These are controlled React inputs behind a 300ms debounce, and clicking one
  * then immediately sending keys drops the first keystroke often enough to
@@ -150,33 +150,33 @@ async function setDate(page, label, value) {
   await page.waitForTimeout(SETTLE);
 }
 
-/** Open the nth MUI Select on the page and pick an option. */
+/** Pick an option from the nth native select on the page. */
 async function pickNth(page, index, wanted = null) {
-  const combo = page.locator('[role="combobox"]').nth(index);
+  const combo = page.locator(".hf-field select").nth(index);
   await combo.scrollIntoViewIfNeeded();
   // The field's own label decides what "healthy" means for this question.
-  const fieldLabel = (
-    await combo.locator("xpath=ancestor::*[contains(@class,'MuiFormControl-root')][1]//label")
-      .first().innerText().catch(() => "")
-  ).trim();
-  await combo.click();
-  const listbox = page.locator('ul[role="listbox"]').last();
-  await listbox.waitFor({ state: "visible" });
-  const options = await listbox.locator('li[role="option"]').allInnerTexts();
+  const fieldLabel = await combo.evaluate((element) =>
+    element.closest(".hf-field")?.querySelector("label")?.textContent?.trim() ?? ""
+  );
+  const options = await combo.locator("option").evaluateAll(elements =>
+    elements.map(option => ({ value: option.value, label: option.textContent?.trim() ?? "" }))
+      .filter(option => option.value !== "")
+  );
   const order = wanted
     ? [wanted, ...PREFERRED]
     : HEALTHY_YES.has(fieldLabel)
       ? ["Yes", "Normal", ...PREFERRED]
       : PREFERRED;
-  const choice = order.find((v) => options.includes(v)) ?? options[0];
-  await listbox.locator(`li[role="option"]:text-is(${JSON.stringify(choice)})`).first().click();
+  const choice = order.map(label => options.find(option => option.label === label)).find(Boolean) ?? options[0];
+  if (!choice) throw new Error(`Select ${index} (${fieldLabel || "unlabelled"}) has no usable options`);
+  await combo.selectOption(choice.value);
   await page.waitForTimeout(60);
-  return choice;
+  return choice.label;
 }
 
 /** Fill every Select on the page, filming every `shotEvery` fields. */
 async function fillAllSelects(page, { shotEvery = 0, overrides = {} } = {}) {
-  const total = await page.locator('[role="combobox"]').count();
+  const total = await page.locator(".hf-field select").count();
   for (let i = 0; i < total; i += 1) {
     await pickNth(page, i, overrides[i]);
     if (shotEvery && (i + 1) % shotEvery === 0) await shot(1);
@@ -274,7 +274,7 @@ async function main() {
   await itPage.waitForTimeout(600);
   await shot(22);   // hold on both panes showing the same Patient ID
 
-  const patientId = (await itPage.locator("span.font-mono").first().innerText()).trim();
+  const patientId = (await itPage.locator(".hf-pt-id").first().innerText()).trim();
   console.log(`\n  Patient ID: ${patientId}`);
   fs.writeFileSync(path.join(FRAME_DIR, "patient-id.txt"), patientId);
 

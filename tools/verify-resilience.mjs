@@ -53,7 +53,7 @@ try {
     await route.fulfill({ status: 503, contentType: "application/json", body: '{"error":"synthetic outage"}' });
   });
   await page.goto(`${base}/patients`, { waitUntil: "domcontentloaded" });
-  await page.locator(".MuiSkeleton-root").first().waitFor();
+  await page.locator(".hf-skeleton").first().waitFor();
   await waitForCallback(() => releasePatientsRequest);
   releasePatientsRequest();
   await page.getByText(/Error fetching patients:/).waitFor();

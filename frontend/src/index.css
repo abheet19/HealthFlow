@@ -207,6 +207,8 @@
   padding: 1rem .8rem; overflow-y: auto; transition: transform .2s ease;
 }
 .hf-brand-row { display: flex; align-items: center; gap: .65rem; padding: .3rem .3rem .9rem; }
+.hf-brand-home { display: flex; align-items: center; gap: .65rem; min-width: 0; color: inherit; text-decoration: none; }
+.hf-brand-home:hover .hf-brand-word { color: rgb(var(--hf-accent)); }
 .hf-brand-mark {
   width: 30px; height: 30px; border-radius: 9px; position: relative; flex: none;
   background: linear-gradient(140deg, rgb(var(--hf-accent)), rgb(var(--hf-accent-2)));
@@ -252,6 +254,8 @@
   font-size: .72rem; color: rgb(var(--hf-ink-faint)); text-decoration: none; padding: .3rem 0;
 }
 .hf-ecosystem-link:hover { color: rgb(var(--hf-accent)); }
+.hf-project-link { display: inline-flex; align-items: center; min-height: 32px; color: rgb(var(--hf-accent)); text-decoration: none; }
+.hf-project-link:hover { text-decoration: underline; text-underline-offset: 3px; }
 
 .hf-avatar {
   width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
@@ -277,6 +281,7 @@
 .hf-icon-btn:hover { color: rgb(var(--hf-accent)); border-color: var(--hf-border-hi); }
 .hf-icon-btn svg { width: 16px; height: 16px; }
 .hf-hamburger { display: none; }
+.hf-sidebar-close { display: none; margin-left: auto; }
 
 .hf-pill {
   display: inline-flex; align-items: center; gap: .4rem; font-size: .73rem; font-weight: 600;
@@ -324,6 +329,7 @@
 
 @media (max-width: 880px) {
   .hf-hamburger { display: inline-flex; }
+  .hf-sidebar-close { display: grid; }
   .hf-sidebar {
     position: fixed; inset: 0 auto 0 0; z-index: 70; transform: translateX(-100%);
     box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0); transition: transform .2s ease, box-shadow .2s ease;

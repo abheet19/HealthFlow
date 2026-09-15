@@ -96,6 +96,15 @@ const AppShell: React.FC<AppShellProps> = ({ children }) => {
   }, [location.pathname]);
 
   useEffect(() => {
+    if (!sidebarOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSidebarOpen(false);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [sidebarOpen]);
+
+  useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
@@ -124,13 +133,23 @@ const AppShell: React.FC<AppShellProps> = ({ children }) => {
 
       {sidebarOpen && <div className="hf-sidebar-scrim" onClick={() => setSidebarOpen(false)} />}
 
-      <aside className={`hf-sidebar${sidebarOpen ? " open" : ""}`}>
+      <aside id="primary-navigation" className={`hf-sidebar${sidebarOpen ? " open" : ""}`}>
         <div className="hf-brand-row">
-          <div className="hf-brand-mark" aria-hidden="true" />
-          <div>
-            <div className="hf-brand-word">HealthFlow</div>
-            <div className="hf-brand-tag font-mono">health-camp workspace</div>
-          </div>
+          <Link to="/it" className="hf-brand-home" aria-label="HealthFlow home">
+            <div className="hf-brand-mark" aria-hidden="true" />
+            <div>
+              <div className="hf-brand-word">HealthFlow</div>
+              <div className="hf-brand-tag font-mono">health-camp workspace</div>
+            </div>
+          </Link>
+          <button
+            type="button"
+            className="hf-icon-btn hf-sidebar-close"
+            aria-label="Close navigation menu"
+            onClick={() => setSidebarOpen(false)}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+          </button>
         </div>
 
         <div className="hf-clinic-row" title={demo ? "Isolated read-only sample workspace" : "Sign in with a different clinic via Lock"}>
@@ -192,6 +211,8 @@ const AppShell: React.FC<AppShellProps> = ({ children }) => {
             type="button"
             className="hf-icon-btn hf-hamburger"
             aria-label="Open navigation menu"
+            aria-controls="primary-navigation"
+            aria-expanded={sidebarOpen}
             onClick={() => setSidebarOpen(true)}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
@@ -208,9 +229,9 @@ const AppShell: React.FC<AppShellProps> = ({ children }) => {
               <span className="hf-dot" /> <span className="max-sm:sr-only">{DEMO_WORKSPACE_LABEL}</span>
             </span>
           ) : (
-            <button type="button" className={conn.className} title="Live connection to the HealthFlow server">
+            <span className={conn.className} role="status" title="Live connection to the HealthFlow server">
               <span className="hf-dot" /> <span className="max-sm:sr-only">{conn.label}</span>
-            </button>
+            </span>
           )}
           <button
             type="button"

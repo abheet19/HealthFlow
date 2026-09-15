@@ -1,9 +1,9 @@
-// capture-reel60.mjs — drives the LIVE HealthFlow deployment and records a smooth
+// capture-reel60.mjs — drives an isolated HealthFlow stack and records a smooth
 // 60fps demo reel of the redesigned glass workspace.
 //
 // The showcase flow, driven through the exact controls a real user touches:
 //
-//   1. The clinic AccessGate — clinic `demo`, user `demo-user`, the workspace
+//   1. The clinic AccessGate — a synthetic clinic and user, plus the workspace
 //      access code — then "Open workspace".
 //   2. The IT dashboard: register a patient (a real server-generated ID) and
 //      type the intake name so the glass intake form comes alive.
@@ -31,11 +31,22 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..");
 const MEDIA = join(ROOT, "docs", "media");
 
-const BASE = (process.env.HEALTHFLOW_URL ?? "https://healthflow-abheet19.fly.dev").replace(/\/$/, "");
-const API = (process.env.HEALTHFLOW_API_URL ?? "https://healthflow-api-abheet19.fly.dev").replace(/\/$/, "");
-const ACCESS_CODE = process.env.HEALTHFLOW_ACCESS_CODE ?? "healthflow-demo-2026";
+const BASE = (process.env.HEALTHFLOW_URL ?? "http://127.0.0.1:3000").replace(/\/$/, "");
+const API = (process.env.HEALTHFLOW_API_URL ?? "http://127.0.0.1:5000").replace(/\/$/, "");
+const ACCESS_CODE = process.env.HEALTHFLOW_ACCESS_CODE ?? "synthetic-local-test";
 const CLINIC_ID = process.env.HEALTHFLOW_CLINIC_ID ?? "demo";
 const USER_ID = process.env.HEALTHFLOW_USER_ID ?? "demo-user";
+
+const hosts = [new URL(BASE).hostname, new URL(API).hostname];
+const isLoopback = hosts.every((host) => ["127.0.0.1", "localhost", "[::1]"].includes(host));
+if (!isLoopback) {
+  if (process.env.HEALTHFLOW_ALLOW_REMOTE_CAPTURE !== "1") {
+    throw new Error("Remote capture is disabled by default. Use an isolated local stack, or explicitly set HEALTHFLOW_ALLOW_REMOTE_CAPTURE=1.");
+  }
+  if (!process.env.HEALTHFLOW_ACCESS_CODE) {
+    throw new Error("Remote capture requires HEALTHFLOW_ACCESS_CODE; no deployed credential is stored in this script.");
+  }
+}
 
 const VIEWPORT = { width: 1280, height: 800 };
 const DSF = 2;
@@ -64,9 +75,9 @@ function findFfmpeg() {
   }
 }
 
-/** Wake the (auto-stopped) Fly machines and wait until both the app and the API answer. */
-async function wakeLiveStack() {
-  console.log(`Waking live stack — ${BASE} / ${API}`);
+/** Wait until both the app and its database-aware API health probe answer. */
+async function wakeStack() {
+  console.log(`Checking stack — ${BASE} / ${API}`);
   for (let attempt = 1; attempt <= 6; attempt += 1) {
     try {
       const [app, health] = await Promise.all([
@@ -81,7 +92,7 @@ async function wakeLiveStack() {
     }
     await sleep(3000);
   }
-  throw new Error("Live stack did not become healthy in time.");
+  throw new Error("HealthFlow stack did not become healthy in time.");
 }
 
 /** Type into an <input> found by its field label, verifying and repairing the value. */
@@ -115,7 +126,7 @@ async function main() {
   const ffmpeg = findFfmpeg();
   console.log(`HealthFlow 60fps reel → ${BASE}  (ffmpeg: ${ffmpeg})`);
 
-  await wakeLiveStack();
+  await wakeStack();
 
   const tmp = mkdtempSync(join(tmpdir(), "healthflow-reel-"));
   const browser = await chromium.launch();

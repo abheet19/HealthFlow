@@ -1,22 +1,22 @@
 # HealthFlow — current implementation context
 
-> Evidence snapshot: 14 September 2026 IST. Release evidence must map one exact Git commit through GitHub CI, both Fly releases, and post-deploy smoke.
+> Evidence snapshot: 15 September 2026 IST. Release evidence must map one exact Git commit through GitHub CI, both Fly releases, and post-deploy smoke.
 >
 > This is the exhaustive, AI-readable map. It is fed to external assistants, so it also explains the trending terms and carries likely interview questions with answers. Current source and executable tests win if an older design note disagrees. A dirty working tree is a candidate, not a release; a configured URL is not proof that the candidate is deployed.
 
 ## Product contract
 
-HealthFlow is a synthetic demonstration of one health-camp workflow per clinic. IT intake, ENT, Vision, General, and Dental edit a shared browser-session draft; IT submits the combined record to PostgreSQL; Patients can search and download a DOCX report. Configured clinic/user/secret triples authenticate requests and derive server-owned clinic and user rooms. Stored patient rows and reports are filtered by clinic. It is not an EHR, clinical decision system, role-authorized platform, or compliance-ready product, and it must never receive real patient or sensitive data.
+HealthFlow is a synthetic demonstration of one health-camp workflow per clinic. IT intake, ENT, Vision, General, and Dental edit a shared browser-session draft; IT submits the combined record to PostgreSQL; Patients can search and download a DOCX report. Configured clinic/user/secret triples authenticate mutable requests and derive server-owned clinic and user rooms. Stored patient rows and reports are filtered by clinic. The public showcase is a separate, explicit read-only sample: fixed in-memory fixtures, no access code, no socket, disabled browser controls, and server-refused mutations. It is not an EHR, clinical decision system, role-authorized platform, or compliance-ready product, and it must never receive real patient or sensitive data.
 
 ## Live deployment (current)
 
-Two Fly.io apps mapped to one source commit: the static frontend `healthflow-abheet19` (`https://healthflow-abheet19.fly.dev`) and the API `healthflow-api-abheet19` (`https://healthflow-api-abheet19.fly.dev`), primary region `sin`. Both use Fly scale-to-zero (`auto_stop_machines`, `min_machines_running = 0`), so the first request after idle cold-starts for a few seconds; the reel/verify scripts poll `/health` before proceeding. The frontend build bakes `VITE_API_URL`/`VITE_SOCKET_URL` pointing at the API app. The public demo identity is clinic `demo`, user `demo-user`, with the workspace access code held as the API secret `HEALTHFLOW_ACCESS_CODE` (currently `healthflow-demo-2026`; write-only on Fly). The local Compose default remains `synthetic-local-test` and must never equal a deployment secret.
+Two Fly.io apps map to commit `348bbdf6a94c410dac7544757674a2845b8f9a68`: the static frontend `healthflow-abheet19` (`https://healthflow-abheet19.fly.dev`) and the API `healthflow-api-abheet19` (`https://healthflow-api-abheet19.fly.dev`), primary region `sin`. Both use Fly scale-to-zero (`auto_stop_machines`, `min_machines_running = 0`), so the first request after idle cold-starts for a few seconds; verification polls `/health` before proceeding. The frontend build bakes `VITE_API_URL`/`VITE_SOCKET_URL` pointing at the API app. The public sample uses the reserved identity `sample-demo` / `demo-viewer` only when the explicit demo header is present; it never authenticates as a stored clinic. Writable deployment credentials remain server secrets and are not documented. The local Compose default is `synthetic-local-test` and must never equal a deployment secret.
 
 ## Redesigned UI — the "glass workspace" (branch `redesign-glass`)
 
 The department forms are no longer default Material UI. The current UI is a hand-built dark-glass design system:
 
-- `App.tsx` renders only the code-split `AccessGate` until a valid `clinic/user/secret` is stored in `sessionStorage`; then the authenticated `WorkspaceApp` chunk loads.
+- `App.tsx` renders only the code-split `AccessGate` until a valid `clinic/user/secret` is stored in `sessionStorage` or the user explicitly chooses the isolated read-only sample; then the `WorkspaceApp` chunk loads.
 - `AppShell` is the persistent chrome: department sidebar (off-canvas drawer under 880 px), a topbar with the route breadcrumb, a live Socket.IO status pill ("Clinic synced" / "Connecting…" / "Connection lost"), a light/dark toggle, and the **⌘K / Ctrl-K command palette**.
 - `CommandPalette` is pure client-side navigation (no API calls until an item is chosen): jump to any department screen, the active in-flight patient draft, or "Lock workspace". Arrow/Enter/Escape handled by a capture-phase document listener.
 - `DashboardShell` gives all five departments one glass card, one patient banner, and three distinct empty states (connecting spinner / waiting-for-ID / connection-error). Departments other than IT render their form only once a patient ID exists.
@@ -59,7 +59,8 @@ The locked shell is small; the authenticated workspace and each department load 
 
 ## User workflows to preserve
 
-- Reject incomplete/wrong clinic credentials; unlock with a configured demo identity; lock and verify all tab credentials and draft state are cleared.
+- Reject incomplete/wrong clinic credentials; unlock the local mutable flow with a configured synthetic identity; lock and verify all tab credentials and draft state are cleared.
+- Enter the public read-only sample without a credential; visit all six routes; verify fixed synthetic data, disabled write controls, no mutation requests/socket, and Lock cleanup.
 - Create a synthetic ID in IT and verify real Socket.IO delivery to an independent browser context in the same clinic, plus non-delivery to another clinic.
 - Complete IT, ENT, Vision, General, and Dental fields including conditional descriptions, N/A switches, BMI, teeth, and synthetic image add/show/delete.
 - Verify incomplete-form errors, rapid edit retention, clinic-scoped reset, clinic-filtered persistence/list/report access, Patients search/empty/reload, and DOCX download/content.
@@ -81,7 +82,7 @@ The locked shell is small; the authenticated workspace and each department load 
 
 ## CI, packaging, deployment, and rollback
 
-The release gate checks whitespace, builds/lints the Vite frontend, checks Python dependencies and 11 backend tests, starts PostgreSQL/API/frontend through Compose, proves both containers identify the GitHub SHA, records and verifies the complete synthetic workflow, tests 320 px routes and recoverable failures, stops/restarts PostgreSQL, then stops the stack. CI runs that source and Docker workflow; no continuous deployment is configured. Runtime secrets are `DATABASE_URL` plus either the legacy local-demo `HEALTHFLOW_ACCESS_CODE` and fixed default identity, or the multi-identity `HEALTHFLOW_IDENTITIES_JSON` map.
+The release gate checks whitespace, builds/lints the Vite frontend, checks Python dependencies and 15 backend tests, starts PostgreSQL/API/frontend through Compose, proves both containers identify the GitHub SHA, records and verifies the complete synthetic workflow, tests 320 px routes and recoverable failures, stops/restarts PostgreSQL, then stops the stack. CI runs that source and Docker workflow; no continuous deployment is configured. Runtime secrets are `DATABASE_URL` plus either the legacy local-demo `HEALTHFLOW_ACCESS_CODE` and fixed default identity, or the multi-identity `HEALTHFLOW_IDENTITIES_JSON` map.
 
 Deploy the backend first, verify database-aware health and schema initialization, then deploy the frontend with matching API/socket URLs. Backend `/health` and frontend `/release.json` must expose the same expected Git SHA. Rehearse migration, backup, restore, and rollback on a database copy; retain the previous images plus restore instructions.
 
@@ -92,8 +93,8 @@ Deploy the backend first, verify database-aware health and schema initialization
 | Exact Compose contract: all five departments, 62 frame pairs, a fresh synthetic row, DOCX content, 14 workflow + 17 navigation + 12 resilience/accessibility checks | `docs/TESTING.md`, CI artifact, and `docs/verification/*.json` |
 | Three live Socket.IO clients: same-clinic peer received one event; sender and other clinic received zero | `backend/tests/test_access_and_realtime.py` and release evidence |
 | Persisted boundary: each clinic listed only its own synthetic row; cross-clinic report request returned 404 | `backend/tests/test_patient_scope.py` and release evidence |
-| Backend regressions: 11/11, including exact credentials, clinic/user rooms, invalid event rejection, scoped list/report SQL, and DOCX behavior; patched pinned requirements report zero known vulnerabilities under `pip-audit` | `backend/tests`, `backend/requirements.txt`, and per-release audit JSON |
-| Public boundary: gate, safe access failure/recovery, matched frontend/API SHA, database health, 12-request bounded probe, 320 px/CLS | `tools/verify-public.mjs` and per-release `public-smoke-results.json` |
+| Backend regressions: 15/15, including exact credentials, clinic/user rooms, invalid event rejection, isolated-sample behavior, scoped list/report SQL, and DOCX behavior; patched pinned requirements report zero known vulnerabilities under `pip-audit` | `backend/tests`, `backend/requirements.txt`, and per-release audit JSON |
+| Public boundary and sample: gate, safe access failure/recovery, all six read-only routes, zero mutation requests, Lock cleanup, matched frontend/API SHA, database health, 12-request bounded probe, 320 px/CLS | `tools/verify-public.mjs` and per-release `public-smoke-results.json` |
 | Current production-build Lighthouse: mobile/desktop 100 Performance, Accessibility, Best Practices, and SEO; mobile FCP/LCP 1.1 s, TBT 0 ms, CLS 0 | `docs/verification/lighthouse-mobile.json` and `docs/verification/lighthouse-desktop.json` |
 
 The evidence above belongs to its dated run and exact source. It becomes live evidence only after the same commit passes CI, maps to both releases, and passes post-deploy smoke.
@@ -156,7 +157,7 @@ A debounced whole-object write raced with rapid edits and could overwrite or res
 No, and the README/UI say so. The credentials are a fail-closed demo boundary, not SSO/MFA/RBAC/consent/audit/retention/encryption governance. It must only ever receive synthetic data.
 
 **Q. How is first paint kept fast with MUI + sockets in the tree?**
-The AccessGate is a tiny code-split entry; MUI, the Socket.IO client, and each department load as separate Vite chunks only after the code validates. Pinned Lighthouse lab runs score 100 across Performance, Accessibility, Best Practices, and SEO on mobile and desktop.
+The AccessGate is a tiny code-split entry; MUI, the Socket.IO client, and each department load as separate Vite chunks only after authenticated access succeeds or the isolated sample is explicitly selected. Pinned Lighthouse lab runs score 100 across Performance, Accessibility, Best Practices, and SEO on mobile and desktop.
 
 **Q. How do you know a given commit is actually the deployed one?**
 Release integrity maps one Git SHA through CI, both Fly releases, and a post-deploy smoke: the frontend publishes the commit at `/release.json` and the API at `/health`, so a mismatched two-service release fails verification.

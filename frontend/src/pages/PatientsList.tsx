@@ -226,13 +226,13 @@ const PatientsList: React.FC = () => {
           compliance-ready product — no SSO, MFA, consent management, or audit trail.
         </p>
         <div style={{ display: "flex", gap: ".9rem", flexWrap: "wrap", fontSize: ".82rem" }}>
-          <a href="https://healthflow-abheet19.fly.dev" target="_blank" rel="noopener noreferrer" style={{ color: "rgb(var(--hf-accent))", textDecoration: "none" }}>
+          <a className="hf-project-link" href="https://healthflow-abheet19.fly.dev" target="_blank" rel="noopener noreferrer">
             Live workspace ↗
           </a>
-          <a href="https://github.com/abheet19/HealthFlow" target="_blank" rel="noopener noreferrer" style={{ color: "rgb(var(--hf-accent))", textDecoration: "none" }}>
+          <a className="hf-project-link" href="https://github.com/abheet19/HealthFlow" target="_blank" rel="noopener noreferrer">
             Source on GitHub ↗
           </a>
-          <a href="https://github.com/abheet19" target="_blank" rel="noopener noreferrer" style={{ color: "rgb(var(--hf-accent))", textDecoration: "none" }}>
+          <a className="hf-project-link" href="https://github.com/abheet19" target="_blank" rel="noopener noreferrer">
             More from abheet19 ↗
           </a>
         </div>

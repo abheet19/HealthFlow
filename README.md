@@ -1,5 +1,5 @@
 > [!IMPORTANT]
-> **Demonstration workspace only.** HealthFlow validates a configured clinic ID, user ID, and secret before its API or realtime channel can be used, then scopes stored rows, reports, and Socket.IO events to the authenticated clinic. It is for **synthetic** demonstration records only: do **not** enter real patient, school, employee, or health information. These configured credentials are not SSO, MFA, roles, consent, audit, retention, an encryption program, or a clinical compliance review.
+> **Demonstration workspace only.** The public site opens an isolated, read-only sample without credentials. HealthFlow's writable local flow validates a configured clinic ID, user ID, and secret before its API or realtime channel can be used, then scopes stored rows, reports, and Socket.IO events to the authenticated clinic. Use **synthetic** records only: do **not** enter real patient, school, employee, or health information. These controls are not SSO, MFA, roles, consent, audit, retention, an encryption program, or a clinical compliance review.
 
 <div align="center">
 
@@ -34,14 +34,14 @@ manual reconciliation.
 
 ### ▶ &nbsp;[**Try the live demo →**](https://healthflow-abheet19.fly.dev)
 
-<sub>Clinic **`demo`** · User **`demo-user`** · Access code **`healthflow-demo-2026`** &nbsp;•&nbsp; synthetic data only</sub>
+<sub>Choose <b>View read-only demo</b> &nbsp;•&nbsp; no credential required &nbsp;•&nbsp; fixed synthetic data only</sub>
 
 <br>
 
 ![HealthFlow demo reel](docs/media/healthflow-demo.gif)
 
-<sub><b>Recorded against the live deployment.</b> Unlock the clinic AccessGate → register a patient (a real
-server-generated ID) → jump with the ⌘K command palette → fill the dense vitals surface → switch dashboards.<br>
+<sub><b>Full-workflow demonstration.</b> The reel shows the authenticated synthetic workflow: register a patient,
+jump with the ⌘K command palette, fill the dense vitals surface, and switch dashboards. The public entry shown above is read-only.<br>
 ▶ <a href="docs/media/healthflow-reel.mp4">Watch the crisp 60&nbsp;fps MP4</a> · <sub>A personal project by <b><a href="https://github.com/abheet19">Abheet</a></b>.</sub></sub>
 
 </div>
@@ -76,14 +76,15 @@ is generated from a template and offered from the patients list.
 |---|---|
 | ![General vitals](docs/media/shot-general-vitals.png) | ![Dental](docs/media/shot-dental.png) |
 
-**Walk the flow yourself** on [the live site](https://healthflow-abheet19.fly.dev) with the demo
-credentials above:
+**Walk the safe public flow yourself** on [the live site](https://healthflow-abheet19.fly.dev):
 
-1. **Unlock** — clinic `demo`, user `demo-user`, code `healthflow-demo-2026` → *Open workspace*.
-2. **IT** — *Register Patient* mints a server-side ID; fill the intake and the right-rail summary fills live.
-3. **⌘K** (or *Jump to…*) — the command palette jumps you to any department, the active draft, or *Lock*.
-4. **General / Dental / ENT / Vision** — height + weight auto-compute **BMI**; every field patch broadcasts instantly.
-5. **Patients List** — search the clinic's rows and download the generated **Word report**.
+1. **Enter the sample** — choose *View read-only demo*. No account or access code is stored.
+2. **Tour every station** — use the sidebar for IT, ENT, Vision, General, Dental, and Patients List. The seeded Aarav Sample draft stays visible while every write control remains disabled.
+3. **⌘K** (or *Jump to…*) — filter destinations, open the active sample, or choose *Lock workspace*.
+4. **Patients List** — inspect and search three fixed synthetic examples. Report generation stays disabled in the public sample.
+5. **Lock** — leave the workspace and clear the session-only sample draft.
+
+The complete mutable workflow—patient registration, same-clinic realtime handoff, validation, final submission, persistence, and Word-report download—runs in the isolated Docker quick start below with synthetic data.
 
 > The live machines auto-stop when idle (Fly scale-to-zero), so the first request after a quiet spell
 > cold-starts for a few seconds — the reel's capture script waits for `/health` before recording.
@@ -154,8 +155,8 @@ sections validate.
 **Document generation.** The stored record fills a `.docx` template via `docxtpl`/`python-docx`; CI
 asserts the package structure and content of the generated report, not just that a file came back.
 
-**Code-split first paint.** The public AccessGate ships as a tiny locked entry chunk; Material UI, the
-Socket.IO client, and the department routes load only *after* the code validates — the authenticated
+**Code-split first paint.** The public AccessGate ships as a small entry chunk; Material UI, the
+Socket.IO client, and the department routes load only after access is chosen — the authenticated
 `WorkspaceApp` and each department are separate Vite chunks. Pinned Lighthouse lab runs score
 **100 / 100 / 100 / 100** on mobile and desktop.
 
@@ -258,22 +259,25 @@ HealthFlow/
 
 ## 🎬 Regenerating the demo reel
 
-The reel at the top is a Playwright script driving the **live** deployment through the real showcase
-flow, captured to `.webm`, then interpolated by ffmpeg to a smooth **60 fps** MP4 plus a looping GIF:
+The reel at the top is generated by a Playwright script driving an **isolated local stack** through the
+authenticated showcase flow, captured to `.webm`, then interpolated by ffmpeg to a smooth **60 fps**
+MP4 plus a looping GIF:
 
 ```bash
 cd tools
 npm install
 npx playwright install chromium
-# Targets the live site by default; override with HEALTHFLOW_URL / _API_URL / _ACCESS_CODE.
+# Targets the local Compose stack by default; override with HEALTHFLOW_URL / _API_URL / _ACCESS_CODE.
+# Remote capture requires HEALTHFLOW_ALLOW_REMOTE_CAPTURE=1 plus an explicit access code.
 # ffmpeg is auto-detected (PATH, then the winget path); or set FFMPEG=/path/to/ffmpeg.
 node capture-reel60.mjs
 # → docs/media/healthflow-reel.mp4 (1280×800, 60 fps, ~1.4 MB)
 # → docs/media/healthflow-demo.gif (~680 px, looping, ~4 MB)
 ```
 
-`record-demo.mjs` remains the older **local-only** two-context recorder (it rejects remote URLs and
-writes a synthetic `Demo Patient` row); `capture-reel60.mjs` is the live-site reel used above.
+`record-demo.mjs` is the two-context collaboration recorder; it rejects remote URLs and writes a
+synthetic `Demo Patient` row. `capture-reel60.mjs` creates the focused reel shown above and is also
+local-first; no deployed credential is stored in either script.
 
 The latest measured checks, exact commands, deployment model and known limits are in
 [the testing artifact](docs/TESTING.md). Production npm audits and the patched backend requirements
