@@ -11,15 +11,7 @@
     <link
       href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=optional"
       rel="stylesheet"
-      media="print"
-      onload="this.media='all'"
     />
-    <noscript>
-      <link
-        href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=optional"
-        rel="stylesheet"
-      />
-    </noscript>
     <title>HealthFlow</title>
     <!-- A small branded first paint while the application stylesheet loads. -->
     <style id="access-gate-prepaint-styles">
@@ -81,17 +73,7 @@
       </section>
     </div>
     <div id="root" aria-hidden="true"></div>
-    <script>
-      try {
-        const unlocked = sessionStorage.getItem('healthflow-access-code')
-          && sessionStorage.getItem('healthflow-clinic-id')
-          && sessionStorage.getItem('healthflow-user-id');
-        if (unlocked) {
-          document.getElementById('access-gate-prepaint').hidden = true;
-          document.getElementById('root').removeAttribute('aria-hidden');
-        }
-      } catch {}
-    </script>
+    <script src="/prepaint.js"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
