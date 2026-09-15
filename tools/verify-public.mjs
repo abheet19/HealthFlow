@@ -45,6 +45,13 @@ page.on("request", request => {
 try {
   const response = await page.goto(frontend, { waitUntil: "networkidle", timeout: 45_000 });
   assert.equal(response?.status(), 200);
+  const frontendHeaders = response?.headers() || {};
+  assert.match(frontendHeaders["content-security-policy"] || "", /frame-ancestors 'none'/);
+  assert.equal(frontendHeaders["x-content-type-options"], "nosniff");
+  assert.equal(frontendHeaders["x-frame-options"], "DENY");
+  assert.equal(frontendHeaders["referrer-policy"], "no-referrer");
+  assert.match(frontendHeaders["cache-control"] || "", /no-store/);
+  checks.push("public frontend sends explicit browser security and HTML cache headers");
   await page.getByRole("heading", { name: "Open a clinic workspace", exact: true }).waitFor();
   await page.getByLabel("Workspace access code").waitFor();
   checks.push("public frontend serves the access gate");
@@ -90,6 +97,10 @@ try {
   if (expectedRevision) assert.equal(healthBody.release, expectedRevision);
   assert.ok(health.headers()["x-request-id"]);
   assert.match(health.headers()["server-timing"] || "", /^app;dur=/);
+  assert.equal(health.headers()["x-content-type-options"], "nosniff");
+  assert.equal(health.headers()["x-frame-options"], "DENY");
+  assert.equal(health.headers()["referrer-policy"], "no-referrer");
+  assert.match(health.headers()["cache-control"] || "", /no-store/);
   checks.push("frontend and database-aware API expose the same expected Git revision");
 
   const loadSamples = await Promise.all(Array.from({ length: 12 }, async () => {

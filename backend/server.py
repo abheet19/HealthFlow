@@ -129,6 +129,10 @@ def record_request_measurement(response):
     elapsed_ms = (time.perf_counter() - g.request_started_at) * 1000
     response.headers["X-Request-ID"] = g.request_id
     response.headers["Server-Timing"] = f"app;dur={elapsed_ms:.1f}"
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
     log = logging.debug if request.path == "/health" else logging.info
     log(
         "http request_id=%s method=%s path=%s status=%s duration_ms=%.1f",

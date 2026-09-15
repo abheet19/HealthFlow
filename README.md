@@ -239,6 +239,7 @@ npm run dev
 - **Live-computed vitals** — height + weight auto-compute BMI with a category chip; per-field patches broadcast instantly.
 - **Bounded browser payload** — the AccessGate, workspace, and each department are separate route chunks.
 - **Operational signals, zero patient payloads** — correlation IDs, `Server-Timing`, DB-aware `/health`.
+- **Explicit browser boundary** — CSP, frame denial, MIME sniffing protection, no-referrer policy, and no-store HTML/API responses are verified by the release smoke.
 - **Keyboard & phone-width access** — skip link, named controls, exposed toggle state, one main landmark + heading per route, every destination checked at 320 px.
 
 ---
