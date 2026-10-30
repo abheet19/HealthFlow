@@ -1,12 +1,28 @@
 {
-  "at": "2026-09-10T03:44:24.552Z",
+  "at": "2026-09-21T20:17:16.104Z",
   "environment": "deployed Fly frontend and backend; unauthenticated boundary only",
+  "release": "81c4816e38c3c052b1b8ac02c02ab5c265d63905",
   "checks": [
+    "public frontend sends explicit browser security and HTML cache headers",
     "public frontend serves the access gate",
-    "empty access code is rejected in the browser",
-    "invalid code is rejected by the deployed backend and is not stored",
-    "deployed health probe verifies PostgreSQL and exposes safe timing headers"
+    "frontend exposes an immutable Git release identity",
+    "empty workspace credentials are rejected in the browser",
+    "transport failure shows a bounded loading state and safe retry message",
+    "access recovers after transport failure and the backend rejects an invalid secret",
+    "frontend and database-aware API expose the same expected Git revision",
+    "12-request bounded health probe stays below the 5s p95 release budget",
+    "credential-free public sample opens with a clearly labelled synthetic draft",
+    "all six public sample routes are mechanically read-only and issue no mutation request",
+    "Lock clears the sample session and returns to the access gate",
+    "320px access gate has no page overflow and all controls meet the 24px target floor"
   ],
+  "metrics": {
+    "cumulativeLayoutShift": 0,
+    "domContentLoadedMs": 102.1,
+    "firstContentfulPaintMs": 136,
+    "concurrentHealthRequests": 12,
+    "healthP95Ms": 331
+  },
   "expectedHttpFailures": [
     {
       "status": 401,
